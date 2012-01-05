@@ -1,0 +1,6 @@
+C:\Documents and Settings\Llew Stephens\Desktop\TShock Plugins\Essentials\RELEASE\TShockPluginTemplate.dll
+C:\Documents and Settings\Llew Stephens\Desktop\TShock Plugins\Essentials\TShockPluginTemplate\obj\Release\ResolveAssemblyReference.cache
+C:\Documents and Settings\Llew Stephens\Desktop\TShock Plugins\Essentials\TShockPluginTemplate\obj\Release\TShockPluginTemplate.dll
+C:\Users\42373\Documents\Programming\TShock Plugins\Essentials\RELEASE\TShockPluginTemplate.dll
+C:\Users\42373\Documents\Programming\TShock Plugins\Essentials\TShockPluginTemplate\obj\Release\ResolveAssemblyReference.cache
+C:\Users\42373\Documents\Programming\TShock Plugins\Essentials\TShockPluginTemplate\obj\Release\TShockPluginTemplate.dll

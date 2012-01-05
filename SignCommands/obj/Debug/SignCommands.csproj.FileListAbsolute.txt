@@ -1,0 +1,12 @@
+C:\Users\42373\Documents\Programming\TShock Plugins\Sign Commands\Bin\Debug\PluginTemplate\SignCommands.dll
+C:\Users\42373\Documents\Programming\TShock Plugins\Sign Commands\Bin\Debug\PluginTemplate\SignCommands.pdb
+C:\Users\42373\Documents\Programming\TShock Plugins\Sign Commands\SignCommands\obj\Debug\ResolveAssemblyReference.cache
+C:\Users\42373\Documents\Programming\TShock Plugins\Sign Commands\SignCommands\obj\Debug\SignCommands.dll
+C:\Users\42373\Documents\Programming\TShock Plugins\Sign Commands\SignCommands\obj\Debug\SignCommands.pdb
+C:\Users\42373\Documents\Programming\TShock Plugins\Sign Commands\RELEASE\SignCommands.dll
+C:\Users\42373\Documents\Programming\TShock Plugins\Sign Commands\RELEASE\SignCommands.pdb
+C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\Compiled\SignCommands.dll
+C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\Compiled\SignCommands.pdb
+C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\ResolveAssemblyReference.cache
+C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\SignCommands.dll
+C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\SignCommands.pdb

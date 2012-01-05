@@ -1,0 +1,4 @@
+C:\Users\42373\Documents\Programming\TShock Plugins\Sign Commands\TShockPluginTemplate\obj\Release\ResolveAssemblyReference.cache
+C:\Users\42373\Documents\Programming\TShock Plugins\Sign Commands\Bin\Release\PluginTemplate\SignCommands.dll
+C:\Users\42373\Documents\Programming\TShock Plugins\Sign Commands\TShockPluginTemplate\obj\Release\SignCommands.dll
+C:\Users\42373\Documents\Programming\TShock Plugins\Sign Commands\RELEASE\SignCommands.dll
