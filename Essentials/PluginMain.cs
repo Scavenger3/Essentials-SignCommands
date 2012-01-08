@@ -81,27 +81,25 @@ namespace Essentials
             Commands.ChatCommands.Add(new Command("tp", tp, "btp"));
             Commands.ChatCommands.Add(new Command("tp", Home, "bhome"));
             Commands.ChatCommands.Add(new Command("tp", Spawn, "bspawn"));
-            Commands.ChatCommands.Add(new Command("backontp", back, "back"));
+            Commands.ChatCommands.Add(new Command("backontp", back, "b"));
         }
 
         public void OnUpdate()
         {
             foreach (esPlayer play in esPlayers)
             {
-                if (play.TSPlayer.Dead)
+                if (play.TSPlayer.Dead && !play.ondeath && play != null)
                 {
                     play.lastXondeath = play.TSPlayer.TileX;
                     play.lastYondeath = play.TSPlayer.TileY;
-                    if (play.grpData.HasPermission("backondeath") && !play.toldondeath)
-                    {
-                        play.SendMessage("Type \"/back\" to return to your position before you died", Color.MediumSeaGreen);
-                        play.toldondeath = true;
-                    }
+                    if (play.grpData.HasPermission("backondeath") && !play.ondeath)
+                        play.SendMessage("Type \"/b\" to return to your position before you died", Color.MediumSeaGreen);
+                    play.ondeath = true;
                     play.lastaction = "death";
                 }
-                if (!play.TSPlayer.Dead && play.toldondeath)
+                if (!play.TSPlayer.Dead && play.ondeath && play != null)
                 {
-                    play.toldondeath = false;
+                    play.ondeath = false;
                 }
             }
         }
@@ -226,7 +224,6 @@ namespace Essentials
         public static void suicide(CommandArgs args)
         {
             args.Player.DamagePlayer(9999);
-            TShock.Utils.Broadcast(args.Player.Name + " Decided it wasnt worth living", Color.MediumSeaGreen);
         }
 
         public static void burn(CommandArgs args)
@@ -534,7 +531,7 @@ namespace Essentials
                 {
                     if (play.lastaction == "none")
                     {
-                        args.Player.SendMessage("You do not have a /back position stored", Color.MediumSeaGreen);
+                        args.Player.SendMessage("You do not have a /b position stored", Color.MediumSeaGreen);
                     }
                     else if (play.lastaction == "death" && play.grpData.HasPermission("backondeath"))
                     {
@@ -552,7 +549,7 @@ namespace Essentials
                     }
                     else if (play.lastaction == "death" && !play.grpData.HasPermission("backondeath"))
                     {
-                        args.Player.SendMessage("You do not have permission to /back after death", Color.MediumSeaGreen);
+                        args.Player.SendMessage("You do not have permission to /b after death", Color.MediumSeaGreen);
                     }
                 }
             }
@@ -571,7 +568,7 @@ namespace Essentials
         public int lastXondeath = 0;
         public int lastYondeath = 0;
         public string lastaction = "none";
-        public bool toldondeath = false;
+        public bool ondeath = false;
 
         public esPlayer(int index)
         {
