@@ -55,7 +55,7 @@ namespace Essentials
                 GameHooks.Initialize -= OnInitialize;
                 NetHooks.GreetPlayer -= OnGreetPlayer;
                 ServerHooks.Leave -= OnLeave;
-                ServerHooks.Chat -= OnChat;
+                ServerHooks.Chat -= OnChat;                
             }
             base.Dispose(disposing);
         }
@@ -82,6 +82,7 @@ namespace Essentials
             Commands.ChatCommands.Add(new Command("tp", Home, "bhome"));
             Commands.ChatCommands.Add(new Command("tp", Spawn, "bspawn"));
             Commands.ChatCommands.Add(new Command("backontp", back, "b"));
+            Commands.ChatCommands.Add(new Command("convertbiomes", cbiome, "cbiome", "bconvert"));
         }
 
         public void OnUpdate()
@@ -94,15 +95,13 @@ namespace Essentials
                     {
                         play.lastXondeath = play.TSPlayer.TileX;
                         play.lastYondeath = play.TSPlayer.TileY;
-                        if (play.grpData.HasPermission("backondeath") && !play.ondeath)
+                        if (play.grpData.HasPermission("backondeath"))
                             play.SendMessage("Type \"/b\" to return to your position before you died", Color.MediumSeaGreen);
                         play.ondeath = true;
                         play.lastaction = "death";
                     }
-                    if (!play.TSPlayer.Dead && play.ondeath)
-                    {
+                    else if (!play.TSPlayer.Dead && play.ondeath)
                         play.ondeath = false;
-                    }
                 }
             }
             catch (Exception ex)
@@ -558,6 +557,279 @@ namespace Essentials
                     {
                         args.Player.SendMessage("You do not have permission to /b after death", Color.MediumSeaGreen);
                     }
+                }
+            }
+        }
+
+        public static void cbiome(CommandArgs args)
+        {
+            if (args.Parameters.Count < 2 || args.Parameters.Count > 3)
+            {
+                args.Player.SendMessage("Usage: /cbiome <from> <to> [region]", Color.IndianRed);
+                return;
+            }
+
+            string from = args.Parameters[0].ToLower();
+            string to = args.Parameters[1].ToLower();
+            string region = "";
+            var regiondata = TShock.Regions.GetRegionByName("");
+            bool doregion = false;
+
+            if (args.Parameters.Count == 3)
+            {
+                region = args.Parameters[2];
+                if (TShock.Regions.ZacksGetRegionByName(region) != null)
+                {
+                    doregion = true;
+                    regiondata = TShock.Regions.GetRegionByName(region);
+                }
+            }
+
+
+            if (from == "normal")
+            {
+                if (!doregion)
+                    args.Player.SendMessage("You must specify a valid region to convert a normal biome.", Color.IndianRed);
+                else if (to == "normal")
+                    args.Player.SendMessage("You cannot convert Normal to Normal.", Color.IndianRed);
+                else if (to == "hallow" && doregion)
+                {
+                    args.Player.SendMessage("Server might lag for a moment.", Color.MediumSeaGreen);
+                    for (int x = 0; x < Main.maxTilesX; x++)
+                    {
+                        for (int y = 0; y < Main.maxTilesY; y++)
+                        {
+                            if (!doregion || (doregion && x >= regiondata.Area.Left && x <= regiondata.Area.Right && y >= regiondata.Area.Top && y <= regiondata.Area.Bottom))
+                            {
+                                switch (Main.tile[x, y].type)
+                                {
+                                    case 1:
+                                        Main.tile[x, y].type = 117;
+                                        break;
+                                    case 2:
+                                        Main.tile[x, y].type = 109;
+                                        break;
+                                    case 53:
+                                        Main.tile[x, y].type = 116;
+                                        break;
+                                    case 3:
+                                        Main.tile[x, y].type = 110;
+                                        break;
+                                    case 73:
+                                        Main.tile[x, y].type = 113;
+                                        break;
+                                    case 52:
+                                        Main.tile[x, y].type = 115;
+                                        break;
+                                    default:
+                                        continue;
+                                }
+                            }
+                        }
+                    }
+                    WorldGen.CountTiles(0);
+                    TSPlayer.All.SendData(PacketTypes.UpdateGoodEvil);
+                    Netplay.ResetSections();
+                    args.Player.SendMessage("Converted Normal into Hallow!", Color.MediumSeaGreen);
+                }
+                else if (to == "corruption" && doregion)
+                {
+                    args.Player.SendMessage("Server might lag for a moment.", Color.MediumSeaGreen);
+                    for (int x = 0; x < Main.maxTilesX; x++)
+                    {
+                        for (int y = 0; y < Main.maxTilesY; y++)
+                        {
+                            if (!doregion || (doregion && x >= regiondata.Area.Left && x <= regiondata.Area.Right && y >= regiondata.Area.Top && y <= regiondata.Area.Bottom))
+                            {
+                                switch (Main.tile[x, y].type)
+                                {
+                                    case 1:
+                                        Main.tile[x, y].type = 25;
+                                        break;
+                                    case 2:
+                                        Main.tile[x, y].type = 23;
+                                        break;
+                                    case 53:
+                                        Main.tile[x, y].type = 112;
+                                        break;
+                                    case 3:
+                                        Main.tile[x, y].type = 24;
+                                        break;
+                                    case 73:
+                                        Main.tile[x, y].type = 24;
+                                        break;
+                                    default:
+                                        continue;
+                                }
+                            }
+                        }
+                    }
+                    WorldGen.CountTiles(0);
+                    TSPlayer.All.SendData(PacketTypes.UpdateGoodEvil);
+                    Netplay.ResetSections();
+                    args.Player.SendMessage("Converted Normal into Corruption!", Color.MediumSeaGreen);
+                }
+            }
+            else if (from == "hallow")
+            {
+                if (to == "hallow")
+                    args.Player.SendMessage("You cannot convert Hallow to hallow.", Color.IndianRed);
+                else if (to == "corruption")
+                {
+                    args.Player.SendMessage("Server might lag for a moment.", Color.MediumSeaGreen);
+                    for (int x = 0; x < Main.maxTilesX; x++)
+                    {
+                        for (int y = 0; y < Main.maxTilesY; y++)
+                        {
+                            if (!doregion || (doregion && x >= regiondata.Area.Left && x <= regiondata.Area.Right && y >= regiondata.Area.Top && y <= regiondata.Area.Bottom))
+                            {
+                                switch (Main.tile[x, y].type)
+                                {
+                                    case 117:
+                                        Main.tile[x, y].type = 25;
+                                        break;
+                                    case 109:
+                                        Main.tile[x, y].type = 23;
+                                        break;
+                                    case 116:
+                                        Main.tile[x, y].type = 112;
+                                        break;
+                                    case 110:
+                                        Main.tile[x, y].type = 24;
+                                        break;
+                                    case 113:
+                                        Main.tile[x, y].type = 24;
+                                        break;
+                                    case 115:
+                                        Main.tile[x, y].type = 52;
+                                        break;
+                                    default:
+                                        continue;
+                                }
+                            }
+                        }
+                    }
+                    WorldGen.CountTiles(0);
+                    TSPlayer.All.SendData(PacketTypes.UpdateGoodEvil);
+                    Netplay.ResetSections();
+                    args.Player.SendMessage("Converted Hallow into Corruption!", Color.MediumSeaGreen);
+                }
+                else if (to == "normal")
+                {
+                    args.Player.SendMessage("Server might lag for a moment.", Color.MediumSeaGreen);
+                    for (int x = 0; x < Main.maxTilesX; x++)
+                    {
+                        for (int y = 0; y < Main.maxTilesY; y++)
+                        {
+                            if (!doregion || (doregion && x >= regiondata.Area.Left && x <= regiondata.Area.Right && y >= regiondata.Area.Top && y <= regiondata.Area.Bottom))
+                            {
+                                switch (Main.tile[x, y].type)
+                                {
+                                    case 117:
+                                        Main.tile[x, y].type = 1;
+                                        break;
+                                    case 109:
+                                        Main.tile[x, y].type = 2;
+                                        break;
+                                    case 116:
+                                        Main.tile[x, y].type = 53;
+                                        break;
+                                    case 110:
+                                        Main.tile[x, y].type = 3;
+                                        break;
+                                    case 113:
+                                        Main.tile[x, y].type = 73;
+                                        break;
+                                    case 115:
+                                        Main.tile[x, y].type = 52;
+                                        break;
+                                    default:
+                                        continue;
+                                }
+                            }
+                        }
+                    }
+                    WorldGen.CountTiles(0);
+                    TSPlayer.All.SendData(PacketTypes.UpdateGoodEvil);
+                    Netplay.ResetSections();
+                    args.Player.SendMessage("Converted Hallow into Normal!", Color.MediumSeaGreen);
+                }
+            }
+            else if (from == "corruption")
+            {
+                if (to == "corruption")
+                    args.Player.SendMessage("You cannot convert Corruption to Corruption.", Color.IndianRed);
+                else if (to == "hallow")
+                {
+                    args.Player.SendMessage("Server might lag for a moment.", Color.MediumSeaGreen);
+                    for (int x = 0; x < Main.maxTilesX; x++)
+                    {
+                        for (int y = 0; y < Main.maxTilesY; y++)
+                        {
+                            if (!doregion || (doregion && x >= regiondata.Area.Left && x <= regiondata.Area.Right && y >= regiondata.Area.Top && y <= regiondata.Area.Bottom))
+                            {
+                                switch (Main.tile[x, y].type)
+                                {
+                                    case 25:
+                                        Main.tile[x, y].type = 117;
+                                        break;
+                                    case 23:
+                                        Main.tile[x, y].type = 109;
+                                        break;
+                                    case 112:
+                                        Main.tile[x, y].type = 116;
+                                        break;
+                                    case 24:
+                                        Main.tile[x, y].type = 110;
+                                        break;
+                                    default:
+                                        continue;
+                                }
+                            }
+                        }
+                    }
+                    WorldGen.CountTiles(0);
+                    TSPlayer.All.SendData(PacketTypes.UpdateGoodEvil);
+                    Netplay.ResetSections();
+                    args.Player.SendMessage("Converted Corruption into Hallow!", Color.MediumSeaGreen);
+                }
+                else if (to == "normal")
+                {
+                    args.Player.SendMessage("Server might lag for a moment.", Color.MediumSeaGreen);
+                    for (int x = 0; x < Main.maxTilesX; x++)
+                    {
+                        for (int y = 0; y < Main.maxTilesY; y++)
+                        {
+                            if (!doregion || (doregion && x >= regiondata.Area.Left && x <= regiondata.Area.Right && y >= regiondata.Area.Top && y <= regiondata.Area.Bottom))
+                            {
+                                switch (Main.tile[x, y].type)
+                                {
+                                    case 25:
+                                        Main.tile[x, y].type = 1;
+                                        break;
+                                    case 23:
+                                        Main.tile[x, y].type = 2;
+                                        break;
+                                    case 112:
+                                        Main.tile[x, y].type = 53;
+                                        break;
+                                    case 24:
+                                        Main.tile[x, y].type = 3;
+                                        break;
+                                    default:
+                                        continue;
+                                }
+                            }
+                        }
+                    }
+                    WorldGen.CountTiles(0);
+                    TSPlayer.All.SendData(PacketTypes.UpdateGoodEvil);
+                    Netplay.ResetSections();
+                    args.Player.SendMessage("Converted Corruption into Normal!", Color.MediumSeaGreen);
+                }
+                else
+                {
+                    args.Player.SendMessage("Error, Useable values: Hallow, Corruption, Normal", Color.IndianRed);
                 }
             }
         }
