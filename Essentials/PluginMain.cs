@@ -86,21 +86,28 @@ namespace Essentials
 
         public void OnUpdate()
         {
-            foreach (esPlayer play in esPlayers)
+            try
             {
-                if (play.TSPlayer.Dead && !play.ondeath && play != null)
+                foreach (esPlayer play in esPlayers)
                 {
-                    play.lastXondeath = play.TSPlayer.TileX;
-                    play.lastYondeath = play.TSPlayer.TileY;
-                    if (play.grpData.HasPermission("backondeath") && !play.ondeath)
-                        play.SendMessage("Type \"/b\" to return to your position before you died", Color.MediumSeaGreen);
-                    play.ondeath = true;
-                    play.lastaction = "death";
+                    if (play.TSPlayer.Dead && !play.ondeath)
+                    {
+                        play.lastXondeath = play.TSPlayer.TileX;
+                        play.lastYondeath = play.TSPlayer.TileY;
+                        if (play.grpData.HasPermission("backondeath") && !play.ondeath)
+                            play.SendMessage("Type \"/b\" to return to your position before you died", Color.MediumSeaGreen);
+                        play.ondeath = true;
+                        play.lastaction = "death";
+                    }
+                    if (!play.TSPlayer.Dead && play.ondeath)
+                    {
+                        play.ondeath = false;
+                    }
                 }
-                if (!play.TSPlayer.Dead && play.ondeath && play != null)
-                {
-                    play.ondeath = false;
-                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
             }
         }
 

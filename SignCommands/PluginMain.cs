@@ -87,7 +87,7 @@ namespace SignCommands
                 switch (e.MsgID)
                 {
 
-                    #region On Hit tile but not kill!
+                    #region On Hit
                     case PacketTypes.Tile:
                     using (var data = new MemoryStream(e.Msg.readBuffer, e.Index, e.Length))
                     {
@@ -134,7 +134,7 @@ namespace SignCommands
                     break;
                     #endregion
 
-                    #region On Kill Tile
+                    #region On Kill
                     case PacketTypes.TileKill:
                     using (var data = new MemoryStream(e.Msg.readBuffer, e.Index, e.Length))
                     {
@@ -195,7 +195,7 @@ namespace SignCommands
             }
         }
 
-        #region SIGN COMMANDS!
+        #region Do Commands
         public static void dosigncmd(int id, TSPlayer tplayer)
         {
             if (tplayer.Group.HasPermission("usesigntime"))
@@ -306,7 +306,7 @@ namespace SignCommands
                     NPC npc = TShock.Utils.GetNPCById(50);
                     TSPlayer.Server.SpawnNPC(npc.type, npc.name, 1, tplayer.TileX, tplayer.TileY);
                 }
-                else if (Main.sign[id].text.ToLower().Contains("boss skeletron"))
+                else if (Main.sign[id].text.ToLower().Contains("boss skeletron") && !Main.sign[id].text.ToLower().Contains("boss skeletronprime"))
                 {
                     NPC npc = TShock.Utils.GetNPCById(35);
                     TSPlayer.Server.SetTime(false, 0.0);
@@ -352,6 +352,66 @@ namespace SignCommands
                 else
                     timestold++;
             }
+
+            if (tplayer.Group.HasPermission("usesignwarp"))
+            {
+                string[] linesplit = Main.sign[id].text.Split('\'', '\"');
+                if (Main.sign[id].text.ToLower().Contains("warp"))
+                {
+                    var warpxy = TShock.Warps.FindWarp(linesplit[1]);
+
+                    if (warpxy.WarpName == "")
+                        tplayer.SendMessage("Could not find warp!", Color.IndianRed);
+                    else
+                        tplayer.Teleport((int)warpxy.WarpPos.X, (int)warpxy.WarpPos.Y);
+                }
+            }
+            else
+            {
+                if (timestold == 15)
+                {
+                    tplayer.SendMessage("You do not have permission to use this sign command!", Color.IndianRed);
+                    timestold = 0;
+                }
+                else
+                    timestold++;
+            }
+
+            //if (tplayer.Group.HasPermission("usesignshop"))
+            //{
+                //string[] shopsplit = Main.sign[id].text.Split('\'', '\"');
+                //if (Main.sign[id].text.ToLower().Contains("shop"))
+                //{
+                    //string[] shopbuy = shopsplit[1].Split(' ');
+
+                    //int buya = 0;
+                    //bool buyanum = int.TryParse(shopbuy[0], out buya);
+                    //if (!buyanum)
+                        //buya = 1;
+
+                    //string buyis = "";
+                    //foreach (string itmpart in shopbuy)
+                    //{
+                        //buyis = buyis + itmpart + " ";
+                    //}
+                    
+                    
+                    //[Sign Shop]
+                    //Buy: "25 Glass"
+                    //For: "15 Shards"
+                    
+                //}
+            //}
+            //else
+            //{
+                //if (timestold == 15)
+                //{
+                    //tplayer.SendMessage("You do not have permission to use this sign command!", Color.IndianRed);
+                    //timestold = 0;
+                //}
+                //else
+                    //timestold++;
+            //}
         }
         #endregion
     }
