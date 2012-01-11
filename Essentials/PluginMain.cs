@@ -99,29 +99,13 @@ namespace Essentials
             Commands.ChatCommands.Add(new Command("backontp", back, "b"));
             Commands.ChatCommands.Add(new Command("convertbiomes", cbiome, "cbiome", "bconvert"));
             Commands.ChatCommands.Add(new Command("searchids", sitems, "sitem", "si", "searchitem"));
-            Commands.ChatCommands.Add(new Command("searchids", spage, "spage"));
+            Commands.ChatCommands.Add(new Command("searchids", spage, "spage", "sp"));
             Commands.ChatCommands.Add(new Command("searchids", snpcs, "snpc", "sn", "searchnpc"));
             Commands.ChatCommands.Add(new Command("myhome", setmyhome, "sethome"));
             Commands.ChatCommands.Add(new Command("myhome", gomyhome, "myhome"));
         }
 
-        #region Get Item List
-        public static List<Item> GetItemByIdOrName(string idOrName)
-        {
-            int type = -1;
-            if (int.TryParse(idOrName, out type))
-            {
-                return new List<Item> { GetItemById(type) };
-            }
-            return GetItemByName(idOrName);
-        }
-
-        public static Item GetItemById(int id)
-        {
-            Item item = new Item();
-            item.netDefaults(id);
-            return item;
-        }
+        #region Get Lists
 
         public static List<Item> GetItemByName(string name)
         {
@@ -132,33 +116,12 @@ namespace Essentials
                 {
                     Item item = new Item();
                     item.netDefaults(i);
-                    if (item.name.ToLower() == name.ToLower())
-                        return new List<Item> { item };
                     if (item.name.ToLower().Contains(name.ToLower()))
                         found.Add(item);
                 }
                 catch { }
             }
             return found;
-        }
-        #endregion
-
-        #region Get NPC List
-        public static List<NPC> GetNPCByIdOrName(string idOrName)
-        {
-            int type = -1;
-            if (int.TryParse(idOrName, out type))
-            {
-                return new List<NPC> { GetNPCById(type) };
-            }
-            return GetNPCByName(idOrName);
-        }
-
-        public static NPC GetNPCById(int id)
-        {
-            NPC npc = new NPC();
-            npc.netDefaults(id);
-            return npc;
         }
 
         public static List<NPC> GetNPCByName(string name)
@@ -168,8 +131,6 @@ namespace Essentials
             {
                 NPC npc = new NPC();
                 npc.netDefaults(i);
-                if (npc.name.ToLower() == name.ToLower())
-                    return new List<NPC> { npc };
                 if (npc.name.ToLower().Contains(name.ToLower()))
                     found.Add(npc);
             }
@@ -938,7 +899,7 @@ namespace Essentials
         #region show search
         public static void BCsearchitem(CommandArgs args, List<Item> list, int page)
         {
-            args.Player.SendMessage("Item Search:", Color.RoyalBlue);
+            args.Player.SendMessage("Item Search:", Color.Yellow);
             var sb = new StringBuilder();
             if (list.Count > (8 * (page - 1)))
             {
@@ -967,7 +928,7 @@ namespace Essentials
 
         public static void BCsearchnpc(CommandArgs args, List<NPC> list, int page)
         {
-            args.Player.SendMessage("NPC Search:", Color.RoyalBlue);
+            args.Player.SendMessage("NPC Search:", Color.Yellow);
             var sb = new StringBuilder();
             if (list.Count > (8 * (page - 1)))
             {
@@ -1021,12 +982,12 @@ namespace Essentials
                             args.Player.SendMessage("You must complete a Item/NPC id search first!", Color.IndianRed);
                         else if (play.lastseachtype == "Item")
                         {
-                            var items = GetItemByIdOrName(play.lastsearch);
+                            var items = GetItemByName(play.lastsearch);
                             BCsearchitem(args, items, pge);
                         }
                         else if (play.lastseachtype == "NPC")
                         {
-                            var npcs = GetNPCByIdOrName(play.lastsearch);
+                            var npcs = GetNPCByName(play.lastsearch);
                             BCsearchnpc(args, npcs, pge);
                         }
                     }
@@ -1054,10 +1015,9 @@ namespace Essentials
                         sterm = sterm + wrd + " ";
 
                     sterm = sterm.Remove(sterm.Length - 1);
-                    TShock.Utils.Broadcast(sterm);
                 }
 
-                var items = GetItemByIdOrName(sterm);
+                var items = GetItemByName(sterm);
 
                 if (items.Count == 0)
                 {
@@ -1099,10 +1059,9 @@ namespace Essentials
                         sterm = sterm + wrd + " ";
 
                     sterm = sterm.Remove(sterm.Length - 1);
-                    TShock.Utils.Broadcast(sterm);
                 }
 
-                var npcs = GetNPCByIdOrName(sterm);
+                var npcs = GetNPCByName(sterm);
 
                 if (npcs.Count == 0)
                 {
