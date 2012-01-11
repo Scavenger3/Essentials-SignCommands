@@ -161,7 +161,7 @@ namespace SignCommands
                         if (Main.sign[play.signeditid].text.ToLower().Contains(getConfig.DefineSignCommands.ToLower()))
                         {
                             play.TSPlayer.SendMessage("You do not have permission to create/edit sign commands!", Color.IndianRed);
-                            Main.sign[play.signeditid].text = "";
+                            Main.sign[play.signeditid].text = edplay.originalsigntext;
                         }
                         play.checkforsignedit = false;
                     }
@@ -333,6 +333,7 @@ namespace SignCommands
                                     if (ply.TSPlayer.Name == tplayer.Name)
                                         edplay = ply;
 
+                                edplay.originalsigntext = Main.sign[id].text;
                                 edplay.checkforsignedit = true;
                                 edplay.signeditid = id;
                             }
@@ -768,6 +769,7 @@ namespace SignCommands
         public int CooldownBoss = 0;
         public int CooldownItem = 0;
         public bool checkforsignedit = false;
+        public string originalsigntext = "";
         public int signeditid = 0;
 
         public scPlayer(int index)
