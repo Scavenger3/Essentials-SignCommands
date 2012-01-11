@@ -363,6 +363,7 @@ namespace SignCommands
                 if (play.TSPlayer.Name == tplayer.Name)
                     scply = play;
             }
+
             if (tplayer.Group.HasPermission("usesigntime") && (tplayer.Group.HasPermission("nosccooldown") || scplay.CooldownTime <= 0))
             {
                 //SignCmd:
@@ -491,18 +492,25 @@ namespace SignCommands
             //Damage Sign command!
             if (tplayer.Group.HasPermission("usesigndamage") && (tplayer.Group.HasPermission("nosccooldown") || scplay.CooldownDamage <= 0))
             {
-                string[] linesplit = Main.sign[id].text.Split('\'', '\"');
                 if (Main.sign[id].text.ToLower().Contains("damage "))
                 {
-                    int amtdamage = 0;
-                    bool dmgisint = int.TryParse(linesplit[1], out amtdamage);
-                    if (dmgisint)
+                    try
                     {
-                        tplayer.DamagePlayer(amtdamage);
-                        scplay.CooldownDamage = getConfig.DamageCooldown;
+                        string[] linesplit = Main.sign[id].text.Split('\'', '\"');
+                        int amtdamage = 0;
+                        bool dmgisint = int.TryParse(linesplit[1], out amtdamage);
+                        if (dmgisint)
+                        {
+                            tplayer.DamagePlayer(amtdamage);
+                            scplay.CooldownDamage = getConfig.DamageCooldown;
+                        }
+                        else
+                            tplayer.SendMessage("Invalid damage value!", Color.IndianRed);
                     }
-                    else
-                        tplayer.SendMessage("Invalid damage value!", Color.IndianRed);
+                    catch (Exception)
+                    {
+                        tplayer.SendMessage("Could not parse Damage Amount - Correct Format: \"<Amount to Damage>\"", Color.IndianRed);
+                    }
                 }
             }
             else if (scply.toldperm == 5 && !tplayer.Group.HasPermission("usesigndamage") && Main.sign[id].text.ToLower().Contains("damage "))
@@ -605,23 +613,30 @@ namespace SignCommands
             //Warp Sign command!
             if (tplayer.Group.HasPermission("usesignwarp"))
             {
-                string[] linesplit = Main.sign[id].text.Split('\'', '\"');
-                if (Main.sign[id].text.ToLower().Contains("warp"))
+                if (Main.sign[id].text.ToLower().Contains("warp "))
                 {
-                    var warpxy = TShock.Warps.FindWarp(linesplit[1]);
-
-                    if (warpxy.WarpName == "" || warpxy.WarpPos.X == 0 || warpxy.WarpPos.Y == 0 || warpxy.WorldWarpID == "")
+                    try
                     {
-                        if (scply.toldwarp == 5)
+                        string[] linesplit = Main.sign[id].text.Split('\'', '\"');
+                        var warpxy = TShock.Warps.FindWarp(linesplit[1]);
+
+                        if (warpxy.WarpName == "" || warpxy.WarpPos.X == 0 || warpxy.WarpPos.Y == 0 || warpxy.WorldWarpID == "")
                         {
-                            tplayer.SendMessage("Could not find warp!", Color.IndianRed);
-                            scply.toldwarp = 0;
+                            if (scply.toldwarp == 5)
+                            {
+                                tplayer.SendMessage("Could not find warp!", Color.IndianRed);
+                                scply.toldwarp = 0;
+                            }
+                            else
+                                scply.toldwarp++;
                         }
                         else
-                            scply.toldwarp++;
+                            tplayer.Teleport((int)warpxy.WarpPos.X, (int)warpxy.WarpPos.Y);
                     }
-                    else
-                        tplayer.Teleport((int)warpxy.WarpPos.X, (int)warpxy.WarpPos.Y);
+                    catch (Exception)
+                    {
+                        tplayer.SendMessage("Could not parse Warp - Correct Format: \"<Warp Name>\"", Color.IndianRed);
+                    }
                 }
             }
             else if (scply.toldperm == 5 && !tplayer.Group.HasPermission("usesignwarp") && Main.sign[id].text.ToLower().Contains("warp "))
@@ -636,45 +651,51 @@ namespace SignCommands
             //Item Sign command!
             if (tplayer.Group.HasPermission("usesignitem") && (tplayer.Group.HasPermission("nosccooldown") || scplay.CooldownItem <= 0))
             {
-                string[] linesplit = Main.sign[id].text.Split('\'', '\"');
-                string[] datasplit = linesplit[1].Split(',');
                 if (Main.sign[id].text.ToLower().Contains("item "))
                 {
-
-                    var items = TShock.Utils.GetItemByIdOrName(datasplit[0]);
-                    if (items.Count == 0)
+                    try
                     {
-                        tplayer.SendMessage("Invalid item type!", Color.Red);
-                    }
-                    else if (items.Count > 1)
-                    {
-                        tplayer.SendMessage(string.Format("More than one ({0}) item matched!", items.Count), Color.Red);
-                    }
-                    else
-                    {
-                        
-                        int itemAmount = 0;
-                        int.TryParse(datasplit[1], out itemAmount);
-                        var item = items[0];
-                        if (item.type >= 1 && item.type < Main.maxItemTypes)
-                        {
-                            if (tplayer.InventorySlotAvailable || item.name.Contains("Coin"))
-                            {
-                                if (itemAmount == 0 || itemAmount > item.maxStack)
-                                    itemAmount = item.maxStack;
-                                tplayer.GiveItem(item.type, item.name, item.width, item.height, itemAmount, 0);
-                                tplayer.SendMessage(string.Format("Gave {0} {1}(s).", itemAmount, item.name));
-                                scplay.CooldownItem = getConfig.ItemCooldown;
-                            }
-                            else
-                            {
-                                tplayer.SendMessage("You don't have free slots!", Color.Red);
-                            }
-                        }
-                        else
+                        string[] linesplit = Main.sign[id].text.Split('\'', '\"');
+                        string[] datasplit = linesplit[1].Split(',');
+                        var items = TShock.Utils.GetItemByIdOrName(datasplit[0]);
+                        if (items.Count == 0)
                         {
                             tplayer.SendMessage("Invalid item type!", Color.Red);
                         }
+                        else if (items.Count > 1)
+                        {
+                            tplayer.SendMessage(string.Format("More than one ({0}) item matched!", items.Count), Color.Red);
+                        }
+                        else
+                        {
+
+                            int itemAmount = 0;
+                            int.TryParse(datasplit[1], out itemAmount);
+                            var item = items[0];
+                            if (item.type >= 1 && item.type < Main.maxItemTypes)
+                            {
+                                if (tplayer.InventorySlotAvailable || item.name.Contains("Coin"))
+                                {
+                                    if (itemAmount == 0 || itemAmount > item.maxStack)
+                                        itemAmount = item.maxStack;
+                                    tplayer.GiveItem(item.type, item.name, item.width, item.height, itemAmount, 0);
+                                    tplayer.SendMessage(string.Format("Gave {0} {1}(s).", itemAmount, item.name));
+                                    scplay.CooldownItem = getConfig.ItemCooldown;
+                                }
+                                else
+                                {
+                                    tplayer.SendMessage("You don't have free slots!", Color.Red);
+                                }
+                            }
+                            else
+                            {
+                                tplayer.SendMessage("Invalid item type!", Color.Red);
+                            }
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        tplayer.SendMessage("Could not parse Item / Amount - Correct Format: \"<Item Name>, <Amount>\"", Color.IndianRed);
                     }
                 }
             }
@@ -692,41 +713,41 @@ namespace SignCommands
                 scplay.toldperm++;
 
             #region sign shop
-            //if (tplayer.Group.HasPermission("usesignshop"))
-            //{
-                //string[] shopsplit = Main.sign[id].text.Split('\'', '\"');
-                //if (Main.sign[id].text.ToLower().Contains("shop"))
-                //{
-                    //string[] shopbuy = shopsplit[1].Split(' ');
+            /*if (tplayer.Group.HasPermission("usesignshop"))
+            {
+                string[] shopsplit = Main.sign[id].text.Split('\'', '\"');
+                if (Main.sign[id].text.ToLower().Contains("shop"))
+                {
+                    string[] shopbuy = shopsplit[1].Split(' ');
 
-                    //int buya = 0;
-                    //bool buyanum = int.TryParse(shopbuy[0], out buya);
-                    //if (!buyanum)
+                    int buya = 0;
+                    bool buyanum = int.TryParse(shopbuy[0], out buya);
+                    if (!buyanum)
                         //buya = 1;
 
-                    //string buyis = "";
-                    //foreach (string itmpart in shopbuy)
-                    //{
-                        //buyis = buyis + itmpart + " ";
-                    //}
+                    string buyis = "";
+                    foreach (string itmpart in shopbuy)
+                    {
+                        buyis = buyis + itmpart + " ";
+                    }
                     
                     
-                    //[Sign Shop]
-                    //Buy: "25 Glass"
-                    //For: "15 Shards"
+                    [Sign Shop]
+                    Buy: "25 Glass"
+                    For: "15 Shards"
                     
-                //}
-            //}
-            //else
-            //{
-                //if (timestold == 15)
-                //{
-                    //tplayer.SendMessage("You do not have permission to use this sign command!", Color.IndianRed);
-                    //timestold = 0;
-                //}
-                //else
-                    //timestold++;
-            //}
+                }
+            }
+            else
+            {
+                if (timestold == 15)
+                {
+                    tplayer.SendMessage("You do not have permission to use this sign command!", Color.IndianRed);
+                    timestold = 0;
+                }
+                else
+                    timestold++;
+            }*/
             #endregion sign shop
         }
         #endregion
