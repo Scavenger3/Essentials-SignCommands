@@ -10,3 +10,13 @@ C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\Co
 C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\ResolveAssemblyReference.cache
 C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\SignCommands.dll
 C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\SignCommands.pdb
+C:\Documents and Settings\Llew Stephens\Desktop\PortableGit\Essentials-SignCommands\Compiled\SignCommands.dll
+C:\Documents and Settings\Llew Stephens\Desktop\PortableGit\Essentials-SignCommands\Compiled\SignCommands.pdb
+C:\Documents and Settings\Llew Stephens\Desktop\PortableGit\Essentials-SignCommands\SignCommands\obj\Debug\ResolveAssemblyReference.cache
+C:\Documents and Settings\Llew Stephens\Desktop\PortableGit\Essentials-SignCommands\SignCommands\obj\Debug\SignCommands.dll
+C:\Documents and Settings\Llew Stephens\Desktop\PortableGit\Essentials-SignCommands\SignCommands\obj\Debug\SignCommands.pdb
+C:\Documents and Settings\Llew Stephens\usr\Essentials-SignCommands\Compiled\SignCommands.dll
+C:\Documents and Settings\Llew Stephens\usr\Essentials-SignCommands\Compiled\SignCommands.pdb
+C:\Documents and Settings\Llew Stephens\usr\Essentials-SignCommands\SignCommands\obj\Debug\ResolveAssemblyReference.cache
+C:\Documents and Settings\Llew Stephens\usr\Essentials-SignCommands\SignCommands\obj\Debug\SignCommands.dll
+C:\Documents and Settings\Llew Stephens\usr\Essentials-SignCommands\SignCommands\obj\Debug\SignCommands.pdb

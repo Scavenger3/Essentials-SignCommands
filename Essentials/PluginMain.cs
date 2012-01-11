@@ -10,6 +10,8 @@ using System.ComponentModel;
 using System.IO;
 using Newtonsoft.Json;
 using System.Threading;
+using System.Text;
+using MySql.Data.MySqlClient;
 
 namespace Essentials
 {
@@ -17,7 +19,10 @@ namespace Essentials
     public class Essentials : TerrariaPlugin
     {
         public static List<esPlayer> esPlayers = new List<esPlayer>();
-        public static Sign signcommand;
+        public static SqlTableEditor SQLEditor;
+        public static SqlTableCreator SQLWriter;
+        public DateTime CountDown = DateTime.UtcNow;
+
         public override string Name
         {
             get { return "Essentials"; }
@@ -55,7 +60,7 @@ namespace Essentials
                 GameHooks.Initialize -= OnInitialize;
                 NetHooks.GreetPlayer -= OnGreetPlayer;
                 ServerHooks.Leave -= OnLeave;
-                ServerHooks.Chat -= OnChat;                
+                ServerHooks.Chat -= OnChat;
             }
             base.Dispose(disposing);
         }
@@ -67,6 +72,16 @@ namespace Essentials
 
         public void OnInitialize()
         {
+            SQLEditor = new SqlTableEditor(TShock.DB, TShock.DB.GetSqlType() == SqlType.Sqlite ? (IQueryBuilder)new SqliteQueryCreator() : new MysqlQueryCreator());
+            SQLWriter = new SqlTableCreator(TShock.DB, TShock.DB.GetSqlType() == SqlType.Sqlite ? (IQueryBuilder)new SqliteQueryCreator() : new MysqlQueryCreator());
+
+            var table = new SqlTable("EssentialsUserHomes",
+                new SqlColumn("LoginName", MySqlDbType.Text) { Unique = true },
+                new SqlColumn("HomeX", MySqlDbType.Int32),
+                new SqlColumn("HomeY", MySqlDbType.Int32)
+            );
+            SQLWriter.EnsureExists(table);
+
             Commands.ChatCommands.Add(new Command("fillstacks", more, "maxstacks"));
             Commands.ChatCommands.Add(new Command("getposition", getpos, "pos"));
             Commands.ChatCommands.Add(new Command("tp", tppos, "tppos"));
@@ -83,30 +98,115 @@ namespace Essentials
             Commands.ChatCommands.Add(new Command("tp", Spawn, "bspawn"));
             Commands.ChatCommands.Add(new Command("backontp", back, "b"));
             Commands.ChatCommands.Add(new Command("convertbiomes", cbiome, "cbiome", "bconvert"));
+            Commands.ChatCommands.Add(new Command("searchids", sitems, "sitem", "si", "searchitem"));
+            Commands.ChatCommands.Add(new Command("searchids", spage, "spage"));
+            Commands.ChatCommands.Add(new Command("searchids", snpcs, "snpc", "sn", "searchnpc"));
+            Commands.ChatCommands.Add(new Command("myhome", setmyhome, "sethome"));
+            Commands.ChatCommands.Add(new Command("myhome", gomyhome, "myhome"));
         }
+
+        #region Get Item List
+        public static List<Item> GetItemByIdOrName(string idOrName)
+        {
+            int type = -1;
+            if (int.TryParse(idOrName, out type))
+            {
+                return new List<Item> { GetItemById(type) };
+            }
+            return GetItemByName(idOrName);
+        }
+
+        public static Item GetItemById(int id)
+        {
+            Item item = new Item();
+            item.netDefaults(id);
+            return item;
+        }
+
+        public static List<Item> GetItemByName(string name)
+        {
+            var found = new List<Item>();
+            for (int i = -24; i < Main.maxItemTypes; i++)
+            {
+                try
+                {
+                    Item item = new Item();
+                    item.netDefaults(i);
+                    if (item.name.ToLower() == name.ToLower())
+                        return new List<Item> { item };
+                    if (item.name.ToLower().Contains(name.ToLower()))
+                        found.Add(item);
+                }
+                catch { }
+            }
+            return found;
+        }
+        #endregion
+
+        #region Get NPC List
+        public static List<NPC> GetNPCByIdOrName(string idOrName)
+        {
+            int type = -1;
+            if (int.TryParse(idOrName, out type))
+            {
+                return new List<NPC> { GetNPCById(type) };
+            }
+            return GetNPCByName(idOrName);
+        }
+
+        public static NPC GetNPCById(int id)
+        {
+            NPC npc = new NPC();
+            npc.netDefaults(id);
+            return npc;
+        }
+
+        public static List<NPC> GetNPCByName(string name)
+        {
+            var found = new List<NPC>();
+            for (int i = 1; i < Main.maxNPCTypes; i++)
+            {
+                NPC npc = new NPC();
+                npc.netDefaults(i);
+                if (npc.name.ToLower() == name.ToLower())
+                    return new List<NPC> { npc };
+                if (npc.name.ToLower().Contains(name.ToLower()))
+                    found.Add(npc);
+            }
+            return found;
+        }
+        #endregion
 
         public void OnUpdate()
         {
             try
             {
-                foreach (esPlayer play in esPlayers)
+                double tick1 = (DateTime.UtcNow - CountDown).TotalMilliseconds;
+                if (tick1 > 1000)
                 {
-                    if (play.TSPlayer.Dead && !play.ondeath)
+                    lock (esPlayers)
                     {
-                        play.lastXondeath = play.TSPlayer.TileX;
-                        play.lastYondeath = play.TSPlayer.TileY;
-                        if (play.grpData.HasPermission("backondeath"))
-                            play.SendMessage("Type \"/b\" to return to your position before you died", Color.MediumSeaGreen);
-                        play.ondeath = true;
-                        play.lastaction = "death";
+                        foreach (esPlayer play in esPlayers)
+                        {
+                            if (play.TSPlayer.Dead && !play.ondeath && play != null)
+                            {
+                                play.lastXondeath = play.TSPlayer.TileX;
+                                play.lastYondeath = play.TSPlayer.TileY;
+                                if (play.grpData.HasPermission("backondeath"))
+                                    play.SendMessage("Type \"/b\" to return to your position before you died", Color.MediumSeaGreen);
+                                play.ondeath = true;
+                                play.lastaction = "death";
+                            }
+                            else if (!play.TSPlayer.Dead && play.ondeath && play != null)
+                                play.ondeath = false;
+                        }
                     }
-                    else if (!play.TSPlayer.Dead && play.ondeath)
-                        play.ondeath = false;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
+                Log.Error("This Essentials Error is a known bug!");
+                Log.Error(ex.ToString());
             }
         }
 
@@ -138,19 +238,20 @@ namespace Essentials
                         break;
                     }
                 }
-            } 
+            }
         }
 
         public void OnChat(messageBuffer msg, int ply, string text, HandledEventArgs e)
         {
         }
+
         public static void more(CommandArgs args)
         {
             int i = 0;
             foreach (Item item in args.TPlayer.inventory)
             {
                 int togive = item.maxStack - item.stack;
-                if (item.stack != 0 && i <=39)
+                if (item.stack != 0 && i <= 39)
                     args.Player.GiveItem(item.type, item.name, item.width, item.height, togive);
                 i++;
             }
@@ -158,7 +259,7 @@ namespace Essentials
         public static void getpos(CommandArgs args)
         {
             args.Player.SendMessage("X Position: " + args.Player.TileX + " - Y Position: " + args.Player.TileY, Color.Yellow);
-        
+
         }
         public static void tppos(CommandArgs args)
         {
@@ -270,7 +371,7 @@ namespace Essentials
                     int killcount = 0;
                     for (int i = 0; i < Main.npc.Length; i++)
                     {
-                        if (Main.npc[i].active && Main.npc[i].type != 0 && !Main.npc[i].townNPC && !Main.npc[i].friendly && Main.npc[i].name == npcselected[0].name)
+                        if (Main.npc[i].active && Main.npc[i].type != 0 && Main.npc[i].name == npcselected[0].name)
                         {
                             TSPlayer.Server.StrikeNPC(i, 99999, 90f, 1);
                             killcount++;
@@ -550,7 +651,7 @@ namespace Essentials
                     {
                         int Xtp = play.lastXtp;
                         int Ytp = play.lastYtp;
-                        if(args.Player.Teleport(Xtp, Ytp))
+                        if (args.Player.Teleport(Xtp, Ytp))
                             args.Player.SendMessage("Moved you to your position before you last teleported", Color.MediumSeaGreen);
                     }
                     else if (play.lastaction == "death" && !play.grpData.HasPermission("backondeath"))
@@ -594,7 +695,7 @@ namespace Essentials
                     args.Player.SendMessage("You cannot convert Normal to Normal.", Color.IndianRed);
                 else if (to == "hallow" && doregion)
                 {
-                    args.Player.SendMessage("Server might lag for a moment.", Color.MediumSeaGreen);
+                    args.Player.SendMessage("Server might lag for a moment.", Color.IndianRed);
                     for (int x = 0; x < Main.maxTilesX; x++)
                     {
                         for (int y = 0; y < Main.maxTilesY; y++)
@@ -634,7 +735,7 @@ namespace Essentials
                 }
                 else if (to == "corruption" && doregion)
                 {
-                    args.Player.SendMessage("Server might lag for a moment.", Color.MediumSeaGreen);
+                    args.Player.SendMessage("Server might lag for a moment.", Color.IndianRed);
                     for (int x = 0; x < Main.maxTilesX; x++)
                     {
                         for (int y = 0; y < Main.maxTilesY; y++)
@@ -676,7 +777,7 @@ namespace Essentials
                     args.Player.SendMessage("You cannot convert Hallow to hallow.", Color.IndianRed);
                 else if (to == "corruption")
                 {
-                    args.Player.SendMessage("Server might lag for a moment.", Color.MediumSeaGreen);
+                    args.Player.SendMessage("Server might lag for a moment.", Color.IndianRed);
                     for (int x = 0; x < Main.maxTilesX; x++)
                     {
                         for (int y = 0; y < Main.maxTilesY; y++)
@@ -716,7 +817,7 @@ namespace Essentials
                 }
                 else if (to == "normal")
                 {
-                    args.Player.SendMessage("Server might lag for a moment.", Color.MediumSeaGreen);
+                    args.Player.SendMessage("Server might lag for a moment.", Color.IndianRed);
                     for (int x = 0; x < Main.maxTilesX; x++)
                     {
                         for (int y = 0; y < Main.maxTilesY; y++)
@@ -761,7 +862,7 @@ namespace Essentials
                     args.Player.SendMessage("You cannot convert Corruption to Corruption.", Color.IndianRed);
                 else if (to == "hallow")
                 {
-                    args.Player.SendMessage("Server might lag for a moment.", Color.MediumSeaGreen);
+                    args.Player.SendMessage("Server might lag for a moment.", Color.IndianRed);
                     for (int x = 0; x < Main.maxTilesX; x++)
                     {
                         for (int y = 0; y < Main.maxTilesY; y++)
@@ -795,7 +896,7 @@ namespace Essentials
                 }
                 else if (to == "normal")
                 {
-                    args.Player.SendMessage("Server might lag for a moment.", Color.MediumSeaGreen);
+                    args.Player.SendMessage("Server might lag for a moment.", Color.IndianRed);
                     for (int x = 0; x < Main.maxTilesX; x++)
                     {
                         for (int y = 0; y < Main.maxTilesY; y++)
@@ -833,10 +934,295 @@ namespace Essentials
                 }
             }
         }
+
+        #region show search
+        public static void BCsearchitem(CommandArgs args, List<Item> list, int page)
+        {
+            args.Player.SendMessage("Item Search:", Color.RoyalBlue);
+            var sb = new StringBuilder();
+            if (list.Count > (8 * (page - 1)))
+            {
+                for (int j = (8 * (page - 1)); j < (8 * page); j++)
+                {
+                    if (sb.Length != 0)
+                        sb.Append(" | ");
+                    sb.Append(list[j].netID).Append(": ").Append(list[j].name);
+                    if (j == list.Count - 1)
+                    {
+                        args.Player.SendMessage(sb.ToString(), Color.MediumSeaGreen);
+                        break;
+                    }
+                    if ((j + 1) % 2 == 0)
+                    {
+                        args.Player.SendMessage(sb.ToString(), Color.MediumSeaGreen);
+                        sb.Clear();
+                    }
+                }
+            }
+            if (list.Count > (8 * page))
+            {
+                args.Player.SendMessage(string.Format("Type /spage {0} for more Results.", (page + 1)), Color.Yellow);
+            }
+        }
+
+        public static void BCsearchnpc(CommandArgs args, List<NPC> list, int page)
+        {
+            args.Player.SendMessage("NPC Search:", Color.RoyalBlue);
+            var sb = new StringBuilder();
+            if (list.Count > (8 * (page - 1)))
+            {
+                for (int j = (8 * (page - 1)); j < (8 * page); j++)
+                {
+                    if (sb.Length != 0)
+                        sb.Append(" | ");
+                    sb.Append(list[j].netID).Append(": ").Append(list[j].name);
+                    if (j == list.Count - 1)
+                    {
+                        args.Player.SendMessage(sb.ToString(), Color.MediumSeaGreen);
+                        break;
+                    }
+                    if ((j + 1) % 2 == 0)
+                    {
+                        args.Player.SendMessage(sb.ToString(), Color.MediumSeaGreen);
+                        sb.Clear();
+                    }
+                }
+            }
+            if (list.Count > (8 * page))
+            {
+                args.Player.SendMessage(string.Format("Type /spage {0} for more Results.", (page + 1)), Color.Yellow);
+            }
+        }
+        #endregion
+
+        public static void spage(CommandArgs args)
+        {
+            if (args.Parameters.Count < 1)
+            {
+                args.Player.SendMessage("Usage: /spage <page>", Color.IndianRed);
+                return;
+            }
+
+            if (args.Parameters.Count == 1)
+            {
+                int pge = 1;
+                bool PageIsNum = int.TryParse(args.Parameters[0], out pge);
+                if (!PageIsNum)
+                {
+                    args.Player.SendMessage("Specified page invalid!", Color.IndianRed);
+                    return;
+                }
+
+                foreach (esPlayer play in esPlayers)
+                {
+                    if (play.plrName == args.Player.Name)
+                    {
+                        if (play.lastseachtype == "none")
+                            args.Player.SendMessage("You must complete a Item/NPC id search first!", Color.IndianRed);
+                        else if (play.lastseachtype == "Item")
+                        {
+                            var items = GetItemByIdOrName(play.lastsearch);
+                            BCsearchitem(args, items, pge);
+                        }
+                        else if (play.lastseachtype == "NPC")
+                        {
+                            var npcs = GetNPCByIdOrName(play.lastsearch);
+                            BCsearchnpc(args, npcs, pge);
+                        }
+                    }
+                }
+            }
+        }
+
+        public static void sitems(CommandArgs args)
+        {
+            if (args.Parameters.Count < 1)
+            {
+                args.Player.SendMessage("Usage: /sitem <search term>", Color.IndianRed);
+                return;
+            }
+
+            if (args.Parameters.Count > 0)
+            {
+                string sterm = "";
+
+                if (args.Parameters.Count == 1)
+                    sterm = args.Parameters[0];
+                else
+                {
+                    foreach (string wrd in args.Parameters)
+                        sterm = sterm + wrd + " ";
+
+                    sterm = sterm.Remove(sterm.Length - 1);
+                    TShock.Utils.Broadcast(sterm);
+                }
+
+                var items = GetItemByIdOrName(sterm);
+
+                if (items.Count == 0)
+                {
+                    args.Player.SendMessage("Could not find any matching items!", Color.IndianRed);
+                    return;
+                }
+                else
+                {
+                    foreach (esPlayer play in esPlayers)
+                    {
+                        if (play.plrName == args.Player.Name)
+                        {
+                            play.lastsearch = sterm;
+                            play.lastseachtype = "Item";
+                            BCsearchitem(args, items, 1);
+                        }
+                    }
+                }
+            }
+        }
+
+        public static void snpcs(CommandArgs args)
+        {
+            if (args.Parameters.Count < 1)
+            {
+                args.Player.SendMessage("Usage: /snpc <search term>", Color.IndianRed);
+                return;
+            }
+
+            if (args.Parameters.Count > 0)
+            {
+                string sterm = "";
+
+                if (args.Parameters.Count == 1)
+                    sterm = args.Parameters[0];
+                else
+                {
+                    foreach (string wrd in args.Parameters)
+                        sterm = sterm + wrd + " ";
+
+                    sterm = sterm.Remove(sterm.Length - 1);
+                    TShock.Utils.Broadcast(sterm);
+                }
+
+                var npcs = GetNPCByIdOrName(sterm);
+
+                if (npcs.Count == 0)
+                {
+                    args.Player.SendMessage("Could not find any matching items!", Color.IndianRed);
+                    return;
+                }
+                else
+                {
+                    foreach (esPlayer play in esPlayers)
+                    {
+                        if (play.plrName == args.Player.Name)
+                        {
+                            play.lastsearch = sterm;
+                            play.lastseachtype = "NPC";
+                            BCsearchnpc(args, npcs, 1);
+                        }
+                    }
+                }
+            }
+        }
+
+        public static void setmyhome(CommandArgs args)
+        {
+            if (args.Player.IsLoggedIn)
+            {
+                int homecount = 0;
+                homecount = SQLEditor.ReadColumn("EssentialsUserHomes", "LoginName", new List<SqlValue>()).Count;
+                bool hashome = false;
+                for (int i = 0; i < homecount; i++)
+                {
+                    string acname = SQLEditor.ReadColumn("EssentialsUserHomes", "LoginName", new List<SqlValue>())[i].ToString();
+                    int homex = Int32.Parse(SQLEditor.ReadColumn("EssentialsUserHomes", "HomeX", new List<SqlValue>())[i].ToString());
+                    int homey = Int32.Parse(SQLEditor.ReadColumn("EssentialsUserHomes", "HomeY", new List<SqlValue>())[i].ToString());
+
+                    if (acname == args.TPlayer.name)
+                        hashome = true;
+                }
+
+                if (hashome)
+                {
+                    List<SqlValue> values = new List<SqlValue>();
+                    values.Add(new SqlValue("HomeX", args.Player.TileX));
+                    values.Add(new SqlValue("HomeY", args.Player.TileY));
+                    List<SqlValue> where = new List<SqlValue>();
+                    where.Add(new SqlValue("LoginName", "'" + args.Player.UserAccountName + "'"));
+                    SQLEditor.UpdateValues("EssentialsUserHomes", values, where);
+
+                    args.Player.SendMessage("Updated your home position!", Color.MediumSeaGreen);
+                }
+                else
+                {
+                    List<SqlValue> list = new List<SqlValue>();
+                    list.Add(new SqlValue("LoginName", "'" + args.Player.UserAccountName + "'"));
+                    list.Add(new SqlValue("HomeX", args.Player.TileX));
+                    list.Add(new SqlValue("HomeY", args.Player.TileY));
+                    SQLEditor.InsertValues("EssentialsUserHomes", list);
+
+                    args.Player.SendMessage("Created your home!", Color.MediumSeaGreen);
+                }
+            }
+            else
+                args.Player.SendMessage("You must be logged in to do that!", Color.IndianRed);
+        }
+
+        public static void gomyhome(CommandArgs args)
+        {
+            if (args.Player.IsLoggedIn)
+            {
+                int homecount = 0;
+                if ((homecount = SQLEditor.ReadColumn("EssentialsUserHomes", "LoginName", new List<SqlValue>()).Count) != 0)
+                {
+                    bool hashome = false;
+                    int homeid = 0;
+                    for (int i = 0; i < homecount; i++)
+                    {
+                        string acname = SQLEditor.ReadColumn("EssentialsUserHomes", "LoginName", new List<SqlValue>())[i].ToString();
+                        int homex = Int32.Parse(SQLEditor.ReadColumn("EssentialsUserHomes", "HomeX", new List<SqlValue>())[i].ToString());
+                        int homey = Int32.Parse(SQLEditor.ReadColumn("EssentialsUserHomes", "HomeY", new List<SqlValue>())[i].ToString());
+
+                        if (acname == args.TPlayer.name)
+                        {
+                            hashome = true;
+                            homeid = i;
+                        }
+                    }
+
+                    if (hashome)
+                    {
+                        int homex = Int32.Parse(SQLEditor.ReadColumn("EssentialsUserHomes", "HomeX", new List<SqlValue>())[homeid].ToString());
+                        int homey = Int32.Parse(SQLEditor.ReadColumn("EssentialsUserHomes", "HomeY", new List<SqlValue>())[homeid].ToString());
+                        foreach (esPlayer play in esPlayers)
+                        {
+                            if (args.Player.Name == play.plrName)
+                            {
+                                play.lastXtp = args.Player.TileX;
+                                play.lastYtp = args.Player.TileY;
+                                play.lastaction = "tp";
+                            }
+                        }
+                        args.Player.Teleport(homex, homey);
+                        args.Player.SendMessage("Teleported to your home!", Color.MediumSeaGreen);
+                    }
+                    else
+                    {
+                        args.Player.SendMessage("You have not set a home. type: \"/sethome\" to set one.", Color.IndianRed);
+                    }
+                }
+                else
+                {
+                    args.Player.SendMessage("You have not set a home. type: \"/sethome\" to set one.", Color.IndianRed);
+                }
+            }
+            else
+                args.Player.SendMessage("You must be logged in to do that!", Color.IndianRed);
+        }
     }
 
     public class esPlayer
     {
+
         public int Index { get; set; }
         public TSPlayer TSPlayer { get { return TShock.Players[Index]; } }
         public string plrName { get { return TShock.Players[Index].Name; } }
@@ -848,6 +1234,8 @@ namespace Essentials
         public int lastYondeath = 0;
         public string lastaction = "none";
         public bool ondeath = false;
+        public string lastsearch = "";
+        public string lastseachtype = "none";
 
         public esPlayer(int index)
         {
