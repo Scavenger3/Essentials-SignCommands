@@ -136,34 +136,37 @@ namespace SignCommands
             double tick1 = (DateTime.UtcNow - CountDown).TotalMilliseconds;
             if (tick1 > 1000)
             {
-                foreach (scPlayer play in scPlayers)
+                lock (scPlayers)
                 {
-                    if (play.CooldownBoss > 0)
-                        play.CooldownBoss--;
-
-                    if (play.CooldownDamage > 0)
-                        play.CooldownDamage--;
-                    
-                    if (play.CooldownHeal > 0)
-                        play.CooldownHeal--;
-
-                    if (play.CooldownMsg > 0)
-                        play.CooldownMsg--;
-
-                    if (play.CooldownTime > 0)
-                        play.CooldownTime--;
-
-                    if (play.CooldownItem > 0)
-                        play.CooldownItem--;
-
-                    if (play.checkforsignedit)
+                    foreach (scPlayer play in scPlayers)
                     {
-                        if (Main.sign[play.signeditid].text.ToLower().Contains(getConfig.DefineSignCommands.ToLower()))
+                        if (play.CooldownBoss > 0)
+                            play.CooldownBoss--;
+
+                        if (play.CooldownDamage > 0)
+                            play.CooldownDamage--;
+
+                        if (play.CooldownHeal > 0)
+                            play.CooldownHeal--;
+
+                        if (play.CooldownMsg > 0)
+                            play.CooldownMsg--;
+
+                        if (play.CooldownTime > 0)
+                            play.CooldownTime--;
+
+                        if (play.CooldownItem > 0)
+                            play.CooldownItem--;
+
+                        if (play.checkforsignedit)
                         {
-                            play.TSPlayer.SendMessage("You do not have permission to create/edit sign commands!", Color.IndianRed);
-                            Main.sign[play.signeditid].text = edplay.originalsigntext;
+                            if (Main.sign[play.signeditid].text.ToLower().Contains(getConfig.DefineSignCommands.ToLower()))
+                            {
+                                play.TSPlayer.SendMessage("You do not have permission to create/edit sign commands!", Color.IndianRed);
+                                Main.sign[play.signeditid].text = edplay.originalsigntext;
+                            }
+                            play.checkforsignedit = false;
                         }
-                        play.checkforsignedit = false;
                     }
                 }
                 CountDown = DateTime.UtcNow;
@@ -684,14 +687,10 @@ namespace SignCommands
                                     scplay.CooldownItem = getConfig.ItemCooldown;
                                 }
                                 else
-                                {
                                     tplayer.SendMessage("You don't have free slots!", Color.Red);
-                                }
                             }
                             else
-                            {
                                 tplayer.SendMessage("Invalid item type!", Color.Red);
-                            }
                         }
                     }
                     catch (Exception)
@@ -713,6 +712,89 @@ namespace SignCommands
             else if (scply.toldperm != 5 && Main.sign[id].text.ToLower().Contains("item "))
                 scplay.toldperm++;
 
+            //SignCmd:
+            //Buff Sign command!
+            if (tplayer.Group.HasPermission("usesignbuff") && (tplayer.Group.HasPermission("nosccooldown") || scplay.CooldownItem <= 0))
+            {
+                if (Main.sign[id].text.ToLower().Contains("buff "))
+                {
+                    try
+                    {
+                        string[] linesplit = Main.sign[id].text.Split('\'', '\"');
+                        
+                        int bid = 0;
+                        int time = 0;
+                        bool containstime = false;
+                        string[] datasplit;
+
+                        if (Main.sign[id].text.Contains(", "))
+                        {
+                            datasplit = linesplit[1].Split(',');
+                            containstime = true;
+                        }
+                        else
+                            datasplit = null;
+
+                        string buffvalue = "";
+
+                        if (!containstime)
+                        {
+                            time = 60;
+                            buffvalue = linesplit[1];
+                        }
+                        else
+                        {
+                            int.TryParse(datasplit[1], out time);
+                            buffvalue = datasplit[0];
+                        }
+
+                        if (!int.TryParse(buffvalue, out bid))
+                        {
+                            var found = TShock.Utils.GetBuffByName(buffvalue);
+                            if (found.Count == 0)
+                            {
+                                scply.TSPlayer.SendMessage("Invalid buff name!", Color.Red);
+                                return;
+                            }
+                            else if (found.Count > 1)
+                            {
+                                scply.TSPlayer.SendMessage(string.Format("More than one ({0}) buff matched!", found.Count), Color.Red);
+                                return;
+                            }
+                            bid = found[0];
+                            
+                        }
+
+                        if (bid > 0 && bid < Main.maxBuffs)
+                        {
+                            if (time < 0 || time > short.MaxValue)
+                                time = 60;
+                            scply.TSPlayer.SetBuff(bid, time * 60);
+                            scply.TSPlayer.SendMessage(string.Format("You have buffed yourself with {0}({1}) for {2} seconds!",
+                                TShock.Utils.GetBuffName(bid), TShock.Utils.GetBuffDescription(bid), (time)), Color.Green);
+                        }
+                        else
+                            scply.TSPlayer.SendMessage("Invalid buff ID!", Color.Red);
+                    }
+                    catch (Exception)
+                    {
+                        tplayer.SendMessage("Could not parse Buff / Duration - Correct Format: \"<Buff Name>, <Duration>\"", Color.IndianRed);
+                    }
+                }
+            }
+            else if (scply.toldperm == 5 && !tplayer.Group.HasPermission("usesignbuff") && Main.sign[id].text.ToLower().Contains("buff "))
+            {
+                tplayer.SendMessage("You do not have permission to use this sign command!", Color.IndianRed);
+                scply.toldperm = 0;
+            }
+            else if (scply.toldperm == 5 && tplayer.Group.HasPermission("usesignbuff") && !tplayer.Group.HasPermission("nosccooldown") && scplay.CooldownBuff > 0 && Main.sign[id].text.ToLower().Contains("buff "))
+            {
+                tplayer.SendMessage("You have to wait another " + scplay.CooldownBuff + " seconds before using this sign", Color.IndianRed);
+                scply.toldperm = 0;
+            }
+            else if (scply.toldperm != 5 && Main.sign[id].text.ToLower().Contains("buff "))
+                scplay.toldperm++;
+
             #region sign shop
             /*if (tplayer.Group.HasPermission("usesignshop"))
             {
@@ -724,7 +806,7 @@ namespace SignCommands
                     int buya = 0;
                     bool buyanum = int.TryParse(shopbuy[0], out buya);
                     if (!buyanum)
-                        //buya = 1;
+                        buya = 1;
 
                     string buyis = "";
                     foreach (string itmpart in shopbuy)
@@ -768,6 +850,7 @@ namespace SignCommands
         public int CooldownDamage = 0;
         public int CooldownBoss = 0;
         public int CooldownItem = 0;
+        public int CooldownBuff = 0;
         public bool checkforsignedit = false;
         public string originalsigntext = "";
         public int signeditid = 0;
@@ -790,6 +873,7 @@ namespace config
         public int DamageCooldown = 20;
         public int BossCooldown = 20;
         public int ItemCooldown = 60;
+        public int BuffCooldown = 20;
 
         public static scConfig Read(string path)
         {
