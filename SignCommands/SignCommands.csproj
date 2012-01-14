@@ -30,6 +30,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="CommandCosts">
+      <HintPath>..\Refs\CommandCosts.dll</HintPath>
+    </Reference>
     <Reference Include="Community.CsharpSqlite">
       <HintPath>..\Refs\Community.CsharpSqlite.dll</HintPath>
     </Reference>

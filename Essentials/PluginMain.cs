@@ -12,6 +12,7 @@ using Newtonsoft.Json;
 using System.Threading;
 using System.Text;
 using MySql.Data.MySqlClient;
+using System.Data;
 
 namespace Essentials
 {
@@ -77,9 +78,8 @@ namespace Essentials
                 SQLEditor = new SqlTableEditor(TShock.DB, TShock.DB.GetSqlType() == SqlType.Sqlite ? (IQueryBuilder)new SqliteQueryCreator() : new MysqlQueryCreator());
                 SQLWriter = new SqlTableCreator(TShock.DB, TShock.DB.GetSqlType() == SqlType.Sqlite ? (IQueryBuilder)new SqliteQueryCreator() : new MysqlQueryCreator());
 
-
                 var table = new SqlTable("EssentialsUserHomes",
-                    new SqlColumn("LoginName", MySqlDbType.Text) { Unique = true },
+                    new SqlColumn("LoginName", MySqlDbType.Int32) { Unique = true },
                     new SqlColumn("HomeX", MySqlDbType.Int32),
                     new SqlColumn("HomeY", MySqlDbType.Int32)
                 );
@@ -397,9 +397,7 @@ namespace Essentials
                 foreach (esPlayer player in esPlayers)
                 {
                     if (!player.grpData.HasPermission("immunetokickall"))
-                    {
                         player.Kick("Everyone has been kicked (" + text + ")");
-                    }
                 }
                 TShock.Utils.Broadcast("Everyone has been kicked from the server!");
             }
@@ -408,9 +406,7 @@ namespace Essentials
                 foreach (esPlayer player in esPlayers)
                 {
                     if (!player.grpData.HasPermission("immunetokickall"))
-                    {
                         player.Kick("Everyone has been kicked from the server!");
-                    }
                 }
                 TShock.Utils.Broadcast("Everyone has been kicked from the server!");
             }
@@ -551,19 +547,15 @@ namespace Essentials
             else
             {
                 var plr = players[0];
-                foreach (esPlayer play in esPlayers)
+                esPlayer play = GetesPlayerByName(args.Player.Name);
+                if (plr.Name == play.plrName)
                 {
-                    if (plr.Name == play.plrName)
-                    {
-                        play.lastXtp = plr.TileX;
-                        play.lastYtp = plr.TileY;
-                        play.lastaction = "tp";
-                    }
+                    play.lastXtp = plr.TileX;
+                    play.lastYtp = plr.TileY;
+                    play.lastaction = "tp";
                 }
                 if (args.Player.Teleport(plr.TileX, plr.TileY + 3))
-                {
                     args.Player.SendMessage(string.Format("Teleported to {0}", plr.Name));
-                }
             }
         }
 
@@ -575,14 +567,12 @@ namespace Essentials
                 return;
             }
 
-            foreach (esPlayer play in esPlayers)
+            esPlayer play = GetesPlayerByName(args.Player.Name);
+            if (args.Player.Name == play.plrName)
             {
-                if (args.Player.Name == play.plrName)
-                {
-                    play.lastXtp = args.Player.TileX;
-                    play.lastYtp = args.Player.TileY;
-                    play.lastaction = "tp";
-                }
+                play.lastXtp = args.Player.TileX;
+                play.lastYtp = args.Player.TileY;
+                play.lastaction = "tp";
             }
             args.Player.Spawn();
             args.Player.SendMessage("Teleported to your spawnpoint.");
@@ -595,14 +585,12 @@ namespace Essentials
                 args.Player.SendMessage("You cannot use teleport commands!");
                 return;
             }
-            foreach (esPlayer play in esPlayers)
+            esPlayer play = GetesPlayerByName(args.Player.Name);
+            if (args.Player.Name == play.plrName)
             {
-                if (args.Player.Name == play.plrName)
-                {
-                    play.lastXtp = args.Player.TileX;
-                    play.lastYtp = args.Player.TileY;
-                    play.lastaction = "tp";
-                }
+                play.lastXtp = args.Player.TileX;
+                play.lastYtp = args.Player.TileY;
+                play.lastaction = "tp";
             }
             if (args.Player.Teleport(Main.spawnTileX, Main.spawnTileY))
                 args.Player.SendMessage("Teleported to the map's spawnpoint.");
@@ -666,14 +654,12 @@ namespace Essentials
                 var warp = TShock.Warps.FindWarp(warpName);
                 if (warp.WarpPos != Vector2.Zero)
                 {
-                    foreach (esPlayer play in esPlayers)
+                    esPlayer play = GetesPlayerByName(args.Player.Name);
+                    if (args.Player.Name == play.plrName)
                     {
-                        if (args.Player.Name == play.plrName)
-                        {
-                            play.lastXtp = args.Player.TileX;
-                            play.lastYtp = args.Player.TileY;
-                            play.lastaction = "tp";
-                        }
+                        play.lastXtp = args.Player.TileX;
+                        play.lastYtp = args.Player.TileY;
+                        play.lastaction = "tp";
                     }
                     if (args.Player.Teleport((int)warp.WarpPos.X, (int)warp.WarpPos.Y + 3))
                     {
@@ -689,33 +675,28 @@ namespace Essentials
 
         private static void back(CommandArgs args)
         {
-            foreach (esPlayer play in esPlayers)
+            esPlayer play = GetesPlayerByName(args.Player.Name);
+            if (play.lastaction == "none")
             {
-                if (play.plrName == args.Player.Name)
-                {
-                    if (play.lastaction == "none")
-                    {
-                        args.Player.SendMessage("You do not have a /b position stored", Color.MediumSeaGreen);
-                    }
-                    else if (play.lastaction == "death" && play.grpData.HasPermission("backondeath"))
-                    {
-                        int Xdeath = play.lastXondeath;
-                        int Ydeath = play.lastYondeath;
-                        if (args.Player.Teleport(Xdeath, Ydeath))
-                            args.Player.SendMessage("Moved you to your position before you died!", Color.MediumSeaGreen);
-                    }
-                    else if (play.grpData.HasPermission("backontp"))
-                    {
-                        int Xtp = play.lastXtp;
-                        int Ytp = play.lastYtp;
-                        if (args.Player.Teleport(Xtp, Ytp))
-                            args.Player.SendMessage("Moved you to your position before you last teleported", Color.MediumSeaGreen);
-                    }
-                    else if (play.lastaction == "death" && !play.grpData.HasPermission("backondeath"))
-                    {
-                        args.Player.SendMessage("You do not have permission to /b after death", Color.MediumSeaGreen);
-                    }
-                }
+                args.Player.SendMessage("You do not have a /b position stored", Color.MediumSeaGreen);
+            }
+            else if (play.lastaction == "death" && play.grpData.HasPermission("backondeath"))
+            {
+                int Xdeath = play.lastXondeath;
+                int Ydeath = play.lastYondeath;
+                if (args.Player.Teleport(Xdeath, Ydeath))
+                    args.Player.SendMessage("Moved you to your position before you died!", Color.MediumSeaGreen);
+            }
+            else if (play.grpData.HasPermission("backontp"))
+            {
+                int Xtp = play.lastXtp;
+                int Ytp = play.lastYtp;
+                if (args.Player.Teleport(Xtp, Ytp))
+                    args.Player.SendMessage("Moved you to your position before you last teleported", Color.MediumSeaGreen);
+            }
+            else if (play.lastaction == "death" && !play.grpData.HasPermission("backondeath"))
+            {
+                args.Player.SendMessage("You do not have permission to /b after death", Color.MediumSeaGreen);
             }
         }
 
@@ -1196,11 +1177,11 @@ namespace Essentials
                     bool hashome = false;
                     for (int i = 0; i < homecount; i++)
                     {
-                        string acname = SQLEditor.ReadColumn("EssentialsUserHomes", "LoginName", new List<SqlValue>())[i].ToString();
+                        int acname = Int32.Parse(SQLEditor.ReadColumn("EssentialsUserHomes", "LoginName", new List<SqlValue>())[i].ToString());
                         int homex = Int32.Parse(SQLEditor.ReadColumn("EssentialsUserHomes", "HomeX", new List<SqlValue>())[i].ToString());
                         int homey = Int32.Parse(SQLEditor.ReadColumn("EssentialsUserHomes", "HomeY", new List<SqlValue>())[i].ToString());
 
-                        if (acname == args.TPlayer.name)
+                        if (acname == args.Player.UserID/*args.TPlayer.name*/)
                             hashome = true;
                     }
 
@@ -1210,7 +1191,8 @@ namespace Essentials
                         values.Add(new SqlValue("HomeX", args.Player.TileX));
                         values.Add(new SqlValue("HomeY", args.Player.TileY));
                         List<SqlValue> where = new List<SqlValue>();
-                        where.Add(new SqlValue("LoginName", "'" + args.Player.UserAccountName + "'"));
+                        //where.Add(new SqlValue("LoginName", "'" + args.Player.UserAccountName + "'"));
+                        where.Add(new SqlValue("LoginName", args.Player.UserID));
                         SQLEditor.UpdateValues("EssentialsUserHomes", values, where);
 
                         args.Player.SendMessage("Updated your home position!", Color.MediumSeaGreen);
@@ -1218,7 +1200,8 @@ namespace Essentials
                     else
                     {
                         List<SqlValue> list = new List<SqlValue>();
-                        list.Add(new SqlValue("LoginName", "'" + args.Player.UserAccountName + "'"));
+                        //list.Add(new SqlValue("LoginName", "'" + args.Player.UserAccountName + "'"));
+                        list.Add(new SqlValue("LoginName", args.Player.UserID));
                         list.Add(new SqlValue("HomeX", args.Player.TileX));
                         list.Add(new SqlValue("HomeY", args.Player.TileY));
                         SQLEditor.InsertValues("EssentialsUserHomes", list);
@@ -1249,11 +1232,11 @@ namespace Essentials
                         int homeid = 0;
                         for (int i = 0; i < homecount; i++)
                         {
-                            string acname = SQLEditor.ReadColumn("EssentialsUserHomes", "LoginName", new List<SqlValue>())[i].ToString();
+                            int acname = Int32.Parse(SQLEditor.ReadColumn("EssentialsUserHomes", "LoginName", new List<SqlValue>())[i].ToString());
                             int homex = Int32.Parse(SQLEditor.ReadColumn("EssentialsUserHomes", "HomeX", new List<SqlValue>())[i].ToString());
                             int homey = Int32.Parse(SQLEditor.ReadColumn("EssentialsUserHomes", "HomeY", new List<SqlValue>())[i].ToString());
 
-                            if (acname == args.TPlayer.name)
+                            if (acname == args.Player.UserID/*args.TPlayer.name*/)
                             {
                                 hashome = true;
                                 homeid = i;
@@ -1294,6 +1277,31 @@ namespace Essentials
                 args.Player.SendMessage("/myhome commands are disabled on servers that use mysql", Color.Red);
             }
         }
+
+        #region esPlayer
+        public static esPlayer GetesPlayerByID(int id)
+        {
+            esPlayer player = null;
+            foreach (esPlayer ply in esPlayers)
+            {
+                if (ply.Index == id)
+                    return ply;
+            }
+            return player;
+        }
+        public static esPlayer GetesPlayerByName(string name)
+        {
+            var player = TShock.Utils.FindPlayer(name)[0];
+            if (player != null)
+            {
+                foreach (esPlayer ply in esPlayers)
+                {
+                    if (ply.TSPlayer == player)
+                        return ply;
+                }
+            }
+            return null;
+        }
     }
 
     public class esPlayer
@@ -1333,4 +1341,5 @@ namespace Essentials
             TShock.Players[Index].Teleport(xtile, ytile);
         }
     }
+#endregion
 }
