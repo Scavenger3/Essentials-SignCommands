@@ -25,6 +25,11 @@ namespace Essentials
         public static SqlTableCreator SQLWriter;
         public static Timer CheckT = new Timer(1000);
         public static int playercount = 0;
+        public static bool useteamperms = false;
+        public static string redpassword = "";
+        public static string greenpassword = "";
+        public static string bluepassword = "";
+        public static string yellowpassword = "";
         #endregion
 
         #region Plugin Main
@@ -45,7 +50,7 @@ namespace Essentials
 
         public override Version Version
         {
-            get { return new Version("1.3.1"); }
+            get { return new Version("1.3.2"); }
         }
 
         public override void Initialize()
@@ -54,7 +59,7 @@ namespace Essentials
             NetHooks.GreetPlayer += OnGreetPlayer;
             ServerHooks.Leave += OnLeave;
             ServerHooks.Chat += OnChat;
-            
+            NetHooks.GetData += GetData;
         }
 
         protected override void Dispose(bool disposing)
@@ -65,6 +70,7 @@ namespace Essentials
                 NetHooks.GreetPlayer -= OnGreetPlayer;
                 ServerHooks.Leave -= OnLeave;
                 ServerHooks.Chat -= OnChat;
+                NetHooks.GetData -= GetData;
             }
             base.Dispose(disposing);
         }
@@ -94,6 +100,87 @@ namespace Essentials
             if (playercount > 0)
                 CheckT.Start();
 
+            if (!File.Exists(@"tshock/EssentialsConfig.txt"))
+            {
+                File.WriteAllText(@"tshock/EssentialsConfig.txt", "#> < is a comment" + Environment.NewLine +
+                    "#> To Completely disable locking of teams, set LockTeamsWithPermissions to false and set the passwords to nothing" + Environment.NewLine +
+                    "#> Lock Teams with Permissions or passwords (Boolean):" + Environment.NewLine +
+                    "LockTeamsWithPermissions:false" + Environment.NewLine +
+                    "#> Passwords for teams (leave blank for no password) Make sure the passowrd is in quotes \"<password>\" (String):" + Environment.NewLine +
+                    "RedPassword:\"\"" + Environment.NewLine +
+                    "GreenPassword:\"\"" + Environment.NewLine +
+                    "BluePassword:\"\"" + Environment.NewLine +
+                    "YellowPassword:\"\"" + Environment.NewLine);
+                useteamperms = false;
+                redpassword = "";
+                greenpassword = "";
+                bluepassword = "";
+                yellowpassword = "";
+            }
+            else
+            {
+                using (StreamReader file = new StreamReader(@"tshock/EssentialsConfig.txt", true))
+                {
+                    string[] rFile = (file.ReadToEnd()).Split('\n');
+                    foreach (string currentLine in rFile)
+                    {
+                        try
+                        {
+                            if (currentLine.StartsWith("LockTeamsWithPermissions:"))
+                            {
+                                string tempLine = currentLine;
+                                tempLine = tempLine.Remove(0, 25);
+                                if (tempLine.StartsWith("false"))
+                                    useteamperms = false;
+                                else if (tempLine.StartsWith("true"))
+                                    useteamperms = true;
+                                else
+                                {
+                                    Console.ForegroundColor = ConsoleColor.Red;
+                                    Console.WriteLine("Error in Essentials config file - LockTeamsWithPermissions");
+                                    Console.ForegroundColor = ConsoleColor.Gray;
+                                }
+                            }
+                            else if (currentLine.StartsWith("RedPassword:"))
+                            {
+                                string tempLine = currentLine;
+                                tempLine = tempLine.Remove(0, 12);
+                                tempLine = tempLine.Split('\"', '\'')[1];
+                                redpassword = tempLine;
+                            }
+                            else if (currentLine.StartsWith("GreenPassword:"))
+                            {
+                                string tempLine = currentLine;
+                                tempLine = tempLine.Remove(0, 14);
+                                tempLine = tempLine.Split('\"', '\'')[1];
+                                greenpassword = tempLine;
+                            }
+                            else if (currentLine.StartsWith("BluePassword:"))
+                            {
+                                string tempLine = currentLine;
+                                tempLine = tempLine.Remove(0, 13);
+                                tempLine = tempLine.Split('\"', '\'')[1];
+                                bluepassword = tempLine;
+                            }
+                            else if (currentLine.StartsWith("YellowPassword:"))
+                            {
+                                string tempLine = currentLine;
+                                tempLine = tempLine.Remove(0, 15);
+                                tempLine = tempLine.Split('\"', '\'')[1];
+                                yellowpassword = tempLine;
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine("Error in Essentials config file - TeamPasswords", Color.IndianRed);
+                            Console.ForegroundColor = ConsoleColor.Gray;
+                            return;
+                        }
+                    }
+                }
+            }
+
             Commands.ChatCommands.Add(new Command("fillstacks", more, "maxstacks"));
             Commands.ChatCommands.Add(new Command("getposition", getpos, "pos"));
             Commands.ChatCommands.Add(new Command("tp", tppos, "tppos"));
@@ -110,6 +197,8 @@ namespace Essentials
             Commands.ChatCommands.Add(new Command("searchids", snpcs, "snpc", "sn", "searchnpc"));
             Commands.ChatCommands.Add(new Command("myhome", setmyhome, "sethome"));
             Commands.ChatCommands.Add(new Command("myhome", gomyhome, "myhome"));
+            Commands.ChatCommands.Add(new Command("essentials", cmdessentials, "essentials"));
+            Commands.ChatCommands.Add(new Command(null, TeamUnlock, "teamunlock"));
 
             foreach (Group grp in TShock.Groups.groups)
             {
@@ -237,6 +326,77 @@ namespace Essentials
                 #endregion
             }
         }
+
+        public void GetData(GetDataEventArgs e)
+        {
+            try
+            {
+                switch (e.MsgID)
+                {
+                    case PacketTypes.PlayerTeam:
+                        using (var data = new MemoryStream(e.Msg.readBuffer, e.Index, e.Length))
+                        {
+                            var reader = new BinaryReader(data);
+                            var play = reader.ReadByte();
+                            var team = reader.ReadByte();
+                            esPlayer ply = GetesPlayerByID(play);
+                            var tply = TShock.Players[play];
+                            switch (team)
+                            {
+
+                                case 1: if (((useteamperms && !tply.Group.HasPermission("jointeamred")) || (!useteamperms && ply.redpass != redpassword)) && tply.Group.Name != "superadmin")
+                                    {
+
+                                        e.Handled = true;
+                                        if (useteamperms)
+                                            tply.SendMessage("You do not have permission to join this team.", Color.Red);
+                                        else
+                                            tply.SendMessage("This team is locked, use /teamunlock red <password> to access it.", Color.Red);
+                                        tply.SetTeam(tply.Team);
+
+                                    } break;
+                                case 2: if (((useteamperms && !tply.Group.HasPermission("jointeamgreen")) || (!useteamperms && ply.greenpass != greenpassword)) && tply.Group.Name != "superadmin")
+                                    {
+
+                                        e.Handled = true;
+                                        if (useteamperms)
+                                            tply.SendMessage("You do not have permission to join this team.", Color.Red);
+                                        else
+                                            tply.SendMessage("This team is locked, use /teamunlock green <password> to access it.", Color.Red);
+                                        tply.SetTeam(tply.Team);
+
+                                    } break;
+                                case 3: if (((useteamperms && !tply.Group.HasPermission("jointeamblue")) || (!useteamperms && ply.bluepass != bluepassword)) && tply.Group.Name != "superadmin")
+                                    {
+                                        
+                                        e.Handled = true;
+                                        if (useteamperms)
+                                            tply.SendMessage("You do not have permission to join this team.", Color.Red);
+                                        else
+                                            tply.SendMessage("This team is locked, use /teamunlock blue <password> to access it.", Color.Red);
+                                        tply.SetTeam(tply.Team);
+
+                                    } break;
+                                case 4: if (((useteamperms && !tply.Group.HasPermission("jointeamyellow")) || (!useteamperms && ply.yellowpass != yellowpassword)) && tply.Group.Name != "superadmin")
+                                    {
+
+                                        e.Handled = true;
+                                        if (useteamperms)
+                                            tply.SendMessage("You do not have permission to join this team.", Color.Red);
+                                        else
+                                            tply.SendMessage("This team is locked, use /teamunlock yellow <password> to access it.", Color.Red);
+                                        tply.SetTeam(tply.Team);
+
+                                    } break;
+
+                            }
+                        }
+                        break;
+                }
+            }
+            catch (Exception) { }
+        }
+
         #endregion
 
         #region Timer
@@ -1186,6 +1346,158 @@ namespace Essentials
                 args.Player.SendMessage("You must be logged in to do that!", Color.IndianRed);
         }
         #endregion
+
+        #region Essentials Reload
+        public static void cmdessentials(CommandArgs args)
+        {
+            bool err = false;
+            if (!File.Exists(@"tshock/EssentialsConfig.txt"))
+            {
+                File.WriteAllText(@"tshock/EssentialsConfig.txt", "#> < is a comment" + Environment.NewLine +
+                    "#> To Completely disable locking of teams, set LockTeamsWithPermissions to false and set the passwords to nothing" + Environment.NewLine +
+                    "#> Lock Teams with Permissions or passwords (Boolean):" + Environment.NewLine +
+                    "LockTeamsWithPermissions:false" + Environment.NewLine +
+                    "#> Passwords for teams (leave blank for no password) Make sure the passowrd is in quotes \"<password>\" (String):" + Environment.NewLine +
+                    "RedPassword:\"\"" + Environment.NewLine +
+                    "GreenPassword:\"\"" + Environment.NewLine +
+                    "BluePassword:\"\"" + Environment.NewLine +
+                    "YellowPassword:\"\"" + Environment.NewLine);
+                useteamperms = false;
+                redpassword = "";
+                greenpassword = "";
+                bluepassword = "";
+                yellowpassword = "";
+            }
+            else
+            {
+                using (StreamReader file = new StreamReader(@"tshock/EssentialsConfig.txt", true))
+                {
+                    string[] rFile = (file.ReadToEnd()).Split('\n');
+                    foreach (string currentLine in rFile)
+                    {
+                        try
+                        {
+                            if (currentLine.StartsWith("LockTeamsWithPermissions:"))
+                            {
+                                string tempLine = currentLine;
+                                tempLine = tempLine.Remove(0, 25);
+                                if (tempLine.StartsWith("false"))
+                                    useteamperms = false;
+                                else if (tempLine.StartsWith("true"))
+                                    useteamperms = true;
+                                else
+                                {
+                                    args.Player.SendMessage("Error in Essentials config file - LockTeamsWithPermissions", Color.IndianRed);
+                                    err = true;
+                                }
+                            }
+                            else if (currentLine.StartsWith("RedPassword:"))
+                            {
+                                string tempLine = currentLine;
+                                tempLine = tempLine.Remove(0, 12);
+                                tempLine = tempLine.Split('\"', '\'')[1];
+                                redpassword = tempLine;
+                            }
+                            else if (currentLine.StartsWith("GreenPassword:"))
+                            {
+                                string tempLine = currentLine;
+                                tempLine = tempLine.Remove(0, 14);
+                                tempLine = tempLine.Split('\"', '\'')[1];
+                                greenpassword = tempLine;
+                            }
+                            else if (currentLine.StartsWith("BluePassword:"))
+                            {
+                                string tempLine = currentLine;
+                                tempLine = tempLine.Remove(0, 13);
+                                tempLine = tempLine.Split('\"', '\'')[1];
+                                bluepassword = tempLine;
+                            }
+                            else if (currentLine.StartsWith("YellowPassword:"))
+                            {
+                                string tempLine = currentLine;
+                                tempLine = tempLine.Remove(0, 15);
+                                tempLine = tempLine.Split('\"', '\'')[1];
+                                yellowpassword = tempLine;
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            args.Player.SendMessage("Error in Essentials config file - TeamPasswords", Color.IndianRed);
+                            err = true;
+                            return;
+                        }
+                    }
+                }
+            }
+            if (!err)
+                args.Player.SendMessage("Config Reloaded Successfully!", Color.MediumSeaGreen);
+        }
+        #endregion
+
+        #region jointeam
+        public static void TeamUnlock(CommandArgs args)
+        {
+            if (useteamperms)
+            {
+                args.Player.SendMessage("You are not able to unlock teams!", Color.Red);
+                return;
+            }
+
+            if (args.Parameters.Count < 2)
+            {
+                args.Player.SendMessage("Usage: /teamunlock <color> <password>", Color.Red);
+                return;
+            }
+
+            string subcmd = args.Parameters[0].ToLower();
+            string password = "";
+            for (int i = 1; i < args.Parameters.Count; i++)
+            {
+                password = password + args.Parameters[i] + " ";
+            }
+            password = password.Remove(password.Length - 1, 1);
+
+            esPlayer ply = GetesPlayerByID(args.Player.Index);
+
+            if (subcmd == "red")
+            {
+                ply.redpass = password;
+                if (password == redpassword)
+                    args.Player.SendMessage("You can now join red team!", Color.MediumSeaGreen);
+                else
+                    args.Player.SendMessage("Incorrect Password!", Color.IndianRed);
+            }
+            else if (subcmd == "green")
+            {
+                ply.greenpass = password;
+                if (password == greenpassword)
+                    args.Player.SendMessage("You can now join green team!", Color.MediumSeaGreen);
+                else
+                    args.Player.SendMessage("Incorrect Password!", Color.IndianRed);
+            }
+            else if (subcmd == "blue")
+            {
+                ply.bluepass = password;
+                if (password == bluepassword)
+                    args.Player.SendMessage("You can now join blue team!", Color.MediumSeaGreen);
+                else
+                    args.Player.SendMessage("Incorrect Password!", Color.IndianRed);
+            }
+            else if (subcmd == "yellow")
+            {
+                ply.yellowpass = password;
+                if (password == yellowpassword)
+                    args.Player.SendMessage("You can now join yellow team!", Color.MediumSeaGreen);
+                else
+                    args.Player.SendMessage("Incorrect Password!", Color.IndianRed);
+            }
+            else
+            {
+                args.Player.SendMessage("Usage: /teamunlock <red/green/blue/yellow> <password>", Color.Red);
+                return;
+            }
+        }
+        #endregion
     }
     
     #region esPlayer
@@ -1205,6 +1517,10 @@ namespace Essentials
         public bool ondeath = false;
         public string lastsearch = "";
         public string lastseachtype = "none";
+        public string redpass = "";
+        public string greenpass = "";
+        public string bluepass = "";
+        public string yellowpass = "";
 
         public esPlayer(int index)
         {

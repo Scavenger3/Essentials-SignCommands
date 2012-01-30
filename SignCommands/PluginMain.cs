@@ -27,6 +27,7 @@ namespace SignCommands
         public static int GlobalBossCooldown = 0;
         public static int GlobalTimeCooldown = 0;
         public static int GlobalSpawnMobCooldown = 0;
+        public static int GlobalCommandCooldown = 0;
 
         public static Timer Cooldown = new Timer(1000);
 
@@ -47,7 +48,7 @@ namespace SignCommands
 
         public override Version Version
         {
-            get { return new Version("1.3.1"); }
+            get { return new Version("1.3.2"); }
         }
 
         public override void Initialize()
@@ -99,9 +100,11 @@ namespace SignCommands
         public void OnInitialize()
         {
             SetupConfig();
+            /*Why?
             GlobalBossCooldown = getConfig.BossCooldown;
             GlobalTimeCooldown = getConfig.BossCooldown;
             GlobalSpawnMobCooldown = getConfig.SpawnMobCooldown;
+            GlobalCommandCooldown = getConfig.DoCommandCooldown;*/
 
             Cooldown.Elapsed += new ElapsedEventHandler(Cooldown_Elapsed);
             Cooldown.Start();
@@ -219,6 +222,9 @@ namespace SignCommands
             if (getConfig.GlobalSpawnMobCooldown && GlobalSpawnMobCooldown > 0)
                 GlobalSpawnMobCooldown--;
 
+            if (getConfig.GlobalDoCommandCooldown && GlobalCommandCooldown > 0)
+                GlobalCommandCooldown--;
+
             lock (scPlayers)
             {
                 foreach (scPlayer play in scPlayers)
@@ -226,7 +232,6 @@ namespace SignCommands
                     //Player Cooldowns:
                     if (play.CooldownBoss > 0)
                         play.CooldownBoss--;
-
 
                     if (play.CooldownTime > 0)
                         play.CooldownTime--;
@@ -252,6 +257,9 @@ namespace SignCommands
                     if (play.CooldownKit > 0)
                         play.CooldownKit--;
 
+                    if (play.CooldownCommand > 0)
+                        play.CooldownCommand--;
+
                     //Message Cooldowns:
                     if (play.toldcool > 0)
                         play.toldcool--;
@@ -264,6 +272,9 @@ namespace SignCommands
 
                     if (play.tolddest > 0)
                         play.tolddest--;
+
+                    if (play.handlecmd > 0)
+                        play.handlecmd--;
 
                     if (play.checkforsignedit)
                     {
@@ -287,7 +298,6 @@ namespace SignCommands
             {
                 switch (e.MsgID)
                 {
-
                     #region On Hit
                     case PacketTypes.Tile:
                     using (var data = new MemoryStream(e.Msg.readBuffer, e.Index, e.Length))
@@ -402,8 +412,8 @@ namespace SignCommands
                             if (!Main.sign[id].text.ToLower().Contains(getConfig.DefineSignCommands.ToLower()) && !tplayer.Group.HasPermission("createsigncommand"))
                             {
                                 edplay.originalsigntext = Main.sign[id].text;
-                                edplay.checkforsignedit = true;
                                 edplay.signeditid = id;
+                                edplay.checkforsignedit = true;
                             }
                             else if (Main.sign[id].text.ToLower().Contains(getConfig.DefineSignCommands.ToLower()) && !tplayer.Group.HasPermission("createsigncommand"))
                             {
@@ -743,12 +753,14 @@ namespace SignCommands
                 tplayer.SendMessage("You do not have permission to use this sign command!", Color.IndianRed);
                 doplay.toldperm = 5;
             }
-            else if (doplay.toldcool <= 0 && tplayer.Group.HasPermission("usesignspawnmob") && (!tplayer.Group.HasPermission("nosccooldown") && (!getConfig.GlobalSpawnMobCooldown && doplay.CooldownSpawnMob > 0)) && Main.sign[id].text.ToLower().Contains("spawnmob"))
+            else if (doplay.toldcool <= 0 && tplayer.Group.HasPermission("usesignspawnmob") && (!tplayer.Group.HasPermission("nosccooldown") && (!getConfig.GlobalSpawnMobCooldown && doplay.CooldownSpawnMob > 0)) &&
+                (Main.sign[id].text.ToLower().Contains("spawn mob ") || Main.sign[id].text.ToLower().Contains("spawnmob ") || Main.sign[id].text.ToLower().Contains("spawn ")))
             {
                 tplayer.SendMessage("You have to wait another " + doplay.CooldownSpawnMob + " seconds before using this sign", Color.IndianRed);
                 doplay.toldcool = 5;
             }
-            else if (doplay.toldcool <= 0 && tplayer.Group.HasPermission("usesignspawnmob") && (!tplayer.Group.HasPermission("nosccooldown") && (getConfig.GlobalSpawnMobCooldown && GlobalSpawnMobCooldown > 0)) && Main.sign[id].text.ToLower().Contains("spawnmob"))
+            else if (doplay.toldcool <= 0 && tplayer.Group.HasPermission("usesignspawnmob") && (!tplayer.Group.HasPermission("nosccooldown") && (getConfig.GlobalSpawnMobCooldown && GlobalSpawnMobCooldown > 0)) &&
+                (Main.sign[id].text.ToLower().Contains("spawn mob ") || Main.sign[id].text.ToLower().Contains("spawnmob ") || Main.sign[id].text.ToLower().Contains("spawn ")))
             {
                 tplayer.SendMessage("Everyone has to wait another " + GlobalSpawnMobCooldown + " seconds before using this sign", Color.IndianRed);
                 doplay.toldcool = 5;
@@ -1059,6 +1071,49 @@ namespace SignCommands
                 doplay.toldcool = 5;
             }
             #endregion
+
+            #region Do Command
+            if (tplayer.Group.HasPermission("usesigndocommand") && (tplayer.Group.HasPermission("nosccooldown") ||
+                ((getConfig.GlobalDoCommandCooldown && GlobalCommandCooldown <= 0) || (!getConfig.GlobalDoCommandCooldown && doplay.CooldownCommand <= 0))))
+            {
+                if (Main.sign[id].text.ToLower().Contains("command ") || Main.sign[id].text.ToLower().Contains("cmd "))
+                {
+                    try
+                    {
+                        string[] linesplit = Main.sign[id].text.Split('\'', '\"');
+                        if (doplay.handlecmd == 0)
+                        {
+                            TShockAPI.Commands.HandleCommand(tplayer, "/" + linesplit[1]);
+                            doplay.handlecmd = 2;
+                        }
+
+                    }
+                    catch (Exception)
+                    {
+                        if (doplay.toldalert <= 0)
+                        {
+                            doplay.toldalert = 3;
+                            tplayer.SendMessage("Could not parse Command - Correct Format: \"<Command>\"", Color.IndianRed);
+                        }
+                    }
+                }
+            }
+            else if (doplay.toldperm <= 0 && !tplayer.Group.HasPermission("usesigndocommand") && (Main.sign[id].text.ToLower().Contains("Command ") || Main.sign[id].text.ToLower().Contains("Cmd ")))
+            {
+                tplayer.SendMessage("You do not have permission to use this sign command!", Color.IndianRed);
+                doplay.toldperm = 5;
+            }
+            else if (doplay.toldcool <= 0 && tplayer.Group.HasPermission("usesigndocommand") && (!tplayer.Group.HasPermission("nosccooldown") && (!getConfig.GlobalDoCommandCooldown && doplay.CooldownCommand > 0)) && (Main.sign[id].text.ToLower().Contains("command ") || Main.sign[id].text.ToLower().Contains("cmd ")))
+            {
+                tplayer.SendMessage("You have to wait another " + doplay.CooldownCommand + " seconds before using this sign", Color.IndianRed);
+                doplay.toldcool = 5;
+            }
+            else if (doplay.toldcool <= 0 && tplayer.Group.HasPermission("usesigndocommand") && (!tplayer.Group.HasPermission("nosccooldown") && (getConfig.GlobalDoCommandCooldown && GlobalCommandCooldown > 0)) && (Main.sign[id].text.ToLower().Contains("command ") || Main.sign[id].text.ToLower().Contains("cmd ")))
+            {
+                tplayer.SendMessage("Everyone has to wait another " + GlobalCommandCooldown + " seconds before using this sign", Color.IndianRed);
+                doplay.toldcool = 5;
+            }
+            #endregion
         }
 
         public static Kit FindKit(String name)
@@ -1109,6 +1164,8 @@ namespace SignCommands
         public int CooldownBuff = 0;
         public int CooldownSpawnMob = 0;
         public int CooldownKit = 0;
+        public int CooldownCommand = 0;
+        public int handlecmd = 0;
         public bool checkforsignedit = false;
         public bool DestroyingSign = false;
         public string originalsigntext = "";
@@ -1138,6 +1195,8 @@ namespace config
         public bool GlobalSpawnMobCooldown = false;
         public int SpawnMobCooldown = 20;
         public int KitCooldown = 20;
+        public bool GlobalDoCommandCooldown = false;
+        public int DoCommandCooldown = 20;
 
         public static scConfig Read(string path)
         {
