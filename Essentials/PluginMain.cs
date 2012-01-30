@@ -24,6 +24,7 @@ namespace Essentials
         public static SqlTableEditor SQLEditor;
         public static SqlTableCreator SQLWriter;
         public static Timer CheckT = new Timer(1000);
+        public static int playercount = 0;
         #endregion
 
         #region Plugin Main
@@ -44,7 +45,7 @@ namespace Essentials
 
         public override Version Version
         {
-            get { return new Version("1.3"); }
+            get { return new Version("1.3.1"); }
         }
 
         public override void Initialize()
@@ -90,7 +91,8 @@ namespace Essentials
             SQLWriter.EnsureExists(table);
 
             CheckT.Elapsed += new ElapsedEventHandler(CheckT_Elapsed);
-            CheckT.Start();
+            if (playercount > 0)
+                CheckT.Start();
 
             Commands.ChatCommands.Add(new Command("fillstacks", more, "maxstacks"));
             Commands.ChatCommands.Add(new Command("getposition", getpos, "pos"));
@@ -121,6 +123,10 @@ namespace Essentials
         {
             lock (esPlayers)
                 esPlayers.Add(new esPlayer(who));
+
+            playercount++;
+            if (playercount == 1)
+                CheckT.Start();
         }
 
         public void OnLeave(int ply)
@@ -136,6 +142,9 @@ namespace Essentials
                     }
                 }
             }
+            playercount--;
+            if (playercount == 0)
+                CheckT.Stop();
         }
 
         public void OnChat(messageBuffer msg, int ply, string text, HandledEventArgs e)
@@ -146,18 +155,12 @@ namespace Essentials
             if (text == "/")
                 e.Handled = true;
 
-            if (text.StartsWith("/tp ") || text.Equals("/tp"))
+            if (text.StartsWith("/tp "))
             {
-                e.Handled = true;
                 #region /tp
                 var player = TShock.Players[ply];
-                if (player.Group.HasPermission("tp"))
+                if (player.Group.HasPermission("tp") && player.RealPlayer)
                 {
-                    if (!player.RealPlayer)
-                    {
-                        player.SendMessage("You cannot use teleport commands!");
-                        return;
-                    }
 
                     List<string> parms = new List<string>();
                     string[] texts = text.Split(' ');
@@ -166,203 +169,59 @@ namespace Essentials
                         parms.Add(texts[i]);
                     }
 
-                    if (parms.Count < 1)
-                    {
-                        player.SendMessage("Invalid syntax! Proper syntax: /tp <player> ", Color.Red);
-                        return;
-                    }
-
                     string plStr = String.Join(" ", parms);
                     var players = TShock.Utils.FindPlayer(plStr);
-                    if (players.Count == 0)
-                        player.SendMessage("Invalid player!", Color.Red);
-                    else if (players.Count > 1)
-                        player.SendMessage("More than one player matched!", Color.Red);
-                    else if (!players[0].TPAllow && !player.Group.HasPermission(Permissions.tpall))
+
+                    if (parms.Count > 0 && players.Count == 1 && players[0].TPAllow && player.Group.HasPermission(Permissions.tpall))
                     {
-                        var plr = players[0];
-                        player.SendMessage(plr.Name + " Has Selected For Users Not To Teleport To Them");
-                        plr.SendMessage(player.Name + " Attempted To Teleport To You");
-                    }
-                    else
-                    {
-                        var plr = players[0];
                         esPlayer play = GetesPlayerByName(player.Name);
                         play.lastXtp = player.TileX;
                         play.lastYtp = player.TileY;
                         play.lastaction = "tp";
-                        if (player.Teleport(plr.TileX, plr.TileY + 3))
-                        {
-                            player.SendMessage(string.Format("Teleported to {0}", plr.Name));
-                            if (!player.Group.HasPermission(Permissions.tphide))
-                                plr.SendMessage(player.Name + " Teleported To You");
-                        }
                     }
                 }
-                else
-                    player.SendMessage("You do not have access to this command.", Color.Red);
                 #endregion
             }
-            else if (text.StartsWith("/btp ") || text.Equals("/btp"))
+            else if (text.StartsWith("/home"))
             {
-                e.Handled = true;
-                #region /btp
-                var player = TShock.Players[ply];
-                if (player.Group.HasPermission("tp"))
-                {
-
-                    if (!player.RealPlayer)
-                    {
-                        player.SendMessage("You cannot use teleport commands!");
-                        return;
-                    }
-
-                    List<string> parms = new List<string>();
-                    string[] texts = text.Split(' ');
-                    for (int i = 1; i < texts.Length; i++)
-                    {
-                        parms.Add(texts[i]);
-                    }
-
-                    if (parms.Count < 1)
-                    {
-                        player.SendMessage("Invalid syntax! Proper syntax: /tp <player> ", Color.Red);
-                        return;
-                    }
-
-                    string plStr = String.Join(" ", parms);
-                    var players = TShock.Utils.FindPlayer(plStr);
-                    if (players.Count == 0)
-                        player.SendMessage("Invalid player!", Color.Red);
-                    else if (players.Count > 1)
-                        player.SendMessage("More than one player matched!", Color.Red);
-                    else
-                    {
-                        var plr = players[0];
-                        esPlayer play = GetesPlayerByName(player.Name);
-                        play.lastXtp = player.TileX;
-                        play.lastYtp = player.TileY;
-                        play.lastaction = "tp";
-                        if (player.Teleport(plr.TileX, plr.TileY + 3))
-                            player.SendMessage(string.Format("Teleported to {0}", plr.Name));
-                    }
-                }
-                else
-                    player.SendMessage("You do not have access to this command.", Color.Red);
-                #endregion
-            }
-            else if (text.StartsWith("/home ") || text.Equals("/home"))
-            {
-                e.Handled = true;
                 #region /home
                 var player = TShock.Players[ply];
-                if (player.Group.HasPermission("tp"))
+                if (player.Group.HasPermission("tp") && player.RealPlayer)
                 {
-                    if (!player.RealPlayer)
-                    {
-                        player.SendMessage("You cannot use teleport commands!");
-                        return;
-                    }
-
                     esPlayer play = GetesPlayerByName(player.Name);
                     play.lastXtp = player.TileX;
                     play.lastYtp = player.TileY;
                     play.lastaction = "tp";
-                    player.Spawn();
-                    player.SendMessage("Teleported to your spawnpoint.");
                 }
-                else
-                    player.SendMessage("You do not have access to this command.", Color.Red);
                 #endregion
             }
-            else if (text.StartsWith("/spawn ") || text.Equals("/spawn"))
+            else if (text.StartsWith("/spawn"))
             {
-                e.Handled = true;
                 #region /spawn
                 var player = TShock.Players[ply];
-                if (player.Group.HasPermission("tp"))
+                if (player.Group.HasPermission("tp") && player.RealPlayer)
                 {
-                    if (!player.RealPlayer)
-                    {
-                        player.SendMessage("You cannot use teleport commands!");
-                        return;
-                    }
                     esPlayer play = GetesPlayerByName(player.Name);
                     play.lastXtp = player.TileX;
                     play.lastYtp = player.TileY;
                     play.lastaction = "tp";
-                    if (player.Teleport(Main.spawnTileX, Main.spawnTileY))
-                        player.SendMessage("Teleported to the map's spawnpoint.");
                 }
-                else
-                    player.SendMessage("You do not have access to this command.", Color.Red);
                 #endregion
             }
-            else if (text.StartsWith("/warp ") || text.Equals("/warp"))
+            else if (text.StartsWith("/warp "))
             {
-                e.Handled = true;
                 #region /warp
                 var player = TShock.Players[ply];
-                if (player.Group.HasPermission("tp"))
+                if (player.Group.HasPermission("warp"))
                 {
                     List<string> parms = new List<string>();
-                    string[] texts = text.Split(' ');
-                    for (int i = 1; i < texts.Length; i++)
+                    string[] textsp = text.Split(' ');
+                    for (int i = 1; i < textsp.Length; i++)
                     {
-                        parms.Add(texts[i]);
+                        parms.Add(textsp[i]);
                     }
 
-                    if (parms.Count < 1)
-                    {
-                        player.SendMessage("Invalid syntax! Proper syntax: /warp [name] or /warp list <page>", Color.Red);
-                        return;
-                    }
-
-                    if (parms[0].Equals("list"))
-                    {
-                        const int pagelimit = 15;
-                        const int perline = 5;
-                        int page = 0;
-
-                        if (parms.Count > 1)
-                        {
-                            if (!int.TryParse(parms[1], out page) || page < 1)
-                            {
-                                player.SendMessage(string.Format("Invalid page number ({0})", page), Color.Red);
-                                return;
-                            }
-                            page--;
-                        }
-
-                        var warps = TShock.Warps.ListAllPublicWarps(Main.worldID.ToString());
-
-                        int pagecount = warps.Count / pagelimit;
-                        if (page > pagecount)
-                        {
-                            player.SendMessage(string.Format("Page number exceeds pages ({0}/{1})", page + 1, pagecount + 1), Color.Red);
-                            return;
-                        }
-
-                        player.SendMessage(string.Format("Current Warps ({0}/{1}):", page + 1, pagecount + 1), Color.Green);
-
-                        var nameslist = new List<string>();
-                        for (int i = (page * pagelimit); (i < ((page * pagelimit) + pagelimit)) && i < warps.Count; i++)
-                        {
-                            nameslist.Add(warps[i].WarpName);
-                        }
-
-                        var names = nameslist.ToArray();
-                        for (int i = 0; i < names.Length; i += perline)
-                        {
-                            player.SendMessage(string.Join(", ", names, i, Math.Min(names.Length - i, perline)), Color.Yellow);
-                        }
-
-                        if (page < pagecount)
-                        {
-                            player.SendMessage(string.Format("Type /warp list {0} for more warps.", (page + 2)), Color.Yellow);
-                        }
-                    }
-                    else
+                    if (parms.Count > 0 && !parms[0].Equals("list"))
                     {
                         string warpName = String.Join(" ", parms);
                         var warp = TShock.Warps.FindWarp(warpName);
@@ -372,19 +231,9 @@ namespace Essentials
                             play.lastXtp = player.TileX;
                             play.lastYtp = player.TileY;
                             play.lastaction = "tp";
-                            if (player.Teleport((int)warp.WarpPos.X, (int)warp.WarpPos.Y + 3))
-                            {
-                                player.SendMessage("Warped to " + warpName, Color.Yellow);
-                            }
-                        }
-                        else
-                        {
-                            player.SendMessage("Specified warp not found", Color.Red);
                         }
                     }
                 }
-                else
-                    player.SendMessage("You do not have access to this command.", Color.Red);
                 #endregion
             }
         }
@@ -649,6 +498,9 @@ namespace Essentials
         #region Suicide
         public static void suicide(CommandArgs args)
         {
+            if (!args.Player.RealPlayer)
+                return;
+
             args.Player.DamagePlayer(9999);
         }
 
