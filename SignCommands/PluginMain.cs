@@ -48,7 +48,7 @@ namespace SignCommands
 
         public override Version Version
         {
-            get { return new Version("1.3.2"); }
+            get { return new Version("1.3.3"); }
         }
 
         public override void Initialize()
@@ -667,6 +667,9 @@ namespace SignCommands
                     try
                     {
                         string[] linesplit = Main.sign[id].text.Split('\'', '\"');
+                        for (int i = 1; i < linesplit.Length; i++)
+                        {
+                        }
                         bool containstime = false;
                         string[] datasplit;
 
@@ -920,83 +923,95 @@ namespace SignCommands
                     try
                     {
                         string[] linesplit = Main.sign[id].text.Split('\'', '\"');
-
-                        int bid = 0;
-                        int time = 0;
-                        bool containstime = false;
-                        string[] datasplit;
-
-                        if (linesplit[1].Contains(","))
+                        int count = 0;
+                        int c1bid = 1;
+                        int c1tme = 1;
+                        for (int i = 1; i < linesplit.Length - 1; i++)
                         {
-                            datasplit = linesplit[1].Split(',');
-                            containstime = true;
-                        }
-                        else
-                            datasplit = null;
+                            int bid = 0;
+                            int time = 0;
+                            bool containstime = false;
+                            string[] datasplit;
 
-                        string buffvalue = "";
-
-                        if (!containstime)
-                        {
-                            time = 60;
-                            buffvalue = linesplit[1];
-                        }
-                        else
-                        {
-                            int.TryParse(datasplit[1], out time);
-                            buffvalue = datasplit[0];
-                        }
-
-                        if (!int.TryParse(buffvalue, out bid))
-                        {
-                            var found = TShock.Utils.GetBuffByName(buffvalue);
-                            if (found.Count == 0)
+                            if (linesplit[i].Contains(","))
                             {
-                                if (doplay.toldalert <= 0)
-                                {
-                                    doplay.toldalert = 3;
-                                    doplay.TSPlayer.SendMessage("Invalid buff name!", Color.Red);
-                                }
-                                return;
+                                datasplit = linesplit[i].Split(',');
+                                containstime = true;
                             }
-                            else if (found.Count > 1)
+                            else
+                                datasplit = null;
+
+                            string buffvalue = "";
+
+                            if (!containstime)
                             {
-                                if (doplay.toldalert <= 0)
-                                {
-                                    doplay.toldalert = 3;
-                                    doplay.TSPlayer.SendMessage(string.Format("More than one ({0}) buff matched!", found.Count), Color.Red);
-                                }
-                                return;
-                            }
-                            bid = found[0];
-
-                        }
-
-                        if (bid > 0 && bid < Main.maxBuffs)
-                        {
-                            if (time < 0 || time > short.MaxValue)
                                 time = 60;
-                            doplay.TSPlayer.SetBuff(bid, time * 60);
-                            if (doplay.toldalert <= 0)
-                            {
-                                doplay.toldalert = 3;
-                                doplay.TSPlayer.SendMessage(string.Format("You have buffed yourself with {0}({1}) for {2} seconds!",
-                                    TShock.Utils.GetBuffName(bid), TShock.Utils.GetBuffDescription(bid), (time)), Color.Green);
+                                buffvalue = linesplit[i];
                             }
-                            doplay.CooldownBuff = getConfig.BuffCooldown;
+                            else
+                            {
+                                int.TryParse(datasplit[1], out time);
+                                buffvalue = datasplit[0];
+                            }
+
+                            if (!int.TryParse(buffvalue, out bid))
+                            {
+                                var found = TShock.Utils.GetBuffByName(buffvalue);
+                                if (found.Count == 0)
+                                {
+                                    if (doplay.toldalert <= 0)
+                                    {
+                                        doplay.toldalert = 3;
+                                        doplay.TSPlayer.SendMessage("Invalid buff name in buff " + i, Color.Red);
+                                    }
+                                    return;
+                                }
+                                else if (found.Count > 1)
+                                {
+                                    if (doplay.toldalert <= 0)
+                                    {
+                                        doplay.toldalert = 3;
+                                        doplay.TSPlayer.SendMessage(string.Format("More than one ({0}) buffs matched in buff " + i, found.Count), Color.Red);
+                                    }
+                                    return;
+                                }
+                                bid = found[0];
+                            }
+                            if (bid > 0 && bid < Main.maxBuffs)
+                            {
+                                if (time < 0 || time > short.MaxValue)
+                                    time = 60;
+                                doplay.TSPlayer.SetBuff(bid, time * 60);
+                                count++;
+                                c1bid = bid;
+                                c1tme = time;
+                            }
+                            else
+                            {
+                                if (doplay.toldalert <= 0)
+                                {
+                                    doplay.toldalert = 3;
+                                    doplay.TSPlayer.SendMessage("Invalid buff ID in buff " + i, Color.Red);
+                                }
+                            }
                         }
-                        else
+                        if (doplay.toldalert <= 0)
                         {
-                            if (doplay.toldalert <= 0)
-                            {
-                                doplay.toldalert = 3;
-                                doplay.TSPlayer.SendMessage("Invalid buff ID!", Color.Red);
-                            }
+                            doplay.toldalert = 3;
+                            if (count == 1)
+                                doplay.TSPlayer.SendMessage(string.Format("You have buffed yourself with {0}({1}) for {2} seconds!", TShock.Utils.GetBuffName(c1bid), TShock.Utils.GetBuffDescription(c1bid), (c1tme)), Color.Green);
+                            else
+                                doplay.TSPlayer.SendMessage("You have buffed yourself with multiple buffs!", Color.Green);
+
                         }
+                        if (count > 0)
+                            doplay.CooldownBuff = getConfig.BuffCooldown;
                     }
                     catch (Exception)
                     {
                         tplayer.SendMessage("Could not parse Buff / Duration - Correct Format: \"<Buff Name>, <Duration>\"", Color.IndianRed);
+                        tplayer.SendMessage("Or for more than one buff: \"<Name>, <Duration>\"<Name>, <Duration>\"", Color.IndianRed);
+                        return;
                     }
                 }
             }
@@ -1040,6 +1055,7 @@ namespace SignCommands
                         if (tplayer.Group.HasPermission(k.getPerm()))
                         {
                             k.giveItems(tplayer);
+                            doplay.CooldownKit = getConfig.KitCooldown;
                         }
                         else
                         {

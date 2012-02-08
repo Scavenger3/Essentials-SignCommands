@@ -24,7 +24,6 @@ namespace Essentials
         public static SqlTableEditor SQLEditor;
         public static SqlTableCreator SQLWriter;
         public static Timer CheckT = new Timer(1000);
-        public static int playercount = 0;
         public static bool useteamperms = false;
         public static string redpassword = "";
         public static string greenpassword = "";
@@ -50,7 +49,7 @@ namespace Essentials
 
         public override Version Version
         {
-            get { return new Version("1.3.2"); }
+            get { return new Version("1.3.3"); }
         }
 
         public override void Initialize()
@@ -97,8 +96,6 @@ namespace Essentials
             SQLWriter.EnsureExists(table);
 
             CheckT.Elapsed += new ElapsedEventHandler(CheckT_Elapsed);
-            if (playercount > 0)
-                CheckT.Start();
 
             if (!File.Exists(@"tshock/EssentialsConfig.txt"))
             {
@@ -183,11 +180,11 @@ namespace Essentials
 
             Commands.ChatCommands.Add(new Command("fillstacks", more, "maxstacks"));
             Commands.ChatCommands.Add(new Command("getposition", getpos, "pos"));
-            Commands.ChatCommands.Add(new Command("tp", tppos, "tppos"));
+            Commands.ChatCommands.Add(new Command("tppos", tppos, "tppos"));
             Commands.ChatCommands.Add(new Command("ruler", ruler, "ruler"));
             Commands.ChatCommands.Add(new Command("askadminhelp", helpop, "helpop"));
             Commands.ChatCommands.Add(new Command("commitsuicide", suicide, "suicide", "die"));
-            Commands.ChatCommands.Add(new Command("setonfire", burn, "burn"));
+            Commands.ChatCommands.Add(new Command("pvpfun", burn, "burn"));
             Commands.ChatCommands.Add(new Command("butcher", killnpc, "killnpc"));
             Commands.ChatCommands.Add(new Command("kickall", kickall, "kickall"));
             Commands.ChatCommands.Add(new Command("moonphase", moon, "moon"));
@@ -199,6 +196,7 @@ namespace Essentials
             Commands.ChatCommands.Add(new Command("myhome", gomyhome, "myhome"));
             Commands.ChatCommands.Add(new Command("essentials", cmdessentials, "essentials"));
             Commands.ChatCommands.Add(new Command(null, TeamUnlock, "teamunlock"));
+            Commands.ChatCommands.Add(new Command("lastcommand", lastcmd, "="));
 
             foreach (Group grp in TShock.Groups.groups)
             {
@@ -213,8 +211,7 @@ namespace Essentials
             lock (esPlayers)
                 esPlayers.Add(new esPlayer(who));
 
-            playercount++;
-            if (playercount == 1)
+            if (esPlayers.Count > 0)
                 CheckT.Start();
         }
 
@@ -231,8 +228,8 @@ namespace Essentials
                     }
                 }
             }
-            playercount--;
-            if (playercount == 0)
+
+            if (esPlayers.Count < 1)
                 CheckT.Stop();
         }
 
@@ -243,6 +240,12 @@ namespace Essentials
 
             if (text == "/")
                 e.Handled = true;
+
+            if (text.StartsWith("/") && !text.StartsWith("/="))
+            {
+                var player = GetesPlayerByID(ply);
+                player.lastcmd = text;
+            }
 
             if (text.StartsWith("/tp "))
             {
@@ -394,7 +397,7 @@ namespace Essentials
                         break;
                 }
             }
-            catch (Exception) { }
+            catch (Exception ex) { TShock.Utils.Broadcast(ex.ToString()); }
         }
 
         #endregion
@@ -661,7 +664,7 @@ namespace Essentials
             if (!args.Player.RealPlayer)
                 return;
 
-            args.Player.DamagePlayer(9999);
+            NetMessage.SendData((int)PacketTypes.PlayerDamage, -1, -1, " decided it wasnt worth living.", args.Player.Index, ((new Random()).Next(-1, 1)), 9999, (float)0);
         }
 
         public static void burn(CommandArgs args)
@@ -739,7 +742,6 @@ namespace Essentials
                     if (!player.grpData.HasPermission("immunetokickall"))
                     {
                         player.Kick("Everyone has been kicked from the server!");
-                        TShock.Utils.Broadcast("Everyone has been kicked from the server");
                     }
                 }
             }
@@ -1498,6 +1500,17 @@ namespace Essentials
             }
         }
         #endregion
+
+        #region Last Command
+        public static void lastcmd(CommandArgs args)
+        {
+            var player = GetesPlayerByID(args.Player.Index);
+            if (player.lastcmd == "")
+                args.Player.SendMessage("You have not entered a command yet.", Color.IndianRed);
+            else
+                TShockAPI.Commands.HandleCommand(args.Player, player.lastcmd);
+        }
+        #endregion
     }
     
     #region esPlayer
@@ -1521,6 +1534,7 @@ namespace Essentials
         public string greenpass = "";
         public string bluepass = "";
         public string yellowpass = "";
+        public string lastcmd = "";
 
         public esPlayer(int index)
         {
