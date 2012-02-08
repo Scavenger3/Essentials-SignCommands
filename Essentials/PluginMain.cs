@@ -397,7 +397,7 @@ namespace Essentials
                         break;
                 }
             }
-            catch (Exception ex) { TShock.Utils.Broadcast(ex.ToString()); }
+            catch (Exception) { }
         }
 
         #endregion
