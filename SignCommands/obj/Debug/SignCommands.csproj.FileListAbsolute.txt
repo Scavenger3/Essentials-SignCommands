@@ -5,11 +5,6 @@ C:\Users\42373\Documents\Programming\TShock Plugins\Sign Commands\SignCommands\o
 C:\Users\42373\Documents\Programming\TShock Plugins\Sign Commands\SignCommands\obj\Debug\SignCommands.pdb
 C:\Users\42373\Documents\Programming\TShock Plugins\Sign Commands\RELEASE\SignCommands.dll
 C:\Users\42373\Documents\Programming\TShock Plugins\Sign Commands\RELEASE\SignCommands.pdb
-C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\Compiled\SignCommands.dll
-C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\Compiled\SignCommands.pdb
-C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\ResolveAssemblyReference.cache
-C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\SignCommands.dll
-C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\SignCommands.pdb
 C:\Documents and Settings\Llew Stephens\Desktop\PortableGit\Essentials-SignCommands\Compiled\SignCommands.dll
 C:\Documents and Settings\Llew Stephens\Desktop\PortableGit\Essentials-SignCommands\Compiled\SignCommands.pdb
 C:\Documents and Settings\Llew Stephens\Desktop\PortableGit\Essentials-SignCommands\SignCommands\obj\Debug\ResolveAssemblyReference.cache
@@ -20,3 +15,8 @@ C:\Documents and Settings\Llew Stephens\usr\Essentials-SignCommands\Compiled\Sig
 C:\Documents and Settings\Llew Stephens\usr\Essentials-SignCommands\SignCommands\obj\Debug\ResolveAssemblyReference.cache
 C:\Documents and Settings\Llew Stephens\usr\Essentials-SignCommands\SignCommands\obj\Debug\SignCommands.dll
 C:\Documents and Settings\Llew Stephens\usr\Essentials-SignCommands\SignCommands\obj\Debug\SignCommands.pdb
+C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\Compiled\SignCommands.dll
+C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\Compiled\SignCommands.pdb
+C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\ResolveAssemblyReference.cache
+C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\SignCommands.dll
+C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\SignCommands.pdb

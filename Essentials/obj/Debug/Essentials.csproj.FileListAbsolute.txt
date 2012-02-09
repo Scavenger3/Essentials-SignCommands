@@ -3,11 +3,6 @@ C:\Users\42373\Documents\Programming\TShock Plugins\Essentials\RELEASE\Essential
 C:\Users\42373\Documents\Programming\TShock Plugins\Essentials\Essentials\obj\Debug\ResolveAssemblyReference.cache
 C:\Users\42373\Documents\Programming\TShock Plugins\Essentials\Essentials\obj\Debug\Essentials.dll
 C:\Users\42373\Documents\Programming\TShock Plugins\Essentials\Essentials\obj\Debug\Essentials.pdb
-C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\Compiled\Essentials.dll
-C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\Compiled\Essentials.pdb
-C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\Essentials\obj\Debug\ResolveAssemblyReference.cache
-C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\Essentials\obj\Debug\Essentials.dll
-C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\Essentials\obj\Debug\Essentials.pdb
 C:\Documents and Settings\Llew Stephens\Desktop\PortableGit\Essentials-SignCommands\Compiled\Essentials.dll
 C:\Documents and Settings\Llew Stephens\Desktop\PortableGit\Essentials-SignCommands\Compiled\Essentials.pdb
 C:\Documents and Settings\Llew Stephens\Desktop\PortableGit\Essentials-SignCommands\Essentials\obj\Debug\ResolveAssemblyReference.cache
@@ -18,3 +13,8 @@ C:\Documents and Settings\Llew Stephens\usr\Essentials-SignCommands\Compiled\Ess
 C:\Documents and Settings\Llew Stephens\usr\Essentials-SignCommands\Essentials\obj\Debug\ResolveAssemblyReference.cache
 C:\Documents and Settings\Llew Stephens\usr\Essentials-SignCommands\Essentials\obj\Debug\Essentials.dll
 C:\Documents and Settings\Llew Stephens\usr\Essentials-SignCommands\Essentials\obj\Debug\Essentials.pdb
+C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\Compiled\Essentials.dll
+C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\Compiled\Essentials.pdb
+C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\Essentials\obj\Debug\ResolveAssemblyReference.cache
+C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\Essentials\obj\Debug\Essentials.dll
+C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\Essentials\obj\Debug\Essentials.pdb
