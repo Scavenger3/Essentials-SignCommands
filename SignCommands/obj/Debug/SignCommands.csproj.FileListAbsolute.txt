@@ -20,3 +20,13 @@ C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\Co
 C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\ResolveAssemblyReference.cache
 C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\SignCommands.dll
 C:\Users\42373\Documents\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\SignCommands.pdb
+C:\Users\42373\Documents\My Games\Programming\TShock Plugins\EssentialsAndSignCommands\Compiled\SignCommands.dll
+C:\Users\42373\Documents\My Games\Programming\TShock Plugins\EssentialsAndSignCommands\Compiled\SignCommands.pdb
+C:\Users\42373\Documents\My Games\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\ResolveAssemblyReference.cache
+C:\Users\42373\Documents\My Games\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\SignCommands.dll
+C:\Users\42373\Documents\My Games\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\SignCommands.pdb
+C:\Users\42373\Documents\Other\Programming\TShock Plugins\EssentialsAndSignCommands\Compiled\SignCommands.dll
+C:\Users\42373\Documents\Other\Programming\TShock Plugins\EssentialsAndSignCommands\Compiled\SignCommands.pdb
+C:\Users\42373\Documents\Other\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\ResolveAssemblyReference.cache
+C:\Users\42373\Documents\Other\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\SignCommands.dll
+C:\Users\42373\Documents\Other\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\SignCommands.pdb

@@ -18,9 +18,10 @@ namespace SignCommands
     public class SignCommands : TerrariaPlugin
     {
         public static scConfig getConfig { get; set; }
-        internal static string TempConfigPath { get { return Path.Combine(TShock.SavePath, "SignCommandConfig.json"); } }
+        internal static string TempConfigPath { get { return Path.Combine(TShock.SavePath, "PluginConfigs/SignCommandConfig.json"); } }
 
         public static List<scPlayer> scPlayers = new List<scPlayer>();
+        public static Dictionary<string, List<int>> svCool = new Dictionary<string, List<int>>();
         public static KitList kits;
         public static String savepath = "";
 
@@ -28,8 +29,10 @@ namespace SignCommands
         public static int GlobalTimeCooldown = 0;
         public static int GlobalSpawnMobCooldown = 0;
         public static int GlobalCommandCooldown = 0;
+        public static int GlobalKitCooldown = 0;
 
         public static Timer Cooldown = new Timer(1000);
+        
 
         public override string Name
         {
@@ -48,7 +51,7 @@ namespace SignCommands
 
         public override Version Version
         {
-            get { return new Version("1.3.4"); }
+            get { return new Version("1.3.5"); }
         }
 
         public override void Initialize()
@@ -99,18 +102,19 @@ namespace SignCommands
         #region Commands
         public void OnInitialize()
         {
-            SetupConfig();
-            /*Why?
-            GlobalBossCooldown = getConfig.BossCooldown;
-            GlobalTimeCooldown = getConfig.BossCooldown;
-            GlobalSpawnMobCooldown = getConfig.SpawnMobCooldown;
-            GlobalCommandCooldown = getConfig.DoCommandCooldown;*/
-
             Cooldown.Elapsed += new ElapsedEventHandler(Cooldown_Elapsed);
             Cooldown.Start();
 
             Commands.ChatCommands.Add(new Command("destroysigncommand", destsign, "destsign"));
             Commands.ChatCommands.Add(new Command("reloadsigncommands", screload, "screload"));
+
+            #region Check Config
+            if (!Directory.Exists(@"tshock/PluginConfigs/"))
+            {
+                Directory.CreateDirectory(@"tshock/PluginConfigs/");
+            }
+            SetupConfig();
+            #endregion
         }
 
         public static void destsign(CommandArgs args)
@@ -192,6 +196,22 @@ namespace SignCommands
         {
             lock (scPlayers)
                 scPlayers.Add(new scPlayer(who));
+
+            var ply = GetscPlayerByID(who);
+            if (svCool.ContainsKey(ply.plrName))
+            {
+                ply.CooldownBoss = svCool[ply.plrName][0];
+                ply.CooldownBuff = svCool[ply.plrName][1];
+                ply.CooldownCommand = svCool[ply.plrName][2];
+                ply.CooldownDamage = svCool[ply.plrName][3];
+                ply.CooldownHeal = svCool[ply.plrName][4];
+                ply.CooldownItem = svCool[ply.plrName][5];
+                ply.CooldownKit = svCool[ply.plrName][6];
+                ply.CooldownMsg = svCool[ply.plrName][7];
+                ply.CooldownSpawnMob = svCool[ply.plrName][8];
+                ply.CooldownTime = svCool[ply.plrName][9];
+                svCool.Remove(ply.plrName);
+            }
         }
 
         public void OnLeave(int ply)
@@ -202,6 +222,13 @@ namespace SignCommands
                 {
                     if (scPlayers[i].Index == ply)
                     {
+                        //CHECK:
+                        var play = scPlayers[i];
+
+                        if (play.HasCooldown() && !play.TSPlayer.Group.HasPermission("nosccooldown"))
+                            svCool.Add(play.plrName, play.Cooldowns());
+                        
+                        //THEN:
                         scPlayers.RemoveAt(i);
                         break;
                     }
@@ -224,6 +251,9 @@ namespace SignCommands
 
             if (getConfig.GlobalDoCommandCooldown && GlobalCommandCooldown > 0)
                 GlobalCommandCooldown--;
+
+            if (getConfig.GlobalKitCooldown && GlobalKitCooldown > 0)
+                GlobalKitCooldown--;
 
             lock (scPlayers)
             {
@@ -283,7 +313,6 @@ namespace SignCommands
                             play.TSPlayer.SendMessage("You do not have permission to create/edit sign commands!", Color.IndianRed);
                             //Main.sign[play.signeditid].text = play.originalsigntext;
                             Sign.TextSign(play.signeditid, play.originalsigntext);
-
                         }
                         play.checkforsignedit = false;
                     }
@@ -436,7 +465,8 @@ namespace SignCommands
 
         public static void dosigncmd(int id, TSPlayer tplayer)
         {
-            scPlayer doplay = GetscPlayerByName(tplayer.Name);
+            scPlayer doplay = GetscPlayerByID(tplayer.Index);
+            //scPlayer doplay = GetscPlayerByName(tplayer.Name);
             Sign sign = Main.sign[id];
 
             #region Check permissions
@@ -1081,7 +1111,7 @@ namespace SignCommands
             #endregion
 
             #region Kit
-            if (sign.text.ToLower().Contains("kit ") && skit && (nocool || doplay.CooldownKit <= 0))
+            if (sign.text.ToLower().Contains("kit ") && skit && (nocool || ((getConfig.GlobalKitCooldown && GlobalKitCooldown <= 0) || (!getConfig.GlobalKitCooldown && doplay.CooldownKit <= 0))))
             {
                 try
                 {
@@ -1106,7 +1136,10 @@ namespace SignCommands
                     if (tplayer.Group.HasPermission(k.getPerm()))
                     {
                         k.giveItems(tplayer);
-                        doplay.CooldownKit = getConfig.KitCooldown;
+                        if (getConfig.GlobalKitCooldown)
+                            GlobalKitCooldown = getConfig.KitCooldown;
+                        else
+                            doplay.CooldownKit = getConfig.KitCooldown;
                     }
                     else
                     {
@@ -1213,6 +1246,7 @@ namespace SignCommands
     {
         public int Index { get; set; }
         public TSPlayer TSPlayer { get { return TShock.Players[Index]; } }
+        public string plrName = "";
         public bool destsign = false;
         public int toldperm = 0;
         public int toldcool = 0;
@@ -1237,6 +1271,34 @@ namespace SignCommands
         public scPlayer(int index)
         {
             Index = index;
+            this.plrName = TShock.Players[index].Name;
+        }
+
+        public bool HasCooldown()
+        {
+            if (CooldownTime > 0 || CooldownHeal > 0 || CooldownMsg > 0 || CooldownDamage > 0 || CooldownBoss > 0 ||
+                CooldownItem > 0 || CooldownBuff > 0 || CooldownSpawnMob > 0 || CooldownKit > 0 || CooldownCommand > 0)
+            {
+                return true;
+            }                
+
+            return false;
+        }
+
+        public List<int> Cooldowns()
+        {
+            List<int> r = new List<int>();
+            r.Add(CooldownBoss);
+            r.Add(CooldownBuff);
+            r.Add(CooldownCommand);
+            r.Add(CooldownDamage);
+            r.Add(CooldownHeal);
+            r.Add(CooldownItem);
+            r.Add(CooldownKit);
+            r.Add(CooldownMsg);
+            r.Add(CooldownSpawnMob);
+            r.Add(CooldownTime);
+            return r;
         }
     }
 }
@@ -1257,6 +1319,7 @@ namespace config
         public int BuffCooldown = 20;
         public bool GlobalSpawnMobCooldown = false;
         public int SpawnMobCooldown = 20;
+        public bool GlobalKitCooldown = false;
         public int KitCooldown = 20;
         public bool GlobalDoCommandCooldown = false;
         public int DoCommandCooldown = 20;
