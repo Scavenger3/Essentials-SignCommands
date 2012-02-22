@@ -84,12 +84,12 @@ namespace SignCommands
             /*
              * Full Credit for kits goes to Olink's Kit Plugin!
             */
-            savepath = Path.Combine(TShockAPI.TShock.SavePath, "kits.cfg");
+            savepath = Path.Combine(TShockAPI.TShock.SavePath, "PluginConfigs/SignCommandKits.json");
 
             KitReader reader = new KitReader();
             if (File.Exists(savepath))
             {
-                kits = reader.readFile(Path.Combine(TShockAPI.TShock.SavePath, "kits.cfg"));
+                kits = reader.readFile(savepath);
                 //Console.WriteLine(kits.kits.Count + " kits have been loaded.");
             }
             else
