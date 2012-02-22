@@ -30,3 +30,8 @@ C:\Users\42373\Documents\Other\Programming\TShock Plugins\EssentialsAndSignComma
 C:\Users\42373\Documents\Other\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\ResolveAssemblyReference.cache
 C:\Users\42373\Documents\Other\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\SignCommands.dll
 C:\Users\42373\Documents\Other\Programming\TShock Plugins\EssentialsAndSignCommands\SignCommands\obj\Debug\SignCommands.pdb
+C:\Users\42373\Desktop\PortableGit\Essentials-SignCommands\Compiled\SignCommands.dll
+C:\Users\42373\Desktop\PortableGit\Essentials-SignCommands\Compiled\SignCommands.pdb
+C:\Users\42373\Desktop\PortableGit\Essentials-SignCommands\SignCommands\obj\Debug\ResolveAssemblyReference.cache
+C:\Users\42373\Desktop\PortableGit\Essentials-SignCommands\SignCommands\obj\Debug\SignCommands.dll
+C:\Users\42373\Desktop\PortableGit\Essentials-SignCommands\SignCommands\obj\Debug\SignCommands.pdb
