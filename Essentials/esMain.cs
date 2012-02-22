@@ -51,7 +51,7 @@ namespace Essentials
 
         public override Version Version
         {
-            get { return new Version("1.3.5"); }
+            get { return new Version("1.3.5.1"); }
         }
 
         public override void Initialize()
@@ -197,7 +197,7 @@ namespace Essentials
             if (text == "/")
                 e.Handled = true;
 
-            if (text.StartsWith("/") && text != "/=" && !text.StartsWith("/= "))
+            if (text.StartsWith("/") && text != "/=" && !text.StartsWith("/= ") && text != "/ =" && !text.StartsWith("/ = "))
             {
                 var player = GetesPlayerByID(ply);
                 player.lastcmd = text;
