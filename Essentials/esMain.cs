@@ -197,7 +197,7 @@ namespace Essentials
             if (text == "/")
                 e.Handled = true;
 
-            if (text.StartsWith("/") && text != "/=" && !text.StartsWith("/= ") && text != "/ =" && !text.StartsWith("/ = "))
+            if (text.StartsWith("/") && text != "/=" && !text.StartsWith("/= ") && !text.StartsWith("/ "))
             {
                 var player = GetesPlayerByID(ply);
                 player.lastcmd = text;
