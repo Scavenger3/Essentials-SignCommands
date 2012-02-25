@@ -43,18 +43,6 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Refs\HttpServer.dll</HintPath>
     </Reference>
-    <Reference Include="LuaInterface, Version=1.5.3.0, Culture=neutral, PublicKeyToken=1e1fb15b02227b8a, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Refs\LuaInterface.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Xna.Framework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=842cf8be1de50553, processorArchitecture=x86">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Refs\Microsoft.Xna.Framework.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Xna.Framework.Game, Version=4.0.0.0, Culture=neutral, PublicKeyToken=842cf8be1de50553, processorArchitecture=x86">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Refs\Microsoft.Xna.Framework.Game.dll</HintPath>
-    </Reference>
     <Reference Include="Mono.Data.Sqlite, Version=2.0.0.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Refs\Mono.Data.Sqlite.dll</HintPath>
@@ -80,7 +68,7 @@
       <ExecutableExtension>.exe</ExecutableExtension>
       <HintPath>..\Refs\TerrariaServer.exe</HintPath>
     </Reference>
-    <Reference Include="TShockAPI, Version=3.4.5.121, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="TShockAPI, Version=3.5.0.122, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Refs\TShockAPI.dll</HintPath>
     </Reference>

@@ -1,3 +1,0 @@
-C:\Users\42373\Documents\Programming\TShock Plugins\Essentials\TShockPluginTemplate\obj\Release\ResolveAssemblyReference.cache
-C:\Users\42373\Documents\Programming\TShock Plugins\Essentials\RELEASE\Essentials.dll
-C:\Users\42373\Documents\Programming\TShock Plugins\Essentials\TShockPluginTemplate\obj\Release\Essentials.dll

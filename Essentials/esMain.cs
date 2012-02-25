@@ -1,19 +1,14 @@
-﻿using System.Collections.Generic;
-using MySql.Data.MySqlClient;
+﻿using System;
 using System.ComponentModel;
-using System.Reflection;
-using Newtonsoft.Json;
-using System.Drawing;
-using System.Timers;
-using TShockAPI.DB;
-using System.Text;
-using System.Data;
-using TShockAPI;
-using System.IO;
-using Terraria;
-using System;
-using Hooks;
+using System.Collections.Generic;
 using System.Threading;
+using System.Text;
+using System.IO;
+using MySql.Data.MySqlClient;
+using Terraria;
+using TShockAPI.DB;
+using TShockAPI;
+using Hooks;
 
 namespace Essentials
 {
@@ -51,7 +46,7 @@ namespace Essentials
 
         public override Version Version
         {
-            get { return new Version("1.3.5.1"); }
+            get { return new Version("1.3.5.2"); }
         }
 
         public override void Initialize()

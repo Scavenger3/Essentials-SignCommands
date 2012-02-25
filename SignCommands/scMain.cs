@@ -1,15 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
 using System.ComponentModel;
-using System.Reflection;
-using Newtonsoft.Json;
-using System.Drawing;
-using System.Timers;
+using System.Collections.Generic;
+using System.Threading;
 using System.IO;
-using TShockAPI;
+using Newtonsoft.Json;
 using Terraria;
-using System;
-using config;
+using TShockAPI;
 using Hooks;
+using config;
 using Kits;
 
 namespace SignCommands
@@ -31,7 +29,7 @@ namespace SignCommands
         public static int GlobalCommandCooldown = 0;
         public static int GlobalKitCooldown = 0;
 
-        public static Timer Cooldown = new Timer(1000);
+        public static Thread Cooldown = new Thread(CheckThread);
         
 
         public override string Name
@@ -51,7 +49,7 @@ namespace SignCommands
 
         public override Version Version
         {
-            get { return new Version("1.3.5"); }
+            get { return new Version("1.3.5.2"); }
         }
 
         public override void Initialize()
@@ -66,6 +64,9 @@ namespace SignCommands
         {
             if (disposing)
             {
+                if (Cooldown.IsAlive)
+                    Cooldown.Abort();
+
                 GameHooks.Initialize -= OnInitialize;
                 NetHooks.GetData -= GetData;
                 NetHooks.GreetPlayer -= OnGreetPlayer;
@@ -102,7 +103,6 @@ namespace SignCommands
         #region Commands
         public void OnInitialize()
         {
-            Cooldown.Elapsed += new ElapsedEventHandler(Cooldown_Elapsed);
             Cooldown.Start();
 
             Commands.ChatCommands.Add(new Command("destroysigncommand", destsign, "destsign"));
@@ -198,19 +198,22 @@ namespace SignCommands
                 scPlayers.Add(new scPlayer(who));
 
             var ply = GetscPlayerByID(who);
-            if (svCool.ContainsKey(ply.plrName))
+            lock (svCool)
             {
-                ply.CooldownBoss = svCool[ply.plrName][0];
-                ply.CooldownBuff = svCool[ply.plrName][1];
-                ply.CooldownCommand = svCool[ply.plrName][2];
-                ply.CooldownDamage = svCool[ply.plrName][3];
-                ply.CooldownHeal = svCool[ply.plrName][4];
-                ply.CooldownItem = svCool[ply.plrName][5];
-                ply.CooldownKit = svCool[ply.plrName][6];
-                ply.CooldownMsg = svCool[ply.plrName][7];
-                ply.CooldownSpawnMob = svCool[ply.plrName][8];
-                ply.CooldownTime = svCool[ply.plrName][9];
-                svCool.Remove(ply.plrName);
+                if (svCool.ContainsKey(ply.plrName))
+                {
+                    ply.CooldownBoss = svCool[ply.plrName][0];
+                    ply.CooldownBuff = svCool[ply.plrName][1];
+                    ply.CooldownCommand = svCool[ply.plrName][2];
+                    ply.CooldownDamage = svCool[ply.plrName][3];
+                    ply.CooldownHeal = svCool[ply.plrName][4];
+                    ply.CooldownItem = svCool[ply.plrName][5];
+                    ply.CooldownKit = svCool[ply.plrName][6];
+                    ply.CooldownMsg = svCool[ply.plrName][7];
+                    ply.CooldownSpawnMob = svCool[ply.plrName][8];
+                    ply.CooldownTime = svCool[ply.plrName][9];
+                    svCool.Remove(ply.plrName);
+                }
             }
         }
 
@@ -226,7 +229,10 @@ namespace SignCommands
                         var play = scPlayers[i];
 
                         if (play.HasCooldown() && !play.TSPlayer.Group.HasPermission("nosccooldown"))
-                            svCool.Add(play.plrName, play.Cooldowns());
+                        {
+                            lock(svCool)
+                                svCool.Add(play.plrName, play.Cooldowns());
+                        }
                         
                         //THEN:
                         scPlayers.RemoveAt(i);
@@ -237,86 +243,90 @@ namespace SignCommands
         }
 
         #region Timer
-        static void Cooldown_Elapsed(object sender, ElapsedEventArgs e)
+        static void CheckThread()
         {
-            //Global Cooldowns:
-            if (getConfig.GlobalBossCooldown && GlobalBossCooldown > 0)
-                GlobalBossCooldown--;
-
-            if (getConfig.GlobalTimeCooldown && GlobalTimeCooldown > 0)
-                GlobalTimeCooldown--;
-
-            if (getConfig.GlobalSpawnMobCooldown && GlobalSpawnMobCooldown > 0)
-                GlobalSpawnMobCooldown--;
-
-            if (getConfig.GlobalDoCommandCooldown && GlobalCommandCooldown > 0)
-                GlobalCommandCooldown--;
-
-            if (getConfig.GlobalKitCooldown && GlobalKitCooldown > 0)
-                GlobalKitCooldown--;
-
-            lock (scPlayers)
+            while (Cooldown.IsAlive)
             {
-                foreach (scPlayer play in scPlayers)
+                //Global Cooldowns:
+                if (getConfig.GlobalBossCooldown && GlobalBossCooldown > 0)
+                    GlobalBossCooldown--;
+
+                if (getConfig.GlobalTimeCooldown && GlobalTimeCooldown > 0)
+                    GlobalTimeCooldown--;
+
+                if (getConfig.GlobalSpawnMobCooldown && GlobalSpawnMobCooldown > 0)
+                    GlobalSpawnMobCooldown--;
+
+                if (getConfig.GlobalDoCommandCooldown && GlobalCommandCooldown > 0)
+                    GlobalCommandCooldown--;
+
+                if (getConfig.GlobalKitCooldown && GlobalKitCooldown > 0)
+                    GlobalKitCooldown--;
+
+                lock (scPlayers)
                 {
-                    //Player Cooldowns:
-                    if (play.CooldownBoss > 0)
-                        play.CooldownBoss--;
-
-                    if (play.CooldownTime > 0)
-                        play.CooldownTime--;
-
-                    if (play.CooldownSpawnMob > 0)
-                        play.CooldownSpawnMob--;
-
-                    if (play.CooldownDamage > 0)
-                        play.CooldownDamage--;
-
-                    if (play.CooldownHeal > 0)
-                        play.CooldownHeal--;
-
-                    if (play.CooldownMsg > 0)
-                        play.CooldownMsg--;
-
-                    if (play.CooldownItem > 0)
-                        play.CooldownItem--;
-
-                    if (play.CooldownBuff > 0)
-                        play.CooldownBuff--;
-
-                    if (play.CooldownKit > 0)
-                        play.CooldownKit--;
-
-                    if (play.CooldownCommand > 0)
-                        play.CooldownCommand--;
-
-                    //Message Cooldowns:
-                    if (play.toldcool > 0)
-                        play.toldcool--;
-
-                    if (play.toldperm > 0)
-                        play.toldperm--;
-
-                    if (play.toldalert > 0)
-                        play.toldalert--;
-
-                    if (play.tolddest > 0)
-                        play.tolddest--;
-
-                    if (play.handlecmd > 0)
-                        play.handlecmd--;
-
-                    if (play.checkforsignedit)
+                    foreach (scPlayer play in scPlayers)
                     {
-                        if (Main.sign[play.signeditid].text.ToLower().Contains(getConfig.DefineSignCommands.ToLower()) && Main.sign[play.signeditid].text != play.originalsigntext)
+                        //Player Cooldowns:
+                        if (play.CooldownBoss > 0)
+                            play.CooldownBoss--;
+
+                        if (play.CooldownTime > 0)
+                            play.CooldownTime--;
+
+                        if (play.CooldownSpawnMob > 0)
+                            play.CooldownSpawnMob--;
+
+                        if (play.CooldownDamage > 0)
+                            play.CooldownDamage--;
+
+                        if (play.CooldownHeal > 0)
+                            play.CooldownHeal--;
+
+                        if (play.CooldownMsg > 0)
+                            play.CooldownMsg--;
+
+                        if (play.CooldownItem > 0)
+                            play.CooldownItem--;
+
+                        if (play.CooldownBuff > 0)
+                            play.CooldownBuff--;
+
+                        if (play.CooldownKit > 0)
+                            play.CooldownKit--;
+
+                        if (play.CooldownCommand > 0)
+                            play.CooldownCommand--;
+
+                        //Message Cooldowns:
+                        if (play.toldcool > 0)
+                            play.toldcool--;
+
+                        if (play.toldperm > 0)
+                            play.toldperm--;
+
+                        if (play.toldalert > 0)
+                            play.toldalert--;
+
+                        if (play.tolddest > 0)
+                            play.tolddest--;
+
+                        if (play.handlecmd > 0)
+                            play.handlecmd--;
+
+                        if (play.checkforsignedit)
                         {
-                            play.TSPlayer.SendMessage("You do not have permission to create/edit sign commands!", Color.IndianRed);
-                            //Main.sign[play.signeditid].text = play.originalsigntext;
-                            Sign.TextSign(play.signeditid, play.originalsigntext);
+                            if (Main.sign[play.signeditid].text.ToLower().Contains(getConfig.DefineSignCommands.ToLower()) && Main.sign[play.signeditid].text != play.originalsigntext)
+                            {
+                                play.TSPlayer.SendMessage("You do not have permission to create/edit sign commands!", Color.IndianRed);
+                                //Main.sign[play.signeditid].text = play.originalsigntext;
+                                Sign.TextSign(play.signeditid, play.originalsigntext);
+                            }
+                            play.checkforsignedit = false;
                         }
-                        play.checkforsignedit = false;
                     }
                 }
+                Thread.Sleep(1000);
             }
         }
         #endregion
@@ -349,25 +359,20 @@ namespace SignCommands
                         {
                             scPlayer hitplay = GetscPlayerByName(tplayer.Name);
 
-                            if (!tplayer.Group.HasPermission("destroysigncommand"))
+                            if (!hitplay.destsign)
                             {
                                 dosigncmd(id, tplayer);
 
                                 tplayer.SendTileSquare(x, y);
                                 e.Handled = true;
                             }
-                            else if (tplayer.Group.HasPermission("destroysigncommand") && !hitplay.destsign)
+                            else
                             {
                                 if (hitplay.tolddest <= 0)
                                 {
                                     tplayer.SendMessage("To destroy this sign, Type /destsign", Color.IndianRed);
                                     hitplay.tolddest = 10;
                                 }
-
-                                dosigncmd(id, tplayer);
-
-                                tplayer.SendTileSquare(x, y);
-                                e.Handled = true;
                             }
                         }
                     }
@@ -466,7 +471,6 @@ namespace SignCommands
         public static void dosigncmd(int id, TSPlayer tplayer)
         {
             scPlayer doplay = GetscPlayerByID(tplayer.Index);
-            //scPlayer doplay = GetscPlayerByName(tplayer.Name);
             Sign sign = Main.sign[id];
 
             #region Check permissions
