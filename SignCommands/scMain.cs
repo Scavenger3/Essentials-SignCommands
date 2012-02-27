@@ -49,7 +49,7 @@ namespace SignCommands
 
         public override Version Version
         {
-            get { return new Version("1.3.5.2"); }
+            get { return new Version("1.3.5.3"); }
         }
 
         public override void Initialize()
@@ -173,7 +173,7 @@ namespace SignCommands
 
                 iskits = true;
                 KitReader reader = new KitReader();
-                kits = reader.readFile(Path.Combine(TShockAPI.TShock.SavePath, "kits.cfg"));              
+                kits = reader.readFile(savepath);              
                 return;
             }
             catch (Exception ex)
