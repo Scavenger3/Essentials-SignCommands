@@ -20,8 +20,6 @@ namespace SignCommands
 
         public static List<scPlayer> scPlayers = new List<scPlayer>();
         public static Dictionary<string, List<int>> svCool = new Dictionary<string, List<int>>();
-        public static KitList kits;
-        public static String savepath = "";
 
         public static int GlobalBossCooldown = 0;
         public static int GlobalTimeCooldown = 0;
@@ -49,7 +47,7 @@ namespace SignCommands
 
         public override Version Version
         {
-            get { return new Version("1.3.5.3"); }
+            get { return new Version("1.3.5.4"); }
         }
 
         public override void Initialize()
@@ -81,23 +79,6 @@ namespace SignCommands
             getConfig = new scConfig();
 
             Order = 4;
-
-            /*
-             * Full Credit for kits goes to Olink's Kit Plugin!
-            */
-            savepath = Path.Combine(TShockAPI.TShock.SavePath, "PluginConfigs/SignCommandKits.json");
-
-            KitReader reader = new KitReader();
-            if (File.Exists(savepath))
-            {
-                kits = reader.readFile(savepath);
-                //Console.WriteLine(kits.kits.Count + " kits have been loaded.");
-            }
-            else
-            {
-                kits = reader.writeFile(savepath);
-                //Console.WriteLine("Basic kit file being created.  1 kit containing copper armor created. ");
-            }
         }
 
         #region Commands
@@ -134,7 +115,22 @@ namespace SignCommands
 
         public static void screload(CommandArgs args)
         {
-            ReloadConfig(args);
+            try
+            {
+                if (File.Exists(TempConfigPath))
+                {
+                    getConfig = scConfig.Read(TempConfigPath);
+                }
+                getConfig.Write(TempConfigPath);
+                args.Player.SendMessage("Sign Command Config Reloaded Successfully.", Color.MediumSeaGreen);
+                return;
+            }
+            catch (Exception ex)
+            {
+                args.Player.SendMessage("Error: Could not reload Sign Command config, Check log for more details.", Color.IndianRed);
+                Log.Error("Config Exception in Sign Commands config file");
+                Log.Error(ex.ToString());
+            }
         }
         #endregion
 
@@ -156,38 +152,6 @@ namespace SignCommands
                 Console.ForegroundColor = ConsoleColor.Gray;
                 Log.Error("Config Exception in Sign Commands config file");
                 Log.Error(ex.ToString());
-            }
-        }
-
-        public static void ReloadConfig(CommandArgs args)
-        {
-            bool iskits = false;
-            try
-            {
-                if (File.Exists(TempConfigPath))
-                {
-                    getConfig = scConfig.Read(TempConfigPath);
-                }
-                getConfig.Write(TempConfigPath);
-                args.Player.SendMessage("Sign Command Config Reloaded Successfully.", Color.MediumSeaGreen);
-
-                iskits = true;
-                KitReader reader = new KitReader();
-                kits = reader.readFile(savepath);              
-                return;
-            }
-            catch (Exception ex)
-            {
-                if (iskits)
-                {
-                    args.Player.SendMessage("However, Kits failed to reload!", Color.IndianRed);
-                }
-                else
-                {
-                    args.Player.SendMessage("Error: Could not reload Sign Command config, Check log for more details.", Color.IndianRed);
-                    Log.Error("Config Exception in Sign Commands config file");
-                    Log.Error(ex.ToString());
-                }
             }
         }
         #endregion
@@ -1117,42 +1081,12 @@ namespace SignCommands
             #region Kit
             if (sign.text.ToLower().Contains("kit ") && skit && (nocool || ((getConfig.GlobalKitCooldown && GlobalKitCooldown <= 0) || (!getConfig.GlobalKitCooldown && doplay.CooldownKit <= 0))))
             {
+                string kitnme = "";
                 try
                 {
                     string[] linesplit = sign.text.Split('\'', '\"');
-                    if (tplayer == null)
-                        return;
 
-                    String kitname = linesplit[1];
-
-                    Kit k = FindKit(kitname.ToLower());
-
-                    if (k == null)
-                    {
-                        if (doplay.toldalert <= 0)
-                        {
-                            doplay.toldalert = 3;
-                            tplayer.SendMessage(String.Format("The {0} kit does not exist.", kitname), Color.Red);
-                        }
-                        return;
-                    }
-
-                    if (tplayer.Group.HasPermission(k.getPerm()))
-                    {
-                        k.giveItems(tplayer);
-                        if (getConfig.GlobalKitCooldown)
-                            GlobalKitCooldown = getConfig.KitCooldown;
-                        else
-                            doplay.CooldownKit = getConfig.KitCooldown;
-                    }
-                    else
-                    {
-                        if (doplay.toldalert <= 0)
-                        {
-                            doplay.toldalert = 3;
-                            tplayer.SendMessage(String.Format("You do not have access to the {0} kit.", kitname), Color.Red);
-                        }
-                    }
+                    kitnme = linesplit[1];
                 }
                 catch (Exception)
                 {
@@ -1160,6 +1094,35 @@ namespace SignCommands
                     {
                         doplay.toldalert = 3;
                         tplayer.SendMessage("Could not parse Kit - Correct Format: \"<Kit Name>\"", Color.IndianRed);
+                    }
+                    return;
+                }
+                Kit k = Kits.Kits.FindKit(kitnme.ToLower());
+
+                if (k == null)
+                {
+                    if (doplay.toldalert <= 0)
+                    {
+                        doplay.toldalert = 3;
+                        tplayer.SendMessage("Error: The specified kit does not exist.", Color.Red);
+                    }
+                    return;
+                }
+
+                if (tplayer.Group.HasPermission(k.getPerm()))
+                {
+                    k.giveItems(tplayer);
+                    if (getConfig.GlobalKitCooldown)
+                        GlobalKitCooldown = getConfig.KitCooldown;
+                    else
+                        doplay.CooldownKit = getConfig.KitCooldown;
+                }
+                else
+                {
+                    if (doplay.toldalert <= 0)
+                    {
+                        doplay.toldalert = 3;
+                        tplayer.SendMessage(string.Format("You do not have permission to use the {0} kit.", kitnme), Color.Red);
                     }
                 }
             }
@@ -1214,11 +1177,6 @@ namespace SignCommands
                 doplay.toldcool = 5;
             }
             #endregion
-        }
-
-        public static Kit FindKit(String name)
-        {
-            return kits.findKit(name);
         }
 
         public static scPlayer GetscPlayerByID(int id)
