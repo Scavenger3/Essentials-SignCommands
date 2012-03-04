@@ -47,7 +47,7 @@ namespace SignCommands
 
         public override Version Version
         {
-            get { return new Version("1.3.5.4"); }
+            get { return new Version("1.3.6"); }
         }
 
         public override void Initialize()
@@ -318,17 +318,17 @@ namespace SignCommands
 
                         var id = Terraria.Sign.ReadSign(x, y);
                         var tplayer = TShock.Players[e.Msg.whoAmI];
-
+                        
                         if (id != -1 && Main.sign[id].text.ToLower().StartsWith(getConfig.DefineSignCommands.ToLower()))
                         {
                             scPlayer hitplay = GetscPlayerByName(tplayer.Name);
 
                             if (!hitplay.destsign)
                             {
-                                dosigncmd(id, tplayer);
-
                                 tplayer.SendTileSquare(x, y);
                                 e.Handled = true;
+
+                                dosigncmd(id, tplayer);
                             }
                             else
                             {
@@ -365,10 +365,10 @@ namespace SignCommands
                         {
                             if (!tplayer.Group.HasPermission("destroysigncommand"))
                             {
-                                dosigncmd(id, tplayer);
-
                                 tplayer.SendTileSquare(x, y);
                                 e.Handled = true;
+
+                                dosigncmd(id, tplayer);
                             }
                             else if (tplayer.Group.HasPermission("destroysigncommand"))
                             {
@@ -379,11 +379,10 @@ namespace SignCommands
                                         tplayer.SendMessage("To destroy this sign, Type /destsign", Color.IndianRed);
                                         killplay.tolddest = 10;
                                     }
-
-                                    dosigncmd(id, tplayer);
-                                    
                                     tplayer.SendTileSquare(x, y);
                                     e.Handled = true;
+
+                                    dosigncmd(id, tplayer);
                                 }
                             }
                         }

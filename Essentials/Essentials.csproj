@@ -22,7 +22,7 @@
     <OutputPath>..\Compiled\</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
-    <OutputPath>..\RELEASE\</OutputPath>
+    <OutputPath>..\Compiled\</OutputPath>
     <Optimize>true</Optimize>
   </PropertyGroup>
   <ItemGroup>

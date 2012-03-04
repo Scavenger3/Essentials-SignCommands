@@ -46,7 +46,7 @@ namespace Essentials
 
         public override Version Version
         {
-            get { return new Version("1.3.5.4"); }
+            get { return new Version("1.3.6"); }
         }
 
         public override void Initialize()
@@ -108,6 +108,9 @@ namespace Essentials
             Commands.ChatCommands.Add(new Command("lastcommand", lastcmd, "="));
             Commands.ChatCommands.Add(new Command("kill", KillReason, "killr"));
             Commands.ChatCommands.Add(new Command("disable", Disable, "disable"));
+            Commands.ChatCommands.Add(new Command("level-top", top, "top"));
+            Commands.ChatCommands.Add(new Command("level-up", up, "up"));
+            Commands.ChatCommands.Add(new Command("level-down", down, "down"));
             #endregion
 
             TCheck.Start();
@@ -575,6 +578,47 @@ namespace Essentials
             {
                 args.Player.SendMessage(string.Format("Type /spage {0} for more Results.", (page + 1)), Color.Yellow);
             }
+        }
+
+        //Top, Up and Down Methods:
+        public static int GetTop(int TileX)
+        {
+            for (int y = 0; y < Main.maxTilesY; y++)
+            {
+                if (WorldGen.SolidTile(TileX, y))
+                    return y - 1;
+            }
+            return -1;
+        }
+
+        public static int GetUp(int TileX, int TileY)
+        {
+            for (int y = TileY - 2; y > 0; y--)
+            {
+                if (!WorldGen.SolidTile(TileX, y))
+                {
+                    if (WorldGen.SolidTile(TileX, y + 1) && !WorldGen.SolidTile(TileX, y - 1) && !WorldGen.SolidTile(TileX, y - 2))
+                    {
+                        return y;
+                    }
+                }
+            }
+            return -1;
+        }
+
+        public static int GetDown(int TileX, int TileY)
+        {
+            for (int y = TileY + 4; y < Main.maxTilesY; y++)
+            {
+                if (!WorldGen.SolidTile(TileX, y))
+                {
+                    if (WorldGen.SolidTile(TileX, y + 1) && !WorldGen.SolidTile(TileX, y - 1) && !WorldGen.SolidTile(TileX, y - 2))
+                    {
+                        return y;
+                    }
+                }
+            }
+            return -1;
         }
         #endregion
 
@@ -1623,6 +1667,50 @@ namespace Essentials
                     plr.SendMessage("You are no longer disabled!");
                 }
             }
+        }
+        #endregion
+
+        #region Top, Up and Down
+        public static void top(CommandArgs args)
+        {
+            int Y = GetTop(args.Player.TileX);
+            if (Y == -1)
+            {
+                args.Player.SendMessage("You are already on the top most block!", Color.IndianRed);
+                return;
+            }
+            if (args.Player.Teleport(args.Player.TileX, Y))
+                args.Player.SendMessage("Teleported you to the top-most block!", Color.MediumSeaGreen);
+            else
+                args.Player.SendMessage("Teleport Failed!", Color.IndianRed);
+        }
+
+        public static void up(CommandArgs args)
+        {
+            int Y = GetUp(args.Player.TileX, args.Player.TileY);
+            if (Y == -1)
+            {
+                args.Player.SendMessage("You cannot go up anymore!", Color.IndianRed);
+                return;
+            }
+            if (args.Player.Teleport(args.Player.TileX, Y))
+                args.Player.SendMessage("Teleported you up a level!", Color.MediumSeaGreen);
+            else
+                args.Player.SendMessage("Teleport Failed!", Color.IndianRed);
+        }
+
+        public static void down(CommandArgs args)
+        {
+            int Y = GetDown(args.Player.TileX, args.Player.TileY);
+            if (Y == -1)
+            {
+                args.Player.SendMessage("You cannot go down anymore!", Color.IndianRed);
+                return;
+            }
+            if (args.Player.Teleport(args.Player.TileX, Y))
+                args.Player.SendMessage("Teleported you down a level!", Color.MediumSeaGreen);
+            else
+                args.Player.SendMessage("Teleport Failed!", Color.IndianRed);
         }
         #endregion
     }
