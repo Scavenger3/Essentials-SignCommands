@@ -281,17 +281,6 @@ namespace SignCommands
 
                         if (play.handlecmd > 0)
                             play.handlecmd--;
-
-                        if (play != null && play.checkforsignedit)
-                        {
-                            if (Main.sign[play.signeditid].text.ToLower().Contains(getConfig.DefineSignCommands.ToLower()) && Main.sign[play.signeditid].text != play.originalsigntext)
-                            {
-                                play.TSPlayer.SendMessage("You do not have permission to create/edit sign commands!", Color.IndianRed);
-                                //Main.sign[play.signeditid].text = play.originalsigntext;
-                                Sign.TextSign(play.signeditid, play.originalsigntext);
-                            }
-                            play.checkforsignedit = false;
-                        }
                     }
                 }
                 Thread.Sleep(1000);
@@ -404,11 +393,11 @@ namespace SignCommands
                             var signId = reader.ReadInt16();
                             var x = reader.ReadInt32();
                             var y = reader.ReadInt32();
+                            string newtext = "";
                             try
                             {
                                 var Bytes = reader.ReadBytes(getConfig.DefineSignCommands.Length);
-                                var text = Encoding.UTF8.GetString(Bytes);
-                                TShock.Utils.Broadcast(text);
+                                newtext = Encoding.UTF8.GetString(Bytes);
                             }
                             catch { }
                             reader.Close();
@@ -417,18 +406,15 @@ namespace SignCommands
                             var tplayer = TShock.Players[e.Msg.whoAmI];
                             scPlayer edplay = GetscPlayerByName(tplayer.Name);
 
-                            if (!Main.sign[id].text.ToLower().Contains(getConfig.DefineSignCommands.ToLower()) && !tplayer.Group.HasPermission("createsigncommand"))
-                            {
-                                edplay.originalsigntext = Main.sign[id].text;
-                                edplay.signeditid = id;
-                                edplay.checkforsignedit = true;
-                            }
-                            else if (Main.sign[id].text.ToLower().Contains(getConfig.DefineSignCommands.ToLower()) && !tplayer.Group.HasPermission("createsigncommand"))
+                            if (Main.sign[id] == null || tplayer == null || edplay == null) return;
+                            string oldtext = Main.sign[id].text;
+                            string dSignCmd = getConfig.DefineSignCommands;
+
+                            if ((oldtext.StartsWith(dSignCmd) || newtext == dSignCmd) && !tplayer.Group.HasPermission("createsigncommand"))
                             {
                                 tplayer.SendMessage("You do not have permission to create/edit sign commands!", Color.IndianRed);
                                 e.Handled = true;
                                 tplayer.SendData(PacketTypes.SignNew, "", id);
-                                return;
                             }
                         }
                     }
