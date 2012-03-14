@@ -20,7 +20,6 @@ namespace Essentials
         public static List<esPlayer> esPlayers = new List<esPlayer>();
         public static SqlTableEditor SQLEditor;
         public static SqlTableCreator SQLWriter;
-        //public static Timer CheckT = new Timer(1000);
         public static Thread TCheck = new Thread(deathcheck);
         public static bool DoCheck = true;
 
@@ -46,7 +45,7 @@ namespace Essentials
 
         public override Version Version
         {
-            get { return new Version("1.3.6"); }
+            get { return new Version("1.3.6.1"); }
         }
 
         public override void Initialize()
@@ -83,8 +82,6 @@ namespace Essentials
         #region Hooks
         public void OnInitialize()
         {
-            //CheckT.Elapsed += new ElapsedEventHandler(CheckT_Elapsed);
-
             #region Add Commands
             Commands.ChatCommands.Add(new Command("fillstacks", more, "maxstacks"));
             Commands.ChatCommands.Add(new Command("getposition", getpos, "pos"));
@@ -103,7 +100,7 @@ namespace Essentials
             Commands.ChatCommands.Add(new Command("myhome", setmyhome, "sethome"));
             Commands.ChatCommands.Add(new Command("myhome", gomyhome, "myhome"));
             Commands.ChatCommands.Add(new Command("backontp", back, "b"));
-            Commands.ChatCommands.Add(new Command("essentials", cmdessentials, "essentials"));
+            Commands.ChatCommands.Add(new Command("essentials", ReloadConfig, "essentials")); //Old method: cmdessentials
             Commands.ChatCommands.Add(new Command(null, TeamUnlock, "teamunlock"));
             Commands.ChatCommands.Add(new Command("lastcommand", lastcmd, "="));
             Commands.ChatCommands.Add(new Command("kill", KillReason, "killr"));
@@ -138,9 +135,7 @@ namespace Essentials
 
             #region Check Config
             if (!Directory.Exists(@"tshock/PluginConfigs/"))
-            {
                 Directory.CreateDirectory(@"tshock/PluginConfigs/");
-            }
             SetupConfig();
             #endregion
         }
@@ -150,12 +145,12 @@ namespace Essentials
             lock (esPlayers)
                 esPlayers.Add(new esPlayer(who));
 
-            
 
+            if (TShock.Players[who] == null) return;
             if (disabled.ContainsKey(TShock.Players[who].Name))
             {
                 var ply = GetesPlayerByID(who);
-
+                if (ply == null) return;
                 ply.disX = disabled[TShock.Players[who].Name][0];
                 ply.disY = disabled[TShock.Players[who].Name][1];
                 ply.TSPlayer.Teleport(ply.disX, ply.disY);
@@ -164,10 +159,6 @@ namespace Essentials
                 ply.lastdis = DateTime.UtcNow;
                 ply.SendMessage("You are still disabled!", Color.IndianRed);
             }
-
-            //if (esPlayers.Count > 0)
-            //DoCheck = true;
-            //CheckT.Start();
         }
 
         public void OnLeave(int ply)
@@ -183,10 +174,6 @@ namespace Essentials
                     }
                 }
             }
-
-            //if (esPlayers.Count < 1)
-                //DoCheck = false;
-                //CheckT.Stop();
         }
 
         public void OnChat(messageBuffer msg, int ply, string text, HandledEventArgs e)
@@ -296,8 +283,10 @@ namespace Essentials
                             var reader = new BinaryReader(data);
                             var play = reader.ReadByte();
                             var team = reader.ReadByte();
+                            reader.Close();
                             esPlayer ply = GetesPlayerByID(play);
                             var tply = TShock.Players[play];
+                            if (ply == null || tply == null) return;
                             switch (team)
                             {
 
@@ -325,7 +314,7 @@ namespace Essentials
                                     } break;
                                 case 3: if (((getConfig.UsePermissonsForTeams && !tply.Group.HasPermission("jointeamblue")) || (!getConfig.UsePermissonsForTeams && ply.bluepass != getConfig.BluePassword)) && tply.Group.Name != "superadmin")
                                     {
-                                        
+
                                         e.Handled = true;
                                         if (getConfig.UsePermissonsForTeams)
                                             tply.SendMessage("You do not have permission to join this team.", Color.Red);
@@ -351,13 +340,16 @@ namespace Essentials
                         break;
                 }
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                Log.Error("[Essentials] Error with team lock: ");
+                Log.Error(ex.ToString());
+            }
         }
 
         #endregion
 
         #region Timer
-        //static void CheckT_Elapsed(object sender, ElapsedEventArgs e)
         public static void deathcheck()
         {
             try
@@ -368,7 +360,8 @@ namespace Essentials
                     {
                         foreach (esPlayer play in esPlayers)
                         {
-                            if (play != null && !play.ondeath && play.TSPlayer.Dead)
+                            if (play == null) return;
+                            if (!play.ondeath && play.TSPlayer.Dead)
                             {
                                 if (play.grpData.HasPermission("backondeath"))
                                 {
@@ -380,7 +373,7 @@ namespace Essentials
                                         play.SendMessage("Type \"/b\" to return to your position before you died", Color.MediumSeaGreen);
                                 }
                             }
-                            else if (play != null && play.ondeath && !play.TSPlayer.Dead)
+                            else if (play.ondeath && !play.TSPlayer.Dead)
                                 play.ondeath = false;
 
 
@@ -622,7 +615,7 @@ namespace Essentials
         }
         #endregion
 
-        //Commands:
+        // Commands:
 
         #region Fill Items
         public static void more(CommandArgs args)
@@ -642,7 +635,6 @@ namespace Essentials
         public static void getpos(CommandArgs args)
         {
             args.Player.SendMessage("X Position: " + args.Player.TileX + " - Y Position: " + args.Player.TileY, Color.Yellow);
-
         }
 
         public static void tppos(CommandArgs args)
@@ -1083,7 +1075,7 @@ namespace Essentials
                                         Main.tile[x, y].type = 53;
                                         break;
                                     case 110:
-                                        Main.tile[x, y].type = 73;//Changed from 3 to 73
+                                        Main.tile[x, y].type = 73;
                                         break;
                                     case 113:
                                         Main.tile[x, y].type = 73;
@@ -1415,55 +1407,11 @@ namespace Essentials
         #endregion
 
         #region Essentials Reload
+        /* will add again when I have a use for this command other than reloading the config.
         public static void cmdessentials(CommandArgs args)
         {
-            if (args.Parameters.Count > 0 && args.Parameters[0] == "tu")
-            {
-                if (args.Parameters.Count > 2)
-                {
-                    string team = args.Parameters[1].ToLower();
-                    if (team == "red" || team == "r")
-                    {
-                        args.Player.SendMessage("Red team password: |" + getConfig.RedPassword + "|");
-                    }
-                    else if (team == "green" || team == "g")
-                    {
-                        args.Player.SendMessage("Green team password: |" + getConfig.GreenPassword + "|");
-                    }
-                    else if (team == "blue" || team == "b")
-                    {
-                        args.Player.SendMessage("Blue team password: |" + getConfig.BluePassword + "|");
-                    }
-                    else if (team == "yellow" || team == "y")
-                    {
-                        args.Player.SendMessage("Yellow team password: |" + getConfig.YellowPassword + "|");
-                    }
-                }
-                else
-                {
-                    string team = args.Parameters[1].ToLower();
-                    if (team == "red" || team == "r")
-                    {
-                        getConfig.RedPassword = args.Parameters[2];
-                    }
-                    else if (team == "green" || team == "g")
-                    {
-                        getConfig.GreenPassword = args.Parameters[2];
-                    }
-                    else if (team == "blue" || team == "b")
-                    {
-                        getConfig.BluePassword = args.Parameters[2];
-                    }
-                    else if (team == "yellow" || team == "y")
-                    {
-                        getConfig .YellowPassword = args.Parameters[2];
-                    }
-                    TShockAPI.Commands.HandleCommand(args.Player, "/essentials tu " + team);
-                }
-                return;
-            }
             ReloadConfig(args);
-        }
+        }*/
         #endregion
 
         #region jointeam
@@ -1679,6 +1627,10 @@ namespace Essentials
                 args.Player.SendMessage("You are already on the top most block!", Color.IndianRed);
                 return;
             }
+            esPlayer play = GetesPlayerByName(args.Player.Name);
+            play.lastXtp = args.Player.TileX;
+            play.lastYtp = args.Player.TileY;
+            play.lastaction = "tp";
             if (args.Player.Teleport(args.Player.TileX, Y))
                 args.Player.SendMessage("Teleported you to the top-most block!", Color.MediumSeaGreen);
             else
@@ -1714,52 +1666,4 @@ namespace Essentials
         }
         #endregion
     }
-    
-    #region esPlayer
-    public class esPlayer
-    {
-
-        public int Index { get; set; }
-        public TSPlayer TSPlayer { get { return TShock.Players[Index]; } }
-        public string plrName { get { return TShock.Players[Index].Name; } }
-        public Group grpData { get { return TShock.Players[Index].Group; } }
-        public int lastXtp = 0;
-        public int lastYtp = 0;
-        public int lastXondeath = 0;
-        public int lastYondeath = 0;
-        public string lastaction = "none";
-        public bool ondeath = false;
-        public string lastsearch = "";
-        public string lastseachtype = "none";
-        public string redpass = "";
-        public string greenpass = "";
-        public string bluepass = "";
-        public string yellowpass = "";
-        public string lastcmd = "";
-        public bool disabled = false;
-        public int disX = 0;
-        public int disY = 0;
-        public DateTime lastdis = DateTime.UtcNow;
-
-        public esPlayer(int index)
-        {
-            Index = index;
-        }
-
-        public void SendMessage(string message, Color color)
-        {
-            NetMessage.SendData((int)PacketTypes.ChatText, Index, -1, message, 255, color.R, color.G, color.B);
-        }
-
-        public void Kick(string reason)
-        {
-            TShock.Players[Index].Disconnect(reason);
-        }
-
-        public void Teleport(int xtile, int ytile)
-        {
-            TShock.Players[Index].Teleport(xtile, ytile);
-        }
-    }
-    #endregion
 }

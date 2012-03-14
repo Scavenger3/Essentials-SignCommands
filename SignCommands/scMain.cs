@@ -8,7 +8,7 @@ using Terraria;
 using TShockAPI;
 using Hooks;
 using config;
-using Kits;
+using System.Text;
 
 namespace SignCommands
 {
@@ -47,7 +47,7 @@ namespace SignCommands
 
         public override Version Version
         {
-            get { return new Version("1.3.6"); }
+            get { return new Version("1.3.6.1"); }
         }
 
         public override void Initialize()
@@ -101,6 +101,7 @@ namespace SignCommands
         public static void destsign(CommandArgs args)
         {
             scPlayer play = GetscPlayerByName(args.Player.Name);
+            if (play == null) return;
             if (play.destsign)
             {
                 play.destsign = false;
@@ -162,6 +163,7 @@ namespace SignCommands
                 scPlayers.Add(new scPlayer(who));
 
             var ply = GetscPlayerByID(who);
+            if (ply == null) return;
             lock (svCool)
             {
                 if (svCool.ContainsKey(ply.plrName))
@@ -181,21 +183,23 @@ namespace SignCommands
             }
         }
 
-        public void OnLeave(int ply)
+        public void OnLeave(int who)
         {
             lock (scPlayers)
             {
                 for (int i = 0; i < scPlayers.Count; i++)
                 {
-                    if (scPlayers[i].Index == ply)
+                    if (scPlayers[i].Index == who)
                     {
                         //CHECK:
                         var play = scPlayers[i];
-
-                        if (play.HasCooldown() && !play.TSPlayer.Group.HasPermission("nosccooldown"))
+                        if (play != null && play.TSPlayer != null)
                         {
-                            lock(svCool)
-                                svCool.Add(play.plrName, play.Cooldowns());
+                            if (play.HasCooldown() && !play.TSPlayer.Group.HasPermission("nosccooldown"))
+                            {
+                                lock (svCool)
+                                    svCool.Add(play.plrName, play.Cooldowns());
+                            }
                         }
                         
                         //THEN:
@@ -278,7 +282,7 @@ namespace SignCommands
                         if (play.handlecmd > 0)
                             play.handlecmd--;
 
-                        if (play.checkforsignedit)
+                        if (play != null && play.checkforsignedit)
                         {
                             if (Main.sign[play.signeditid].text.ToLower().Contains(getConfig.DefineSignCommands.ToLower()) && Main.sign[play.signeditid].text != play.originalsigntext)
                             {
@@ -400,6 +404,13 @@ namespace SignCommands
                             var signId = reader.ReadInt16();
                             var x = reader.ReadInt32();
                             var y = reader.ReadInt32();
+                            try
+                            {
+                                var Bytes = reader.ReadBytes(getConfig.DefineSignCommands.Length);
+                                var text = Encoding.UTF8.GetString(Bytes);
+                                TShock.Utils.Broadcast(text);
+                            }
+                            catch { }
                             reader.Close();
 
                             var id = Terraria.Sign.ReadSign(x, y);
@@ -427,7 +438,8 @@ namespace SignCommands
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
+                Log.Error("[Sign Commands] Exception while recieving data: ");
+                Log.Error(ex.ToString());
             }
         }
 
@@ -435,6 +447,7 @@ namespace SignCommands
         {
             scPlayer doplay = GetscPlayerByID(tplayer.Index);
             Sign sign = Main.sign[id];
+            if (tplayer == null || doplay == null || sign == null) return;
 
             #region Check permissions
             bool stime = tplayer.Group.HasPermission("usesigntime");
@@ -1087,7 +1100,7 @@ namespace SignCommands
 
                     kitnme = linesplit[1];
                 }
-                catch (Exception)
+                catch
                 {
                     if (doplay.toldalert <= 0)
                     {
@@ -1096,34 +1109,20 @@ namespace SignCommands
                     }
                     return;
                 }
-                Kit k = Kits.Kits.FindKit(kitnme.ToLower());
-
-                if (k == null)
+                try
+                {
+                    HandleKits(tplayer, doplay, kitnme);
+                }
+                catch
                 {
                     if (doplay.toldalert <= 0)
                     {
                         doplay.toldalert = 3;
-                        tplayer.SendMessage("Error: The specified kit does not exist.", Color.Red);
+                        tplayer.SendMessage("Kits.dll must be present to use Kit Sign Commands!", Color.IndianRed);
                     }
                     return;
                 }
 
-                if (tplayer.Group.HasPermission(k.getPerm()))
-                {
-                    k.giveItems(tplayer);
-                    if (getConfig.GlobalKitCooldown)
-                        GlobalKitCooldown = getConfig.KitCooldown;
-                    else
-                        doplay.CooldownKit = getConfig.KitCooldown;
-                }
-                else
-                {
-                    if (doplay.toldalert <= 0)
-                    {
-                        doplay.toldalert = 3;
-                        tplayer.SendMessage(string.Format("You do not have permission to use the {0} kit.", kitnme), Color.Red);
-                    }
-                }
             }
             else if (doplay.toldperm <= 0 && !skit && sign.text.ToLower().Contains("kit "))
             {
@@ -1178,6 +1177,45 @@ namespace SignCommands
             #endregion
         }
 
+        #region Handle Kits
+        public static void HandleKits(TSPlayer tplayer, scPlayer doplay, string KitName)
+        {
+            try
+            {
+                Kits.Kit k = Kits.Kits.FindKit(KitName.ToLower());
+
+                if (k == null)
+                {
+                    if (doplay.toldalert <= 0)
+                    {
+                        doplay.toldalert = 3;
+                        tplayer.SendMessage("Error: The specified kit does not exist.", Color.Red);
+                    }
+                    return;
+                }
+
+                if (tplayer.Group.HasPermission(k.getPerm()))
+                {
+                    k.giveItems(tplayer);
+                    if (getConfig.GlobalKitCooldown)
+                        GlobalKitCooldown = getConfig.KitCooldown;
+                    else
+                        doplay.CooldownKit = getConfig.KitCooldown;
+                }
+                else
+                {
+                    if (doplay.toldalert <= 0)
+                    {
+                        doplay.toldalert = 3;
+                        tplayer.SendMessage(string.Format("You do not have permission to use the {0} kit.", KitName), Color.Red);
+                    }
+                }
+            }
+            catch { }
+        }
+        #endregion
+
+        #region Get scPlayer Methods
         public static scPlayer GetscPlayerByID(int id)
         {
             scPlayer player = null;
@@ -1201,128 +1239,6 @@ namespace SignCommands
             }
             return null;
         }
-    }
-
-    public class scPlayer
-    {
-        public int Index { get; set; }
-        public TSPlayer TSPlayer { get { return TShock.Players[Index]; } }
-        public string plrName = "";
-        public bool destsign = false;
-        public int toldperm = 0;
-        public int toldcool = 0;
-        public int tolddest = 0;
-        public int toldalert = 0;
-        public int CooldownTime = 0;
-        public int CooldownHeal = 0;
-        public int CooldownMsg = 0;
-        public int CooldownDamage = 0;
-        public int CooldownBoss = 0;
-        public int CooldownItem = 0;
-        public int CooldownBuff = 0;
-        public int CooldownSpawnMob = 0;
-        public int CooldownKit = 0;
-        public int CooldownCommand = 0;
-        public int handlecmd = 0;
-        public bool checkforsignedit = false;
-        public bool DestroyingSign = false;
-        public string originalsigntext = "";
-        public int signeditid = 0;
-
-        public scPlayer(int index)
-        {
-            Index = index;
-            this.plrName = TShock.Players[index].Name;
-        }
-
-        public bool HasCooldown()
-        {
-            if (CooldownTime > 0 || CooldownHeal > 0 || CooldownMsg > 0 || CooldownDamage > 0 || CooldownBoss > 0 ||
-                CooldownItem > 0 || CooldownBuff > 0 || CooldownSpawnMob > 0 || CooldownKit > 0 || CooldownCommand > 0)
-            {
-                return true;
-            }                
-
-            return false;
-        }
-
-        public List<int> Cooldowns()
-        {
-            List<int> r = new List<int>();
-            r.Add(CooldownBoss);
-            r.Add(CooldownBuff);
-            r.Add(CooldownCommand);
-            r.Add(CooldownDamage);
-            r.Add(CooldownHeal);
-            r.Add(CooldownItem);
-            r.Add(CooldownKit);
-            r.Add(CooldownMsg);
-            r.Add(CooldownSpawnMob);
-            r.Add(CooldownTime);
-            return r;
-        }
-    }
-}
-
-namespace config
-{
-    public class scConfig
-    {
-        public string DefineSignCommands = "[Sign Command]";
-        public bool GlobalTimeCooldown = false;
-        public int TimeCooldown = 20;
-        public int HealCooldown = 20;
-        public int ShowMsgCooldown = 20;
-        public int DamageCooldown = 20;
-        public bool GlobalBossCooldown = false;
-        public int BossCooldown = 20;
-        public int ItemCooldown = 60;
-        public int BuffCooldown = 20;
-        public bool GlobalSpawnMobCooldown = false;
-        public int SpawnMobCooldown = 20;
-        public bool GlobalKitCooldown = false;
-        public int KitCooldown = 20;
-        public bool GlobalDoCommandCooldown = false;
-        public int DoCommandCooldown = 20;
-
-        public static scConfig Read(string path)
-        {
-            if (!File.Exists(path))
-                return new scConfig();
-            using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
-            {
-                return Read(fs);
-            }
-        }
-
-        public static scConfig Read(Stream stream)
-        {
-            using (var sr = new StreamReader(stream))
-            {
-                var cf = JsonConvert.DeserializeObject<scConfig>(sr.ReadToEnd());
-                if (ConfigRead != null)
-                    ConfigRead(cf);
-                return cf;
-            }
-        }
-
-        public void Write(string path)
-        {
-            using (var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Write))
-            {
-                Write(fs);
-            }
-        }
-
-        public void Write(Stream stream)
-        {
-            var str = JsonConvert.SerializeObject(this, Formatting.Indented);
-            using (var sw = new StreamWriter(stream))
-            {
-                sw.Write(str);
-            }
-        }
-
-        public static Action<scConfig> ConfigRead;
+        #endregion
     }
 }
