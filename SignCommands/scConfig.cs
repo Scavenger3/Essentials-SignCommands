@@ -10,6 +10,7 @@ namespace config
     public class scConfig
     {
         public string DefineSignCommands = "[Sign Command]";
+		public string CommandsStartWith = ">";
         public bool GlobalTimeCooldown = false;
         public int TimeCooldown = 20;
         public int HealCooldown = 20;

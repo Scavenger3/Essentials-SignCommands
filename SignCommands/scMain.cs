@@ -47,7 +47,7 @@ namespace SignCommands
 
         public override Version Version
         {
-            get { return new Version("1.3.6.1"); }
+            get { return new Version("1.3.7"); }
         }
 
         public override void Initialize()
@@ -294,7 +294,7 @@ namespace SignCommands
             {
                 switch (e.MsgID)
                 {
-                    #region On Hit
+                    #region Tile Modify
                     case PacketTypes.Tile:
                     using (var data = new MemoryStream(e.Msg.readBuffer, e.Index, e.Length))
                     {
@@ -309,6 +309,8 @@ namespace SignCommands
                         var y = reader.ReadInt32();
                         reader.Close();
 
+                        if (Main.tile[x, y].type != 55) return;
+
                         var id = Terraria.Sign.ReadSign(x, y);
                         var tplayer = TShock.Players[e.Msg.whoAmI];
                         
@@ -318,17 +320,23 @@ namespace SignCommands
 
                             if (!hitplay.destsign)
                             {
-                                tplayer.SendTileSquare(x, y);
-                                e.Handled = true;
-
-                                dosigncmd(id, tplayer);
-                            }
-                            else
-                            {
-                                if (hitplay.tolddest <= 0)
+                                if (tplayer.Group.HasPermission("destroysigncommand") && hitplay.tolddest <= 0)
                                 {
                                     tplayer.SendMessage("To destroy this sign, Type /destsign", Color.IndianRed);
                                     hitplay.tolddest = 10;
+                                }
+                                tplayer.SendTileSquare(x, y);
+                                e.Handled = true;
+
+                                //string[] lines = Main.sign[id].text.Split(Encoding.UTF8.GetString(new byte[] { 10 }).ToCharArray()[0]);
+								char tosplit = '>';
+								if (getConfig.CommandsStartWith.Length == 1)
+									tosplit = getConfig.CommandsStartWith.ToCharArray()[0];
+								string text = Main.sign[id].text.Replace(Encoding.UTF8.GetString(new byte[] { 10 }), "");
+								string[] commands = text.Split(tosplit);
+                                foreach (string cmd in commands)
+                                {
+                                    DoCommand(id, cmd, tplayer);
                                 }
                             }
                         }
@@ -336,8 +344,8 @@ namespace SignCommands
                     break;
                     #endregion
 
-                    #region On Kill
-                    case PacketTypes.TileKill:
+                    #region Kill tile - is it needed?
+                    /*case PacketTypes.TileKill:
                     using (var data = new MemoryStream(e.Msg.readBuffer, e.Index, e.Length))
                     {
                         var reader = new BinaryReader(data);
@@ -380,10 +388,10 @@ namespace SignCommands
                             }
                         }
                     }
-                    break;
+                    break;*/
                     #endregion
 
-                    #region On Edit
+                    #region Edit Sign
                     case PacketTypes.SignNew:
                     if (!e.Handled)
                     {
@@ -396,7 +404,7 @@ namespace SignCommands
                             string newtext = "";
                             try
                             {
-                                var Bytes = reader.ReadBytes(getConfig.DefineSignCommands.Length);
+								var Bytes = reader.ReadBytes(e.Length - 11);
                                 newtext = Encoding.UTF8.GetString(Bytes);
                             }
                             catch { }
@@ -404,17 +412,18 @@ namespace SignCommands
 
                             var id = Terraria.Sign.ReadSign(x, y);
                             var tplayer = TShock.Players[e.Msg.whoAmI];
-                            scPlayer edplay = GetscPlayerByName(tplayer.Name);
+                            scPlayer edplay = GetscPlayerByID(tplayer.Index);
 
                             if (Main.sign[id] == null || tplayer == null || edplay == null) return;
                             string oldtext = Main.sign[id].text;
                             string dSignCmd = getConfig.DefineSignCommands;
 
-                            if ((oldtext.StartsWith(dSignCmd) || newtext == dSignCmd) && !tplayer.Group.HasPermission("createsigncommand"))
+                            if ((oldtext.StartsWith(dSignCmd) || newtext.StartsWith(dSignCmd)) && !tplayer.Group.HasPermission("createsigncommand"))
                             {
                                 tplayer.SendMessage("You do not have permission to create/edit sign commands!", Color.IndianRed);
                                 e.Handled = true;
                                 tplayer.SendData(PacketTypes.SignNew, "", id);
+								return;
                             }
                         }
                     }
@@ -429,10 +438,11 @@ namespace SignCommands
             }
         }
 
-        public static void dosigncmd(int id, TSPlayer tplayer)
+        public static void DoCommand(int id, string cmd, TSPlayer tplayer)
         {
             scPlayer doplay = GetscPlayerByID(tplayer.Index);
             Sign sign = Main.sign[id];
+            cmd = cmd.ToLower();
             if (tplayer == null || doplay == null || sign == null) return;
 
             #region Check permissions
@@ -451,40 +461,40 @@ namespace SignCommands
             #endregion
 
             #region Time
-            if (sign.text.ToLower().Contains("time") && stime && (nocool || ((getConfig.GlobalTimeCooldown && GlobalTimeCooldown <= 0) || (!getConfig.GlobalTimeCooldown && doplay.CooldownTime <= 0))))
+            if (cmd.StartsWith("time") && stime && (nocool || ((getConfig.GlobalTimeCooldown && GlobalTimeCooldown <= 0) || (!getConfig.GlobalTimeCooldown && doplay.CooldownTime <= 0))))
             {
                 bool done = false;
-                if (sign.text.ToLower().Contains("time day"))
+                if (cmd.StartsWith("time day"))
                 {
                     TSPlayer.Server.SetTime(true, 150.0);
                     done = true;
                 }
-                else if (sign.text.ToLower().Contains("time night"))
+                else if (cmd.StartsWith("time night"))
                 {
                     TSPlayer.Server.SetTime(false, 0.0);
                     done = true;
                 }
-                else if (sign.text.ToLower().Contains("time dusk"))
+                else if (cmd.StartsWith("time dusk"))
                 {
                     TSPlayer.Server.SetTime(false, 0.0);
                     done = true;
                 }
-                else if (sign.text.ToLower().Contains("time noon"))
+                else if (cmd.StartsWith("time noon"))
                 {
                     TSPlayer.Server.SetTime(true, 27000.0);
                     done = true;
                 }
-                else if (sign.text.ToLower().Contains("time midnight"))
+                else if (cmd.StartsWith("time midnight"))
                 {
                     TSPlayer.Server.SetTime(false, 16200.0);
                     done = true;
                 }
-                else if (sign.text.ToLower().Contains("time fullmoon"))
+                else if (cmd.StartsWith("time fullmoon"))
                 {
                     TSPlayer.Server.SetFullMoon(true);
                     done = true;
                 }
-                else if (sign.text.ToLower().Contains("time bloodmoon"))
+                else if (cmd.StartsWith("time bloodmoon"))
                 {
                     TSPlayer.Server.SetBloodMoon(true);
                     done = true;
@@ -498,17 +508,17 @@ namespace SignCommands
                         doplay.CooldownTime = getConfig.TimeCooldown;
                 }
             }
-            else if (doplay.toldperm <= 0 && !stime && sign.text.ToLower().Contains("time "))
+            else if (doplay.toldperm <= 0 && !stime && cmd.StartsWith("time "))
             {
                 tplayer.SendMessage("You do not have permission to use this sign command!", Color.IndianRed);
                 doplay.toldperm = 5;
             }
-            else if (doplay.toldcool <= 0 && stime && (!nocool && (!getConfig.GlobalTimeCooldown && doplay.CooldownTime > 0)) && sign.text.ToLower().Contains("time "))
+            else if (doplay.toldcool <= 0 && stime && (!nocool && (!getConfig.GlobalTimeCooldown && doplay.CooldownTime > 0)) && cmd.StartsWith("time "))
             {
                 tplayer.SendMessage("You have to wait another " + doplay.CooldownTime + " seconds before using this sign", Color.IndianRed);
                 doplay.toldcool = 5;
             }
-            else if (doplay.toldcool <= 0 && stime && (!nocool && (getConfig.GlobalTimeCooldown && GlobalTimeCooldown > 0)) && sign.text.ToLower().Contains("time "))
+            else if (doplay.toldcool <= 0 && stime && (!nocool && (getConfig.GlobalTimeCooldown && GlobalTimeCooldown > 0)) && cmd.StartsWith("time "))
             {
                 tplayer.SendMessage("Everyone has to wait another " + GlobalTimeCooldown + " seconds before using this sign", Color.IndianRed);
                 doplay.toldcool = 5;
@@ -516,7 +526,7 @@ namespace SignCommands
             #endregion
 
             #region Heal
-            if (sign.text.ToLower().Contains("heal") && sheal && (nocool || doplay.CooldownHeal <= 0))
+            if (cmd.StartsWith("heal") && sheal && (nocool || doplay.CooldownHeal <= 0))
             {
                 Item heart = TShock.Utils.GetItemById(58);
                 Item star = TShock.Utils.GetItemById(184);
@@ -526,12 +536,12 @@ namespace SignCommands
                     tplayer.GiveItem(star.type, star.name, star.width, star.height, star.maxStack);
                 doplay.CooldownHeal = getConfig.HealCooldown;
             }
-            else if (doplay.toldperm <= 0 && !sheal && sign.text.ToLower().Contains("heal"))
+            else if (doplay.toldperm <= 0 && !sheal && cmd.StartsWith("heal"))
             {
                 tplayer.SendMessage("You do not have permission to use this sign command!", Color.IndianRed);
                 doplay.toldperm = 5;
             }
-            else if (doplay.toldcool <= 0 && sheal && !nocool && doplay.CooldownHeal > 0 && sign.text.ToLower().Contains("heal"))
+            else if (doplay.toldcool <= 0 && sheal && !nocool && doplay.CooldownHeal > 0 && cmd.StartsWith("heal"))
             {
                 tplayer.SendMessage("You have to wait another " + doplay.CooldownHeal + " seconds before using this sign", Color.IndianRed);
                 doplay.toldcool = 5;
@@ -539,30 +549,30 @@ namespace SignCommands
             #endregion
 
             #region Message
-            if (sign.text.ToLower().Contains("show") && smsg && (nocool || doplay.CooldownMsg <= 0))
+            if (cmd.StartsWith("show") && smsg && (nocool || doplay.CooldownMsg <= 0))
             {
                 bool done = false;
-                if (sign.text.ToLower().Contains("show motd"))
+                if (cmd.StartsWith("show motd"))
                 {
                     TShock.Utils.ShowFileToUser(tplayer, "motd.txt");
                     done = true;
                 }
-                else if (sign.text.ToLower().Contains("show rules"))
+                else if (cmd.StartsWith("show rules"))
                 {
                     TShock.Utils.ShowFileToUser(tplayer, "rules.txt");
                     done = true;
                 }
-                else if (sign.text.ToLower().Contains("show playing"))
+                else if (cmd.StartsWith("show playing"))
                 {
                     tplayer.SendMessage(string.Format("Current players: {0}.", TShock.Utils.GetPlayers()), 255, 240, 20);
                     done = true;
                 }
-                else if (sign.text.ToLower().Contains("show message") && File.Exists("scMeassge.txt"))
+                else if (cmd.StartsWith("show message") && File.Exists("scMeassge.txt"))
                 {
                     TShock.Utils.ShowFileToUser(tplayer, "scMessage.txt");
                     done = true;
                 }
-                else if (sign.text.ToLower().Contains("show message") && !File.Exists("scMeassge.txt"))
+                else if (cmd.StartsWith("show message") && !File.Exists("scMeassge.txt"))
                 {
                     tplayer.SendMessage("Could not find message", Color.IndianRed);
                     done = true;
@@ -571,12 +581,12 @@ namespace SignCommands
                 if (done)
                     doplay.CooldownMsg = getConfig.ShowMsgCooldown;
             }
-            else if (doplay.toldperm <= 0 && !smsg && sign.text.ToLower().Contains("show "))
+            else if (doplay.toldperm <= 0 && !smsg && cmd.StartsWith("show "))
             {
                 tplayer.SendMessage("You do not have permission to use this sign command!", Color.IndianRed);
                 doplay.toldperm = 5;
             }
-            else if (doplay.toldcool <= 0 && smsg && !nocool && doplay.CooldownMsg > 0 && sign.text.ToLower().Contains("show "))
+            else if (doplay.toldcool <= 0 && smsg && !nocool && doplay.CooldownMsg > 0 && cmd.StartsWith("show "))
             {
                 tplayer.SendMessage("You have to wait another " + doplay.CooldownTime + " seconds before using this sign", Color.IndianRed);
                 doplay.toldcool = 5;
@@ -584,11 +594,11 @@ namespace SignCommands
             #endregion
 
             #region Damage
-            if (sign.text.ToLower().Contains("damage ") && sdmg && (nocool || doplay.CooldownDamage <= 0))
+            if (cmd.StartsWith("damage ") && sdmg && (nocool || doplay.CooldownDamage <= 0))
             {
                 try
                 {
-                    string[] linesplit = sign.text.Split('\'', '\"');
+                    string[] linesplit = cmd.Split('\'', '\"');
                     int amtdamage = 0;
                     bool dmgisint = int.TryParse(linesplit[1], out amtdamage);
                     if (dmgisint)
@@ -614,12 +624,12 @@ namespace SignCommands
                     }
                 }
             }
-            else if (doplay.toldperm <= 0 && !sdmg && sign.text.ToLower().Contains("damage "))
+            else if (doplay.toldperm <= 0 && !sdmg && cmd.StartsWith("damage "))
             {
                 tplayer.SendMessage("You do not have permission to use this sign command!", Color.IndianRed);
                 doplay.toldperm = 5;
             }
-            else if (doplay.toldcool <= 0 && sdmg && !nocool && doplay.CooldownDamage > 0 && sign.text.ToLower().Contains("damage "))
+            else if (doplay.toldcool <= 0 && sdmg && !nocool && doplay.CooldownDamage > 0 && cmd.StartsWith("damage "))
             {
                 tplayer.SendMessage("You have to wait another " + doplay.CooldownDamage + " seconds before using this sign", Color.IndianRed);
                 doplay.toldcool = 5;
@@ -627,36 +637,36 @@ namespace SignCommands
             #endregion
 
             #region Boss
-            if (sign.text.ToLower().Contains("boss") && sboss && (nocool || ((getConfig.GlobalBossCooldown && GlobalBossCooldown <= 0) || (!getConfig.GlobalBossCooldown && doplay.CooldownBoss <= 0))))
+            if (cmd.StartsWith("boss") && sboss && (nocool || ((getConfig.GlobalBossCooldown && GlobalBossCooldown <= 0) || (!getConfig.GlobalBossCooldown && doplay.CooldownBoss <= 0))))
             {
                 bool done = false;
-                if (sign.text.ToLower().Contains("boss eater"))
+                if (cmd.StartsWith("boss eater"))
                 {
                     NPC npc = TShock.Utils.GetNPCById(13);
                     TSPlayer.Server.SpawnNPC(npc.type, npc.name, 1, tplayer.TileX, tplayer.TileY);
                     done = true;
                 }
-                else if (sign.text.ToLower().Contains("boss eye"))
+                else if (cmd.StartsWith("boss eye"))
                 {
                     NPC npc = TShock.Utils.GetNPCById(4);
                     TSPlayer.Server.SetTime(false, 0.0);
                     TSPlayer.Server.SpawnNPC(npc.type, npc.name, 1, tplayer.TileX, tplayer.TileY);
                     done = true;
                 }
-                else if (sign.text.ToLower().Contains("boss king"))
+                else if (cmd.StartsWith("boss king"))
                 {
                     NPC npc = TShock.Utils.GetNPCById(50);
                     TSPlayer.Server.SpawnNPC(npc.type, npc.name, 1, tplayer.TileX, tplayer.TileY);
                     done = true;
                 }
-                else if (sign.text.ToLower().Contains("boss skeletron") && !sign.text.ToLower().Contains("boss skeletronprime"))
+                else if (cmd.StartsWith("boss skeletron") && !cmd.StartsWith("boss skeletronprime"))
                 {
                     NPC npc = TShock.Utils.GetNPCById(35);
                     TSPlayer.Server.SetTime(false, 0.0);
                     TSPlayer.Server.SpawnNPC(npc.type, npc.name, 1, tplayer.TileX, tplayer.TileY);
                     done = true;
                 }
-                else if (sign.text.ToLower().Contains("boss wof"))
+                else if (cmd.StartsWith("boss wof"))
                 {
                     if (Main.wof >= 0 || (tplayer.Y / 16f < (float)(Main.maxTilesY - 205)))
                     {
@@ -670,7 +680,7 @@ namespace SignCommands
                     NPC.SpawnWOF(new Vector2(tplayer.X, tplayer.Y));
                     done = true;
                 }
-                else if (sign.text.ToLower().Contains("boss twins"))
+                else if (cmd.StartsWith("boss twins"))
                 {
                     NPC retinazer = TShock.Utils.GetNPCById(125);
                     NPC spaz = TShock.Utils.GetNPCById(126);
@@ -679,14 +689,14 @@ namespace SignCommands
                     TSPlayer.Server.SpawnNPC(spaz.type, spaz.name, 1, tplayer.TileX, tplayer.TileY);
                     done = true;
                 }
-                else if (sign.text.ToLower().Contains("boss destroyer"))
+                else if (cmd.StartsWith("boss destroyer"))
                 {
                     NPC npc = TShock.Utils.GetNPCById(134);
                     TSPlayer.Server.SetTime(false, 0.0);
                     TSPlayer.Server.SpawnNPC(npc.type, npc.name, 1, tplayer.TileX, tplayer.TileY);
                     done = true;
                 }
-                else if (sign.text.ToLower().Contains("boss skeletronprime"))
+                else if (cmd.StartsWith("boss skeletronprime"))
                 {
                     NPC npc = TShock.Utils.GetNPCById(127);
                     TSPlayer.Server.SetTime(false, 0.0);
@@ -702,17 +712,17 @@ namespace SignCommands
                         doplay.CooldownBoss = getConfig.BossCooldown;
                 }
             }
-            else if (doplay.toldperm <= 0 && !sboss && sign.text.ToLower().Contains("boss "))
+            else if (doplay.toldperm <= 0 && !sboss && cmd.StartsWith("boss "))
             {
                 tplayer.SendMessage("You do not have permission to use this sign command!", Color.IndianRed);
                 doplay.toldperm = 5;
             }
-            else if (doplay.toldcool <= 0 && sboss && (!nocool && (!getConfig.GlobalBossCooldown && doplay.CooldownBoss > 0)) && sign.text.ToLower().Contains("boss "))
+            else if (doplay.toldcool <= 0 && sboss && (!nocool && (!getConfig.GlobalBossCooldown && doplay.CooldownBoss > 0)) && cmd.StartsWith("boss "))
             {
                 tplayer.SendMessage("You have to wait another " + doplay.CooldownBoss + " seconds before using this sign", Color.IndianRed);
                 doplay.toldcool = 5;
             }
-            else if (doplay.toldcool <= 0 && sboss && (!nocool && (getConfig.GlobalBossCooldown && GlobalBossCooldown > 0)) && sign.text.ToLower().Contains("boss "))
+            else if (doplay.toldcool <= 0 && sboss && (!nocool && (getConfig.GlobalBossCooldown && GlobalBossCooldown > 0)) && cmd.StartsWith("boss "))
             {
                 tplayer.SendMessage("Everyone has to wait another " + GlobalBossCooldown + " seconds before using this sign", Color.IndianRed);
                 doplay.toldcool = 5;
@@ -720,12 +730,12 @@ namespace SignCommands
             #endregion
 
             #region Spawn Mob
-            if ((sign.text.ToLower().Contains("spawn mob ") || sign.text.ToLower().Contains("spawnmob ") || sign.text.ToLower().Contains("spawn "))
+            if ((cmd.StartsWith("spawn mob ") || cmd.StartsWith("spawnmob ") || cmd.StartsWith("spawn "))
                 && smob && (nocool || ((getConfig.GlobalSpawnMobCooldown && GlobalSpawnMobCooldown <= 0) || (!getConfig.GlobalSpawnMobCooldown && doplay.CooldownSpawnMob <= 0))))
             {
                 try
                 {
-                    string[] linesplit = sign.text.Split('\'', '\"');
+                    string[] linesplit = cmd.Split('\'', '\"');
                     for (int i = 1; i < linesplit.Length; i++)
                     {
                     }
@@ -809,19 +819,19 @@ namespace SignCommands
                     }
                 }
             }
-            else if (doplay.toldperm <= 0 && !smob && sign.text.ToLower().Contains("spawnmob"))
+            else if (doplay.toldperm <= 0 && !smob && cmd.StartsWith("spawnmob"))
             {
                 tplayer.SendMessage("You do not have permission to use this sign command!", Color.IndianRed);
                 doplay.toldperm = 5;
             }
             else if (doplay.toldcool <= 0 && smob && (!nocool && (!getConfig.GlobalSpawnMobCooldown && doplay.CooldownSpawnMob > 0)) &&
-                (sign.text.ToLower().Contains("spawn mob ") || sign.text.ToLower().Contains("spawnmob ") || sign.text.ToLower().Contains("spawn ")))
+                (cmd.StartsWith("spawn mob ") || cmd.StartsWith("spawnmob ") || cmd.StartsWith("spawn ")))
             {
                 tplayer.SendMessage("You have to wait another " + doplay.CooldownSpawnMob + " seconds before using this sign", Color.IndianRed);
                 doplay.toldcool = 5;
             }
             else if (doplay.toldcool <= 0 && smob && (!nocool && (getConfig.GlobalSpawnMobCooldown && GlobalSpawnMobCooldown > 0)) &&
-                (sign.text.ToLower().Contains("spawn mob ") || sign.text.ToLower().Contains("spawnmob ") || sign.text.ToLower().Contains("spawn ")))
+                (cmd.StartsWith("spawn mob ") || cmd.StartsWith("spawnmob ") || cmd.StartsWith("spawn ")))
             {
                 tplayer.SendMessage("Everyone has to wait another " + GlobalSpawnMobCooldown + " seconds before using this sign", Color.IndianRed);
                 doplay.toldcool = 5;
@@ -829,11 +839,11 @@ namespace SignCommands
             #endregion
 
             #region Warp
-            if (swarp && sign.text.ToLower().Contains("warp "))
+            if (swarp && cmd.StartsWith("warp "))
             {
                 try
                 {
-                    string[] linesplit = sign.text.Split('\'', '\"');
+                    string[] linesplit = cmd.Split('\'', '\"');
                     var warpxy = TShock.Warps.FindWarp(linesplit[1]);
 
                     if (warpxy.WarpName == "" || warpxy.WarpPos.X == 0 || warpxy.WarpPos.Y == 0 || warpxy.WorldWarpID == "")
@@ -856,7 +866,7 @@ namespace SignCommands
                     }
                 }
             }
-            else if (doplay.toldperm <= 0 && !swarp && sign.text.ToLower().Contains("warp "))
+            else if (doplay.toldperm <= 0 && !swarp && cmd.StartsWith("warp "))
             {
                 tplayer.SendMessage("You do not have permission to use this sign command!", Color.IndianRed);
                 doplay.toldperm = 5;
@@ -864,11 +874,11 @@ namespace SignCommands
             #endregion
 
             #region Item
-            if (sign.text.ToLower().Contains("item ") && sitem && (nocool || doplay.CooldownItem <= 0))
+            if (cmd.StartsWith("item ") && sitem && (nocool || doplay.CooldownItem <= 0))
             {
                 try
                 {
-                    string[] linesplit = sign.text.Split('\'', '\"');
+                    string[] linesplit = cmd.Split('\'', '\"');
                     bool containsamount = false;
                     string[] datasplit;
 
@@ -955,12 +965,12 @@ namespace SignCommands
                     }
                 }
             }
-            else if (doplay.toldperm <= 0 && !sitem && sign.text.ToLower().Contains("item "))
+            else if (doplay.toldperm <= 0 && !sitem && cmd.StartsWith("item "))
             {
                 tplayer.SendMessage("You do not have permission to use this sign command!", Color.IndianRed);
                 doplay.toldperm = 5;
             }
-            else if (doplay.toldcool <= 0 && sitem && !nocool && doplay.CooldownItem > 0 && sign.text.ToLower().Contains("item "))
+            else if (doplay.toldcool <= 0 && sitem && !nocool && doplay.CooldownItem > 0 && cmd.StartsWith("item "))
             {
                 tplayer.SendMessage("You have to wait another " + doplay.CooldownItem + " seconds before using this sign", Color.IndianRed);
                 doplay.toldcool = 5;
@@ -968,11 +978,11 @@ namespace SignCommands
             #endregion
 
             #region Buff
-            if (sign.text.ToLower().Contains("buff ") && sbuff && (nocool || doplay.CooldownItem <= 0))
+            if (cmd.StartsWith("buff ") && sbuff && (nocool || doplay.CooldownItem <= 0))
             {
                 try
                 {
-                    string[] linesplit = sign.text.Split('\'', '\"');
+                    string[] linesplit = cmd.Split('\'', '\"');
                     int count = 0;
                     int c1bid = 1;
                     int c1tme = 1;
@@ -1064,12 +1074,12 @@ namespace SignCommands
                     return;
                 }
             }
-            else if (doplay.toldperm <= 0 && !sbuff && sign.text.ToLower().Contains("buff "))
+            else if (doplay.toldperm <= 0 && !sbuff && cmd.StartsWith("buff "))
             {
                 tplayer.SendMessage("You do not have permission to use this sign command!", Color.IndianRed);
                 doplay.toldperm = 5;
             }
-            else if (doplay.toldcool <= 0 && sbuff && !nocool && doplay.CooldownBuff > 0 && sign.text.ToLower().Contains("buff "))
+            else if (doplay.toldcool <= 0 && sbuff && !nocool && doplay.CooldownBuff > 0 && cmd.StartsWith("buff "))
             {
                 tplayer.SendMessage("You have to wait another " + doplay.CooldownBuff + " seconds before using this sign", Color.IndianRed);
                 doplay.toldcool = 5;
@@ -1077,12 +1087,12 @@ namespace SignCommands
             #endregion
 
             #region Kit
-            if (sign.text.ToLower().Contains("kit ") && skit && (nocool || ((getConfig.GlobalKitCooldown && GlobalKitCooldown <= 0) || (!getConfig.GlobalKitCooldown && doplay.CooldownKit <= 0))))
+            if (cmd.StartsWith("kit ") && skit && (nocool || ((getConfig.GlobalKitCooldown && GlobalKitCooldown <= 0) || (!getConfig.GlobalKitCooldown && doplay.CooldownKit <= 0))))
             {
                 string kitnme = "";
                 try
                 {
-                    string[] linesplit = sign.text.Split('\'', '\"');
+                    string[] linesplit = cmd.Split('\'', '\"');
 
                     kitnme = linesplit[1];
                 }
@@ -1110,12 +1120,12 @@ namespace SignCommands
                 }
 
             }
-            else if (doplay.toldperm <= 0 && !skit && sign.text.ToLower().Contains("kit "))
+            else if (doplay.toldperm <= 0 && !skit && cmd.StartsWith("kit "))
             {
                 tplayer.SendMessage("You do not have permission to use this sign command!", Color.IndianRed);
                 doplay.toldperm = 5;
             }
-            else if (doplay.toldcool <= 0 && skit && !nocool && doplay.CooldownKit > 0 && sign.text.ToLower().Contains("kit "))
+            else if (doplay.toldcool <= 0 && skit && !nocool && doplay.CooldownKit > 0 && cmd.StartsWith("kit "))
             {
                 tplayer.SendMessage("You have to wait another " + doplay.CooldownKit + " seconds before using this sign", Color.IndianRed);
                 doplay.toldcool = 5;
@@ -1123,12 +1133,12 @@ namespace SignCommands
             #endregion
 
             #region Do Command
-            if ((sign.text.ToLower().Contains("command ") || sign.text.ToLower().Contains("cmd ")) && scmd &&
+            if ((cmd.StartsWith("command ") || cmd.StartsWith("cmd ")) && scmd &&
                 (nocool || ((getConfig.GlobalDoCommandCooldown && GlobalCommandCooldown <= 0) || (!getConfig.GlobalDoCommandCooldown && doplay.CooldownCommand <= 0))))
             {
                 try
                 {
-                    string[] linesplit = sign.text.Split('\'', '\"');
+                    string[] linesplit = cmd.Split('\'', '\"');
                     if (doplay.handlecmd == 0)
                     {
                         TShockAPI.Commands.HandleCommand(tplayer, "/" + linesplit[1]);
@@ -1145,17 +1155,17 @@ namespace SignCommands
                     }
                 }
             }
-            else if (doplay.toldperm <= 0 && !scmd && (sign.text.ToLower().Contains("Command ") || sign.text.ToLower().Contains("Cmd ")))
+            else if (doplay.toldperm <= 0 && !scmd && (cmd.StartsWith("Command ") || cmd.StartsWith("Cmd ")))
             {
                 tplayer.SendMessage("You do not have permission to use this sign command!", Color.IndianRed);
                 doplay.toldperm = 5;
             }
-            else if (doplay.toldcool <= 0 && scmd && (!nocool && (!getConfig.GlobalDoCommandCooldown && doplay.CooldownCommand > 0)) && (sign.text.ToLower().Contains("command ") || sign.text.ToLower().Contains("cmd ")))
+            else if (doplay.toldcool <= 0 && scmd && (!nocool && (!getConfig.GlobalDoCommandCooldown && doplay.CooldownCommand > 0)) && (cmd.StartsWith("command ") || cmd.StartsWith("cmd ")))
             {
                 tplayer.SendMessage("You have to wait another " + doplay.CooldownCommand + " seconds before using this sign", Color.IndianRed);
                 doplay.toldcool = 5;
             }
-            else if (doplay.toldcool <= 0 && scmd && (!nocool && (getConfig.GlobalDoCommandCooldown && GlobalCommandCooldown > 0)) && (sign.text.ToLower().Contains("command ") || sign.text.ToLower().Contains("cmd ")))
+            else if (doplay.toldcool <= 0 && scmd && (!nocool && (getConfig.GlobalDoCommandCooldown && GlobalCommandCooldown > 0)) && (cmd.StartsWith("command ") || cmd.StartsWith("cmd ")))
             {
                 tplayer.SendMessage("Everyone has to wait another " + GlobalCommandCooldown + " seconds before using this sign", Color.IndianRed);
                 doplay.toldcool = 5;

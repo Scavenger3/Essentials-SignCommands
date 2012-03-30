@@ -45,7 +45,7 @@ namespace Essentials
 
         public override Version Version
         {
-            get { return new Version("1.3.6.1"); }
+            get { return new Version("1.3.7"); }
         }
 
         public override void Initialize()
