@@ -12,7 +12,7 @@ using System.Text;
 
 namespace SignCommands
 {
-	[APIVersion(1, 11)]
+	[APIVersion(1, 12)]
 	public class SignCommands : TerrariaPlugin
 	{
 		public static scConfig getConfig { get; set; }
@@ -27,8 +27,7 @@ namespace SignCommands
 		public static int GlobalCommandCooldown = 0;
 		public static int GlobalKitCooldown = 0;
 
-		public static Thread Cooldown = new Thread(CheckThread);
-
+		public static DateTime Cooldown = DateTime.UtcNow;
 
 		public override string Name
 		{
@@ -47,7 +46,7 @@ namespace SignCommands
 
 		public override Version Version
 		{
-			get { return new Version("1.3.7"); }
+			get { return new Version("1.3.8"); }
 		}
 
 		public override void Initialize()
@@ -62,9 +61,6 @@ namespace SignCommands
 		{
 			if (disposing)
 			{
-				if (Cooldown.IsAlive)
-					Cooldown.Abort();
-
 				GameHooks.Initialize -= OnInitialize;
 				NetHooks.GetData -= GetData;
 				NetHooks.GreetPlayer -= OnGreetPlayer;
@@ -84,7 +80,7 @@ namespace SignCommands
 		#region Commands
 		public void OnInitialize()
 		{
-			Cooldown.Start();
+			Cooldown = DateTime.UtcNow;
 
 			Commands.ChatCommands.Add(new Command("destroysigncommand", destsign, "destsign"));
 			Commands.ChatCommands.Add(new Command("reloadsigncommands", screload, "screload"));
@@ -211,10 +207,11 @@ namespace SignCommands
 		}
 
 		#region Timer
-		static void CheckThread()
+		static void OnUpdate()
 		{
-			while (Cooldown.IsAlive)
+			if ((DateTime.UtcNow - Cooldown).TotalMilliseconds >= 1000)
 			{
+				Cooldown = DateTime.UtcNow;
 				//Global Cooldowns:
 				if (getConfig.GlobalBossCooldown && GlobalBossCooldown > 0)
 					GlobalBossCooldown--;
@@ -283,7 +280,6 @@ namespace SignCommands
 							play.handlecmd--;
 					}
 				}
-				Thread.Sleep(1000);
 			}
 		}
 		#endregion

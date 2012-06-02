@@ -12,7 +12,7 @@ using Hooks;
 
 namespace Essentials
 {
-	[APIVersion(1, 11)]
+	[APIVersion(1, 12)]
 	public class Essentials : TerrariaPlugin
 	{
 		#region Variables
@@ -20,7 +20,7 @@ namespace Essentials
 		public static List<esPlayer> esPlayers = new List<esPlayer>();
 		public static SqlTableEditor SQLEditor;
 		public static SqlTableCreator SQLWriter;
-		public static Thread TCheck = new Thread(deathcheck);
+		public static DateTime TCheck = DateTime.UtcNow;
 		public static bool DoCheck = true;
 
 		public static esConfig getConfig { get; set; }
@@ -45,7 +45,7 @@ namespace Essentials
 
 		public override Version Version
 		{
-			get { return new Version("1.3.7"); }
+			get { return new Version("1.3.8"); }
 		}
 
 		public override void Initialize()
@@ -55,18 +55,19 @@ namespace Essentials
 			ServerHooks.Leave += OnLeave;
 			ServerHooks.Chat += OnChat;
 			NetHooks.GetData += GetData;
+			GameHooks.Update += OnUpdate;
 		}
 
 		protected override void Dispose(bool disposing)
 		{
 			if (disposing)
 			{
-				TCheck.Abort();
 				GameHooks.Initialize -= OnInitialize;
 				NetHooks.GreetPlayer -= OnGreetPlayer;
 				ServerHooks.Leave -= OnLeave;
 				ServerHooks.Chat -= OnChat;
 				NetHooks.GetData -= GetData;
+				GameHooks.Update -= OnUpdate;
 			}
 			base.Dispose(disposing);
 		}
@@ -100,7 +101,7 @@ namespace Essentials
 			Commands.ChatCommands.Add(new Command("myhome", setmyhome, "sethome"));
 			Commands.ChatCommands.Add(new Command("myhome", gomyhome, "myhome"));
 			Commands.ChatCommands.Add(new Command("backontp", back, "b"));
-			Commands.ChatCommands.Add(new Command("essentials", ReloadConfig, "essentials")); //Old method: cmdessentials
+			Commands.ChatCommands.Add(new Command("essentials", ReloadConfig, "essentials"));
 			Commands.ChatCommands.Add(new Command(null, TeamUnlock, "teamunlock"));
 			Commands.ChatCommands.Add(new Command("lastcommand", lastcmd, "="));
 			Commands.ChatCommands.Add(new Command("kill", KillReason, "killr"));
@@ -110,19 +111,10 @@ namespace Essentials
 			Commands.ChatCommands.Add(new Command("level-down", down, "down"));
 			#endregion
 
-			TCheck.Start();
+			TCheck = DateTime.UtcNow;
 
-			#region Create SQL
-			SQLEditor = new SqlTableEditor(TShock.DB, TShock.DB.GetSqlType() == SqlType.Sqlite ? (IQueryBuilder)new SqliteQueryCreator() : new MysqlQueryCreator());
-			SQLWriter = new SqlTableCreator(TShock.DB, TShock.DB.GetSqlType() == SqlType.Sqlite ? (IQueryBuilder)new SqliteQueryCreator() : new MysqlQueryCreator());
-
-			var table = new SqlTable("EssentialsUserHomes",
-				new SqlColumn("UserID", MySqlDbType.Int32) { Unique = true },
-				new SqlColumn("HomeX", MySqlDbType.Int32),
-				new SqlColumn("HomeY", MySqlDbType.Int32),
-				new SqlColumn("WorldID", MySqlDbType.Int32)
-			);
-			SQLWriter.EnsureExists(table);
+			#region Setup SQL
+			esSQL.SetupDB();
 			#endregion
 
 			#region Fix Permissions
@@ -350,11 +342,12 @@ namespace Essentials
 		#endregion
 
 		#region Timer
-		public static void deathcheck()
+		public static void OnUpdate()
 		{
-			try
+			if ((DateTime.UtcNow - TCheck).TotalMilliseconds >= 1000)
 			{
-				while (DoCheck)
+				TCheck = DateTime.UtcNow;
+				try
 				{
 					lock (esPlayers)
 					{
@@ -392,10 +385,9 @@ namespace Essentials
 							}
 						}
 					}
-					Thread.Sleep(1000);
 				}
+				catch { }
 			}
-			catch (Exception) { }
 		}
 		#endregion
 
@@ -615,7 +607,7 @@ namespace Essentials
 		}
 		#endregion
 
-		// Commands:
+		/* Commands: */
 
 		#region Fill Items
 		public static void more(CommandArgs args)
@@ -1317,84 +1309,51 @@ namespace Essentials
 		{
 			if (args.Player.IsLoggedIn)
 			{
-				int homecount = 0;
-				homecount = SQLEditor.ReadColumn("EssentialsUserHomes", "UserID", new List<SqlValue>()).Count;
-				bool hashome = false;
-				for (int i = 0; i < homecount; i++)
-				{
-					int acname = Int32.Parse(SQLEditor.ReadColumn("EssentialsUserHomes", "UserID", new List<SqlValue>())[i].ToString());
-					int worldid = Int32.Parse(SQLEditor.ReadColumn("EssentialsUserHomes", "WorldID", new List<SqlValue>())[i].ToString());
-
-					if (acname == args.Player.UserID && worldid == Main.worldID)
-						hashome = true;
-				}
+				/* Check if the player has a home */
+				bool hashome = esSQL.HasHome(args.Player.UserID, Main.worldID);
 
 				if (hashome)
 				{
-					List<SqlValue> values = new List<SqlValue>();
-					values.Add(new SqlValue("HomeX", args.Player.TileX));
-					values.Add(new SqlValue("HomeY", args.Player.TileY));
-					List<SqlValue> where = new List<SqlValue>();
-					where.Add(new SqlValue("UserID", args.Player.UserID));
-					where.Add(new SqlValue("WorldID", Main.worldID));
-					SQLEditor.UpdateValues("EssentialsUserHomes", values, where);
+					/* If the player has a home, Update it */
+					esSQL.UpdateHome(args.Player.TileX, args.Player.TileY, args.Player.UserID, Main.worldID);
 
 					args.Player.SendMessage("Updated your home position!", Color.MediumSeaGreen);
 				}
 				else
 				{
-					List<SqlValue> list = new List<SqlValue>();
-					list.Add(new SqlValue("UserID", args.Player.UserID));
-					list.Add(new SqlValue("HomeX", args.Player.TileX));
-					list.Add(new SqlValue("HomeY", args.Player.TileY));
-					list.Add(new SqlValue("WorldID", Main.worldID));
-					SQLEditor.InsertValues("EssentialsUserHomes", list);
+					/* If the player doesn't have a home, Create one */
+					esSQL.AddHome(args.Player.UserID, args.Player.TileX, args.Player.TileY, Main.worldID);
 
 					args.Player.SendMessage("Created your home!", Color.MediumSeaGreen);
 				}
 			}
 			else
+			{
 				args.Player.SendMessage("You must be logged in to do that!", Color.IndianRed);
+			}
 		}
 
 		public static void gomyhome(CommandArgs args)
 		{
 			if (args.Player.IsLoggedIn)
 			{
-				int homecount = 0;
-				if ((homecount = SQLEditor.ReadColumn("EssentialsUserHomes", "UserID", new List<SqlValue>()).Count) != 0)
+				/* Check if the player has a home */
+				bool hashome = esSQL.HasHome(args.Player.UserID, Main.worldID);
+
+				if (hashome)
 				{
-					bool hashome = false;
-					int homeid = 0;
-					for (int i = 0; i < homecount; i++)
-					{
-						int acname = Int32.Parse(SQLEditor.ReadColumn("EssentialsUserHomes", "UserID", new List<SqlValue>())[i].ToString());
-						int worldid = Int32.Parse(SQLEditor.ReadColumn("EssentialsUserHomes", "WorldID", new List<SqlValue>())[i].ToString());
+					int homeX = Main.spawnTileX; int homeY = Main.spawnTileY;
 
-						if (acname == args.Player.UserID && worldid == Main.worldID)
-						{
-							hashome = true;
-							homeid = i;
-						}
-					}
+					/* Get the player's home co-ords */
+					esSQL.GetHome(args.Player.UserID, Main.worldID, out homeX, out homeY);
 
-					if (hashome)
-					{
-						int homex = Int32.Parse(SQLEditor.ReadColumn("EssentialsUserHomes", "HomeX", new List<SqlValue>())[homeid].ToString());
-						int homey = Int32.Parse(SQLEditor.ReadColumn("EssentialsUserHomes", "HomeY", new List<SqlValue>())[homeid].ToString());
+					esPlayer play = GetesPlayerByName(args.Player.Name);
+					play.lastXtp = args.Player.TileX;
+					play.lastYtp = args.Player.TileY;
+					play.lastaction = "tp";
 
-						esPlayer play = GetesPlayerByName(args.Player.Name);
-						play.lastXtp = args.Player.TileX;
-						play.lastYtp = args.Player.TileY;
-						play.lastaction = "tp";
-
-						args.Player.Teleport(homex, homey);
-						args.Player.SendMessage("Teleported to your home!", Color.MediumSeaGreen);
-					}
-					else
-					{
-						args.Player.SendMessage("You have not set a home. type: \"/sethome\" to set one.", Color.IndianRed);
-					}
+					args.Player.Teleport(homeX, homeY);
+					args.Player.SendMessage("Teleported to your home!", Color.MediumSeaGreen);
 				}
 				else
 				{
@@ -1402,7 +1361,9 @@ namespace Essentials
 				}
 			}
 			else
+			{
 				args.Player.SendMessage("You must be logged in to do that!", Color.IndianRed);
+			}
 		}
 		#endregion
 
