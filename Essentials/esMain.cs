@@ -45,7 +45,7 @@ namespace Essentials
 
 		public override Version Version
 		{
-			get { return new Version("1.3.8"); }
+			get { return new Version("1.3.8.1"); }
 		}
 
 		public override void Initialize()
@@ -1600,28 +1600,78 @@ namespace Essentials
 
 		public static void up(CommandArgs args)
 		{
-			int Y = GetUp(args.Player.TileX, args.Player.TileY);
+			int levels = 1;
+			bool limit = false;
+			if (args.Parameters.Count > 0)
+				int.TryParse(args.Parameters[0], out levels);
+
+			int Y = -1;
+			for (int i = 0; i < levels; i++)
+			{
+				if (i == levels) Y = GetUp(args.Player.TileX, args.Player.TileY);
+				else
+				{
+					int oY = Y;
+					Y = GetUp(args.Player.TileX, Y);
+					if (Y == -1)
+					{
+						Y = oY;
+						levels = i;
+						limit = true;
+						break;
+					}
+				}
+			}
+			
 			if (Y == -1)
 			{
 				args.Player.SendMessage("You cannot go up anymore!", Color.IndianRed);
 				return;
 			}
 			if (args.Player.Teleport(args.Player.TileX, Y))
-				args.Player.SendMessage("Teleported you up a level!", Color.MediumSeaGreen);
+				if (limit)
+					args.Player.SendMessage("Teleported you up {0} level(s)! You cant go up any further".SFormat(levels), Color.MediumSeaGreen);
+				else
+					args.Player.SendMessage("Teleported you up {0} level(s)!".SFormat(levels), Color.MediumSeaGreen);
 			else
 				args.Player.SendMessage("Teleport Failed!", Color.IndianRed);
 		}
 
 		public static void down(CommandArgs args)
 		{
-			int Y = GetDown(args.Player.TileX, args.Player.TileY);
+			bool limit = false;
+			int levels = 1;
+			if (args.Parameters.Count > 0)
+				int.TryParse(args.Parameters[0], out levels);
+
+			int Y = -1;
+			for (int i = 0; i < levels; i--)
+			{
+				if (i == levels) Y = GetDown(args.Player.TileX, args.Player.TileY);
+				else
+				{
+					int oY = Y;
+					Y = GetDown(args.Player.TileX, Y);
+					if (Y == -1)
+					{
+						Y = oY;
+						levels = i;
+						limit = true;
+						break;
+					}
+				}
+			}
+
 			if (Y == -1)
 			{
 				args.Player.SendMessage("You cannot go down anymore!", Color.IndianRed);
 				return;
 			}
 			if (args.Player.Teleport(args.Player.TileX, Y))
-				args.Player.SendMessage("Teleported you down a level!", Color.MediumSeaGreen);
+				if (limit)
+					args.Player.SendMessage("Teleported you down {0} level(s)! You cant go down any further".SFormat(levels), Color.MediumSeaGreen);
+				else
+					args.Player.SendMessage("Teleported you down {0} level(s)!".SFormat(levels), Color.MediumSeaGreen);
 			else
 				args.Player.SendMessage("Teleport Failed!", Color.IndianRed);
 		}
