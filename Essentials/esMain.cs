@@ -1608,7 +1608,7 @@ namespace Essentials
 			int Y = -1;
 			for (int i = 0; i < levels; i++)
 			{
-				if (i == levels) Y = GetUp(args.Player.TileX, args.Player.TileY);
+				if (i == 0) Y = GetUp(args.Player.TileX, args.Player.TileY);
 				else
 				{
 					int oY = Y;
@@ -1630,7 +1630,7 @@ namespace Essentials
 			}
 			if (args.Player.Teleport(args.Player.TileX, Y))
 				if (limit)
-					args.Player.SendMessage("Teleported you up {0} level(s)! You cant go up any further".SFormat(levels), Color.MediumSeaGreen);
+					args.Player.SendMessage("Teleported you up {0} level(s)! You cant go up any further!".SFormat(levels), Color.MediumSeaGreen);
 				else
 					args.Player.SendMessage("Teleported you up {0} level(s)!".SFormat(levels), Color.MediumSeaGreen);
 			else
@@ -1645,9 +1645,9 @@ namespace Essentials
 				int.TryParse(args.Parameters[0], out levels);
 
 			int Y = -1;
-			for (int i = 0; i < levels; i--)
+			for (int i = 0; i < levels; i++)
 			{
-				if (i == levels) Y = GetDown(args.Player.TileX, args.Player.TileY);
+				if (i == 0) Y = GetDown(args.Player.TileX, args.Player.TileY);
 				else
 				{
 					int oY = Y;
@@ -1669,7 +1669,7 @@ namespace Essentials
 			}
 			if (args.Player.Teleport(args.Player.TileX, Y))
 				if (limit)
-					args.Player.SendMessage("Teleported you down {0} level(s)! You cant go down any further".SFormat(levels), Color.MediumSeaGreen);
+					args.Player.SendMessage("Teleported you down {0} level(s)! You cant go down any further!".SFormat(levels), Color.MediumSeaGreen);
 				else
 					args.Player.SendMessage("Teleported you down {0} level(s)!".SFormat(levels), Color.MediumSeaGreen);
 			else
