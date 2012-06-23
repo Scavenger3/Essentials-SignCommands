@@ -16,7 +16,7 @@ namespace SignCommands
 	public class SignCommands : TerrariaPlugin
 	{
 		public static scConfig getConfig { get; set; }
-		internal static string TempConfigPath { get { return Path.Combine(TShock.SavePath, "PluginConfigs/SignCommandConfig.json"); } }
+		internal static string TempConfigPath { get { return Path.Combine(TShock.SavePath, "PluginConfigs/SignCommandsConfig.json"); } }
 
 		public static List<scPlayer> scPlayers = new List<scPlayer>();
 		public static Dictionary<string, List<int>> svCool = new Dictionary<string, List<int>>();
@@ -46,7 +46,7 @@ namespace SignCommands
 
 		public override Version Version
 		{
-			get { return new Version("1.3.8"); }
+			get { return new Version("1.3.8.2"); }
 		}
 
 		public override void Initialize()
@@ -309,6 +309,7 @@ namespace SignCommands
 
 							var id = Terraria.Sign.ReadSign(x, y);
 							var tplayer = TShock.Players[e.Msg.whoAmI];
+							
 
 							if (id != -1 && Main.sign[id].text.ToLower().StartsWith(getConfig.DefineSignCommands.ToLower()))
 							{
@@ -338,53 +339,6 @@ namespace SignCommands
 							}
 						}
 						break;
-					#endregion
-
-					#region Kill tile - is it needed?
-					/*case PacketTypes.TileKill:
-                    using (var data = new MemoryStream(e.Msg.readBuffer, e.Index, e.Length))
-                    {
-                        var reader = new BinaryReader(data);
-                        if (e.MsgID == PacketTypes.Tile)
-                        {
-                            var type = reader.ReadByte();
-                            if (!(type == 0 || type == 4))
-                                return;
-                        }
-                        var x = reader.ReadInt32();
-                        var y = reader.ReadInt32();
-                        reader.Close();
-
-                        var id = Terraria.Sign.ReadSign(x, y);
-                        var tplayer = TShock.Players[e.Msg.whoAmI];
-                        scPlayer killplay = GetscPlayerByName(tplayer.Name);
-                        if (id != -1 && Main.sign[id].text.ToLower().StartsWith(getConfig.DefineSignCommands.ToLower()))
-                        {
-                            if (!tplayer.Group.HasPermission("destroysigncommand"))
-                            {
-                                tplayer.SendTileSquare(x, y);
-                                e.Handled = true;
-
-                                dosigncmd(id, tplayer);
-                            }
-                            else if (tplayer.Group.HasPermission("destroysigncommand"))
-                            {
-                                if (!killplay.destsign)
-                                {
-                                    if (killplay.tolddest <= 0)
-                                    {
-                                        tplayer.SendMessage("To destroy this sign, Type /destsign", Color.IndianRed);
-                                        killplay.tolddest = 10;
-                                    }
-                                    tplayer.SendTileSquare(x, y);
-                                    e.Handled = true;
-
-                                    dosigncmd(id, tplayer);
-                                }
-                            }
-                        }
-                    }
-                    break;*/
 					#endregion
 
 					#region Edit Sign

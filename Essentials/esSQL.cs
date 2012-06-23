@@ -77,8 +77,10 @@ namespace Essentials
 				{
 					var UID = reader.Get<int>("UserID");
 					if (UID == UserID)
+					{
 						reader.Connection.Close();
 						return true;
+					}
 				}
 				reader.Connection.Close();
 			}
