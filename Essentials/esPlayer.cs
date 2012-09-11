@@ -11,25 +11,27 @@ namespace Essentials
 	{
 		public int Index { get; set; }
 		public TSPlayer TSPlayer { get { return TShock.Players[Index]; } }
-		public string plrName { get { return TShock.Players[Index].Name; } }
-		public Group grpData { get { return TShock.Players[Index].Group; } }
-		public int lastXtp = 0;
-		public int lastYtp = 0;
-		public int lastXondeath = 0;
-		public int lastYondeath = 0;
+		public int lastXtp = -1;
+		public int lastYtp = -1;
+		public int lastXondeath = -1;
+		public int lastYondeath = -1;
 		public string lastaction = "none";
 		public bool ondeath = false;
-		public string lastsearch = "";
+		public string lastsearch = string.Empty;
 		public string lastseachtype = "none";
-		public string redpass = "";
-		public string greenpass = "";
-		public string bluepass = "";
-		public string yellowpass = "";
-		public string lastcmd = "";
-		public bool disabled = false;
-		public int disX = 0;
-		public int disY = 0;
-		public DateTime lastdis = DateTime.UtcNow;
+		public string RedPassword = string.Empty;
+		public string GreenPassword = string.Empty;
+		public string BluePassword = string.Empty;
+		public string YellowPassword = string.Empty;
+		public string LastCMD = string.Empty;
+		public bool Disabled = false;
+		public int DisabledX = -1;
+		public int DisabledY = -1;
+		public DateTime LastDisabledCheck = DateTime.UtcNow;
+		public bool SocialSpy = false;
+		public bool HasNickName = false;
+		public string Nickname = string.Empty;
+		public string OriginalName = string.Empty;
 
 		public esPlayer(int index)
 		{
@@ -38,7 +40,7 @@ namespace Essentials
 
 		public void SendMessage(string message, Color color)
 		{
-			NetMessage.SendData((int)PacketTypes.ChatText, Index, -1, message, 255, color.R, color.G, color.B);
+			TShock.Players[Index].SendMessage(message, color);
 		}
 
 		public void Kick(string reason)

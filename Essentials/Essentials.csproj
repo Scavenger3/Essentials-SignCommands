@@ -30,6 +30,7 @@
     <Compile Include="esMain.cs" />
     <Compile Include="esPlayer.cs" />
     <Compile Include="esSQL.cs" />
+    <Compile Include="esUtils.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

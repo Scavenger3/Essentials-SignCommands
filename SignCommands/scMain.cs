@@ -46,7 +46,7 @@ namespace SignCommands
 
 		public override Version Version
 		{
-			get { return new Version("1.3.8.2"); }
+			get { return new Version("1.3.8.3"); }
 		}
 
 		public override void Initialize()
@@ -82,8 +82,8 @@ namespace SignCommands
 		{
 			Cooldown = DateTime.UtcNow;
 
-			Commands.ChatCommands.Add(new Command("destroysigncommand", destsign, "destsign"));
-			Commands.ChatCommands.Add(new Command("reloadsigncommands", screload, "screload"));
+			Commands.ChatCommands.Add(new Command("essentials.sign.destroy", destsign, "destsign"));
+			Commands.ChatCommands.Add(new Command("essentials.sign.reload", screload, "screload"));
 
 			#region Check Config
 			if (!Directory.Exists(@"tshock/PluginConfigs/"))
@@ -191,7 +191,7 @@ namespace SignCommands
 						var play = scPlayers[i];
 						if (play != null && play.TSPlayer != null)
 						{
-							if (play.HasCooldown() && !play.TSPlayer.Group.HasPermission("nosccooldown"))
+							if (play.HasCooldown() && !play.TSPlayer.Group.HasPermission("essentials.sign.nocooldown"))
 							{
 								lock (svCool)
 									svCool.Add(play.plrName, play.Cooldowns());
@@ -317,7 +317,7 @@ namespace SignCommands
 
 								if (!hitplay.destsign)
 								{
-									if (tplayer.Group.HasPermission("destroysigncommand") && hitplay.tolddest <= 0)
+									if (tplayer.Group.HasPermission("essentials.sign.destroy") && hitplay.tolddest <= 0)
 									{
 										tplayer.SendMessage("To destroy this sign, Type /destsign", Color.IndianRed);
 										hitplay.tolddest = 10;
@@ -368,7 +368,7 @@ namespace SignCommands
 								string oldtext = Main.sign[id].text;
 								string dSignCmd = getConfig.DefineSignCommands;
 
-								if ((oldtext.StartsWith(dSignCmd) || newtext.StartsWith(dSignCmd)) && !tplayer.Group.HasPermission("createsigncommand"))
+								if ((oldtext.StartsWith(dSignCmd) || newtext.StartsWith(dSignCmd)) && !tplayer.Group.HasPermission("essentials.sign.create"))
 								{
 									tplayer.SendMessage("You do not have permission to create/edit sign commands!", Color.IndianRed);
 									e.Handled = true;
@@ -396,18 +396,18 @@ namespace SignCommands
 			if (tplayer == null || doplay == null || sign == null) return;
 
 			#region Check permissions
-			bool stime = tplayer.Group.HasPermission("usesigntime");
-			bool sheal = tplayer.Group.HasPermission("usesignheal");
-			bool smsg = tplayer.Group.HasPermission("usesignmessage");
-			bool sdmg = tplayer.Group.HasPermission("usesigndamage");
-			bool sboss = tplayer.Group.HasPermission("usesignspawnboss");
-			bool smob = tplayer.Group.HasPermission("usesignspawnmob");
-			bool swarp = tplayer.Group.HasPermission("usesignwarp");
-			bool sitem = tplayer.Group.HasPermission("usesignitem");
-			bool sbuff = tplayer.Group.HasPermission("usesignbuff");
-			bool skit = tplayer.Group.HasPermission("usesignkit");
-			bool scmd = tplayer.Group.HasPermission("usesigndocommand");
-			bool nocool = tplayer.Group.HasPermission("nosccooldown");
+			bool stime = tplayer.Group.HasPermission("essentials.sign.use.time");
+			bool sheal = tplayer.Group.HasPermission("essentials.sign.use.heal");
+			bool smsg = tplayer.Group.HasPermission("essentials.sign.use.message");
+			bool sdmg = tplayer.Group.HasPermission("essentials.sign.use.damage");
+			bool sboss = tplayer.Group.HasPermission("essentials.sign.use.spawnboss");
+			bool smob = tplayer.Group.HasPermission("essentials.sign.use.spawnmob");
+			bool swarp = tplayer.Group.HasPermission("essentials.sign.use.warp");
+			bool sitem = tplayer.Group.HasPermission("essentials.sign.use.item");
+			bool sbuff = tplayer.Group.HasPermission("essentials.sign.use.buff");
+			bool skit = tplayer.Group.HasPermission("essentials.sign.use.kit");
+			bool scmd = tplayer.Group.HasPermission("essentials.sign.use.command");
+			bool nocool = tplayer.Group.HasPermission("essentials.sign.nocooldown");
 			#endregion
 
 			#region Time
