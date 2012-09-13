@@ -456,6 +456,14 @@ namespace Essentials
 					args.Player.SendMessage(string.Format("X Position: {0} - Y Position: {1}", play.TileX, play.TileY), Color.MediumSeaGreen);
 					return;
 				}
+				else
+				{
+					if (players.Count < 1)
+						args.Player.SendMessage("No players matched!", Color.OrangeRed);
+					else
+						args.Player.SendMessage("More than one player matched!", Color.OrangeRed);
+					return;
+				}
 			}
 			args.Player.SendMessage(string.Format("X Position: {0} - Y Position: {1}", args.Player.TileX, args.Player.TileY), Color.MediumSeaGreen);
 		}
@@ -570,7 +578,7 @@ namespace Essentials
 
 			var player = TShock.Utils.FindPlayer(args.Parameters[0]);
 			if (player.Count == 0)
-				args.Player.SendMessage("Invalid player!", Color.OrangeRed);
+				args.Player.SendMessage("No players matched!!", Color.OrangeRed);
 			else if (player.Count > 1)
 				args.Player.SendMessage("More than one player matched!", Color.OrangeRed);
 			else
@@ -1509,7 +1517,7 @@ namespace Essentials
 			var players = TShock.Utils.FindPlayer(args.Parameters[0]);
 			if (players.Count == 0)
 			{
-				args.Player.SendMessage("Invalid player!", Color.OrangeRed);
+				args.Player.SendMessage("No players matched!!", Color.OrangeRed);
 			}
 			else if (players.Count > 1)
 			{
@@ -1568,7 +1576,7 @@ namespace Essentials
 						return;
 					}
 				}
-				args.Player.SendMessage("Invalid player!", Color.OrangeRed);
+				args.Player.SendMessage("No players matched!", Color.OrangeRed);
 			}
 			else if (players.Count > 1)
 			{
@@ -1730,22 +1738,36 @@ namespace Essentials
 		#region ptime
 		private void CMDptime(CommandArgs args)
 		{
-			if (args.Parameters.Count < 1)
+			if (args.Parameters.Count < 1 || args.Parameters.Count > 2)
 			{
-				args.Player.SendMessage("Usage: /ptime <day/night/noon/midnight/reset> [player]", Color.OrangeRed);
+				if (args.Player.Group.HasPermission("essentials.playertime.setother"))
+					args.Player.SendMessage("Usage: /ptime <day/night/noon/midnight/reset> [player]", Color.OrangeRed);
+				else
+					args.Player.SendMessage("Usage: /ptime <day/night/noon/midnight/reset>", Color.OrangeRed);
 				return;
 			}
 
 			TSPlayer ply = args.Player;
-			if (args.Player.Group.HasPermission("essentials.ptime.setother") && args.Parameters.Count == 2)
+			if (args.Player.Group.HasPermission("essentials.playertime.setother") && args.Parameters.Count == 2)
 			{
 				var players = TShock.Utils.FindPlayer(args.Parameters[1]);
 				if (players.Count == 0)
-					args.Player.SendMessage("Invalid player!", Color.OrangeRed);
+				{
+					args.Player.SendMessage("No players matched!", Color.OrangeRed);
+					return;
+				}
 				else if (players.Count > 1)
+				{
 					args.Player.SendMessage("More than one player matched!", Color.OrangeRed);
+					return;
+				}
 
 				ply = players[0];
+			}
+			else
+			{
+				args.Player.SendMessage("Usage: /ptime <day/night/noon/midnight/reset>", Color.OrangeRed);
+				return;
 			}
 
 			bool same = args.Player.Equals(ply);
@@ -1827,7 +1849,7 @@ namespace Essentials
 			var players = TShock.Utils.FindPlayer(args.Parameters[0]);
 			if (players.Count == 0)
 			{
-				args.Player.SendMessage("Invalid player!", Color.OrangeRed);
+				args.Player.SendMessage("No players matched!", Color.OrangeRed);
 				return;
 			}
 			else if (players.Count > 1)
