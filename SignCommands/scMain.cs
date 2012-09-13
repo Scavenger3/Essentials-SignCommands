@@ -46,7 +46,7 @@ namespace SignCommands
 
 		public override Version Version
 		{
-			get { return new Version("1.3.8.3"); }
+			get { return new Version("1.3.8.3.1"); }
 		}
 
 		public override void Initialize()

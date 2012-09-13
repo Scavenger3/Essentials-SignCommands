@@ -39,7 +39,7 @@ namespace Essentials
 
 		public override Version Version
 		{
-			get { return new Version("1.3.8.3"); }
+			get { return new Version("1.3.8.3.1"); }
 		}
 
 		public override void Initialize()
@@ -113,6 +113,9 @@ namespace Essentials
 
 			TCheck = DateTime.UtcNow;
 
+			if (!Directory.Exists(@"tshock/Essentials/"))
+				Directory.CreateDirectory(@"tshock/Essentials/");
+
 			esSQL.SetupDB();
 
 
@@ -122,8 +125,6 @@ namespace Essentials
 					grp.AddPermission("essentials.back.tp");
 			}
 
-			if (!Directory.Exists(@"tshock/Essentials/"))
-				Directory.CreateDirectory(@"tshock/Essentials/");
 			if (File.Exists(@"tshock/PluginConfigs/EssentialsConfig.json") && !File.Exists(@"tshock/Essentials/EssentialsConfig.json"))
 				File.Move(@"tshock/PluginConfigs/EssentialsConfig.json", @"tshock/Essentials/EssentialsConfig.json");
 			esConfig.SetupConfig();
@@ -1736,7 +1737,7 @@ namespace Essentials
 			}
 
 			TSPlayer ply = args.Player;
-			if (args.Parameters.Count == 2)
+			if (args.Player.Group.HasPermission("essentials.ptime.setother") && args.Parameters.Count == 2)
 			{
 				var players = TShock.Utils.FindPlayer(args.Parameters[1]);
 				if (players.Count == 0)
@@ -1746,6 +1747,8 @@ namespace Essentials
 
 				ply = players[0];
 			}
+
+			bool same = args.Player.Equals(ply);
 
 			bool oldIsDay = Main.dayTime;
 			double oldTime = Main.time;
@@ -1758,7 +1761,7 @@ namespace Essentials
 					Main.dayTime = oldIsDay;
 					Main.time = oldTime;
 					args.Player.SendMessage(string.Format("Set {0}'s time to day!", ply.Name), Color.MediumSeaGreen);
-					if (ply != args.Player)
+					if (!same)
 						ply.SendMessage(string.Format("{0} set your time to day!", args.Player.Name), Color.MediumSeaGreen);
 					break;
 				case "night":
@@ -1769,7 +1772,7 @@ namespace Essentials
 					Main.dayTime = oldIsDay;
 					Main.time = oldTime;
 					args.Player.SendMessage(string.Format("Set {0}'s time to night!", ply.Name), Color.MediumSeaGreen);
-					if (ply != args.Player)
+					if (!same)
 						ply.SendMessage(string.Format("{0} set your time to night!", args.Player.Name), Color.MediumSeaGreen);
 					break;
 				case "noon":
@@ -1779,7 +1782,7 @@ namespace Essentials
 					Main.dayTime = oldIsDay;
 					Main.time = oldTime;
 					args.Player.SendMessage(string.Format("Set {0}'s time to noon!", ply.Name), Color.MediumSeaGreen);
-					if (ply != args.Player)
+					if (!same)
 						ply.SendMessage(string.Format("{0} set your time to noon!", args.Player.Name), Color.MediumSeaGreen);
 					break;
 				case "midnight":
@@ -1789,11 +1792,14 @@ namespace Essentials
 					Main.dayTime = oldIsDay;
 					Main.time = oldTime;
 					args.Player.SendMessage(string.Format("Set {0}'s time to midnight!", ply.Name), Color.MediumSeaGreen);
-					if (ply != args.Player)
+					if (!same)
 						ply.SendMessage(string.Format("{0} set your time to midnight!", args.Player.Name), Color.MediumSeaGreen);
 					break;
 				case "reset":
 					ply.SendData(PacketTypes.TimeSet, "", 0, Main.sunModY, Main.moonModY);
+					args.Player.SendMessage(string.Format("{0}'s time is the same as the servers!", ply.Name), Color.MediumSeaGreen);
+					if (!same)
+						ply.SendMessage(string.Format("{0} reset your time to the same as the servers!", args.Player.Name), Color.MediumSeaGreen);
 					break;
 				default:
 					args.Player.SendMessage("Usage: /ptime <day/night/dusk/noon/midnight/reset> [player]", Color.OrangeRed);
