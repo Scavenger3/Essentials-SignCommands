@@ -11,6 +11,7 @@ namespace SignCommands
 		public int ID { get; set; }
 		public int MyCooldown { get; set; }
 		public string CooldownGroup { get; set; }
+		public bool HasGroup { get; set; }
 		public bool GlobalCooldown { get; set; }
 		public List<scCommand> Commands { get; set; }
 
@@ -18,6 +19,10 @@ namespace SignCommands
 		{
 			this.ID = id;
 			this.Commands = new List<scCommand>();
+			this.MyCooldown = 0;
+			this.CooldownGroup = string.Empty;
+			this.HasGroup = false;
+			this.GlobalCooldown = false;
 
 			ParseCommands(text);
 		}
@@ -56,7 +61,7 @@ namespace SignCommands
 			}
 
 			/* Parse Cooldown */
-			List<scCommand> Commands = this.Commands;
+			List<scCommand> Commands = this.Commands.ToList();
 			foreach (scCommand cmd in Commands)
 			{
 				if (cmd.command == "cooldown")
@@ -67,14 +72,17 @@ namespace SignCommands
 					if (!int.TryParse(cmd.args[0], out seconds))
 					{
 						group = cmd.args[0].ToLower();
-						if (SignCommands.getConfig.CooldownGroups.ContainsKey(group))
+						if (SignCommands.getConfig.CooldownGroups.ContainsKey(group.ToLower()))
+						{
+							this.HasGroup = true;
 							seconds = SignCommands.getConfig.CooldownGroups[group];
+						}
 						else
 							group = string.Empty;
 					}
 					this.MyCooldown = seconds;
-					this.CooldownGroup = group;
-					this.GlobalCooldown = group.StartsWith("global");
+					this.CooldownGroup = group.ToLower();
+					this.GlobalCooldown = group.ToLower().StartsWith("global");
 					this.Commands.Remove(cmd);
 					break;
 				}
@@ -90,7 +98,7 @@ namespace SignCommands
 		public void ExecuteCommands(scPlayer sPly)
 		{
 			#region Check Cooldowns
-			if (!sPly.TSPlayer.Group.HasPermission("essentials.signs.nocooldown"))
+			if (!sPly.TSPlayer.Group.HasPermission("essentials.signs.nocooldown") && this.MyCooldown > 0)
 			{
 				if (this.GlobalCooldown)
 				{
@@ -118,22 +126,46 @@ namespace SignCommands
 				{
 					lock (sPly.Cooldowns)
 					{
-						if (!sPly.Cooldowns.ContainsKey(this.ID))
-							sPly.Cooldowns.Add(this.ID, this.MyCooldown);
-						else
+						if (this.HasGroup)
 						{
-							if (sPly.Cooldowns[this.ID] > 0)
-							{
-								if (sPly.AlertCooldownCooldown == 0)
-								{
-									sPly.TSPlayer.SendMessage(string.Format("You must wait another {0} seconds before using this sign!", sPly.Cooldowns[this.ID]), Color.OrangeRed);
-									sPly.AlertCooldownCooldown = 3;
-								}
-								return;
-							}
+							if (!sPly.Cooldowns.ContainsKey(this.CooldownGroup))
+								sPly.Cooldowns.Add(this.CooldownGroup, this.MyCooldown);
 							else
 							{
-								sPly.Cooldowns[this.ID] = this.MyCooldown;
+								if (sPly.Cooldowns[this.CooldownGroup] > 0)
+								{
+									if (sPly.AlertCooldownCooldown == 0)
+									{
+										sPly.TSPlayer.SendMessage(string.Format("You must wait another {0} seconds before using this sign!", sPly.Cooldowns[this.CooldownGroup]), Color.OrangeRed);
+										sPly.AlertCooldownCooldown = 3;
+									}
+									return;
+								}
+								else
+								{
+									sPly.Cooldowns[this.CooldownGroup] = this.MyCooldown;
+								}
+							}
+						}
+						else
+						{
+							if (!sPly.Cooldowns.ContainsKey(this.ID.ToString()))
+								sPly.Cooldowns.Add(this.ID.ToString(), this.MyCooldown);
+							else
+							{
+								if (sPly.Cooldowns[this.ID.ToString()] > 0)
+								{
+									if (sPly.AlertCooldownCooldown == 0)
+									{
+										sPly.TSPlayer.SendMessage(string.Format("You must wait another {0} seconds before using this sign!", sPly.Cooldowns[this.ID.ToString()]), Color.OrangeRed);
+										sPly.AlertCooldownCooldown = 3;
+									}
+									return;
+								}
+								else
+								{
+									sPly.Cooldowns[this.ID.ToString()] = this.MyCooldown;
+								}
 							}
 						}
 					}

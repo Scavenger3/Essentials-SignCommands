@@ -23,7 +23,7 @@ namespace SignCommands
 
 		public static List<scPlayer> scPlayers = new List<scPlayer>();
 		public static Dictionary<string, int> GlobalCooldowns = new Dictionary<string, int>();
-		public static Dictionary<string, Dictionary<int, int>> LoggedOutCooldowns = new Dictionary<string, Dictionary<int, int>>();
+		public static Dictionary<string, Dictionary<string, int>> LoggedOutCooldowns = new Dictionary<string, Dictionary<string, int>>();
 
 		/*public bool UsingInfiniteSigns = false;*/
 		public DateTime lastCooldown = DateTime.UtcNow;
@@ -45,7 +45,7 @@ namespace SignCommands
 
 		public override Version Version
 		{
-			get { return new Version("1.3.9"); }
+			get { return new Version("1.3.9.1"); }
 		}
 
 		public override void Initialize()
@@ -72,15 +72,36 @@ namespace SignCommands
 				{
 					try
 					{
-						InfiniteSigns.InfiniteSigns.SignEdit -= OnSignEdit;
-						InfiniteSigns.InfiniteSigns.SignHit -= OnSignHit;
-						InfiniteSigns.InfiniteSigns.SignKill -= OnSignKill;
+						UnloadDelegates();
 					}
 					catch { }
 				}*/
 			}
 			base.Dispose(disposing);
 		}
+
+		#region Load Unload Delegates
+		/*private void LoadDelegates()
+		{
+			try
+			{
+				InfiniteSigns.InfiniteSigns.SignEdit += OnSignEdit;
+				InfiniteSigns.InfiniteSigns.SignHit += OnSignHit;
+				InfiniteSigns.InfiniteSigns.SignKill += OnSignKill;
+			}
+			catch { }
+		}
+		private void UnloadDelegates()
+		{
+			try
+			{
+				InfiniteSigns.InfiniteSigns.SignEdit -= OnSignEdit;
+				InfiniteSigns.InfiniteSigns.SignHit -= OnSignHit;
+				InfiniteSigns.InfiniteSigns.SignKill -= OnSignKill;
+			}
+			catch { }
+		}*/
+		#endregion
 
 		public SignCommands(Main game) : base(game)
 		{
@@ -110,9 +131,7 @@ namespace SignCommands
 				/* Load Delegates /
 				try
 				{
-					InfiniteSigns.InfiniteSigns.SignEdit += OnSignEdit;
-					InfiniteSigns.InfiniteSigns.SignHit += OnSignHit;
-					InfiniteSigns.InfiniteSigns.SignKill += OnSignKill;
+					LoadDelegates();
 				}
 				catch { }
 			}*/
@@ -204,15 +223,15 @@ namespace SignCommands
 						if (sPly.AlertDestroyCooldown > 0)
 							sPly.AlertDestroyCooldown--;
 
-						List<int> CooldownIds = new List<int>(sPly.Cooldowns.Keys);
+						List<string> CooldownIds = new List<string>(sPly.Cooldowns.Keys);
 						lock (sPly.Cooldowns)
 						{
-							foreach (int id in CooldownIds)
+							foreach (string id in CooldownIds)
 							{
 								if (sPly.Cooldowns[id] > 0)
 									sPly.Cooldowns[id]--;
 								else if (sPly.Cooldowns[id] == 0)
-									sPly.Cooldowns.Remove(sPly.Cooldowns[id]);
+									sPly.Cooldowns.Remove(id);
 							}
 						}
 					}
@@ -288,8 +307,8 @@ namespace SignCommands
 				foreach (scPlayer ply in scPlayers)
 				{
 					lock (ply.Cooldowns)
-						if (ply.Cooldowns.ContainsKey(id))
-							ply.Cooldowns.Remove(id);
+						if (ply.Cooldowns.ContainsKey(id.ToString()))
+							ply.Cooldowns.Remove(id.ToString());
 				}
 
 				lock (SignCommands.LoggedOutCooldowns)
@@ -297,8 +316,8 @@ namespace SignCommands
 					List<string> Users = new List<string>(SignCommands.LoggedOutCooldowns.Keys);
 					foreach (string user in Users)
 					{
-						if (SignCommands.LoggedOutCooldowns[user].ContainsKey(id))
-							SignCommands.LoggedOutCooldowns[user].Remove(id);
+						if (SignCommands.LoggedOutCooldowns[user].ContainsKey(id.ToString()))
+							SignCommands.LoggedOutCooldowns[user].Remove(id.ToString());
 					}
 				}
 				return false;

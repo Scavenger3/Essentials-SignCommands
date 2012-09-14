@@ -39,7 +39,7 @@ namespace Essentials
 
 		public override Version Version
 		{
-			get { return new Version("1.3.9"); }
+			get { return new Version("1.3.9.1"); }
 		}
 
 		public override void Initialize()

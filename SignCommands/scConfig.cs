@@ -73,6 +73,13 @@ namespace SignCommands
 				{
 					SignCommands.getConfig = scConfig.Read(SignCommands.ConfigPath);
 				}
+				List<string> groups = new List<string>(SignCommands.getConfig.CooldownGroups.Keys);
+				foreach (string g in groups)
+				{
+					int useless = -1;
+					if (int.TryParse(g, out useless))
+						SignCommands.getConfig.CooldownGroups.Remove(g);
+				}
 				SignCommands.getConfig.Write(SignCommands.ConfigPath);
 			}
 			catch (Exception ex)
@@ -90,9 +97,15 @@ namespace SignCommands
 				{
 					SignCommands.getConfig = scConfig.Read(SignCommands.ConfigPath);
 				}
+				List<string> groups = new List<string>(SignCommands.getConfig.CooldownGroups.Keys);
+				foreach (string g in groups)
+				{
+					int useless = -1;
+					if (int.TryParse(g, out useless))
+						SignCommands.getConfig.CooldownGroups.Remove(g);
+				}
 				SignCommands.getConfig.Write(SignCommands.ConfigPath);
 				args.Player.SendMessage("Sign Command Config Reloaded Successfully.", Color.MediumSeaGreen);
-				return;
 			}
 			catch (Exception ex)
 			{

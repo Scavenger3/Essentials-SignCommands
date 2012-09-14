@@ -10,7 +10,7 @@ namespace SignCommands
 	{
 		public int Index { get; set; }
 		public TSPlayer TSPlayer { get { return TShock.Players[Index]; } }
-		public Dictionary<int, int> Cooldowns { get; set; }
+		public Dictionary<string, int> Cooldowns { get; set; }
 		public bool DestroyMode { get; set; }
 		public int AlertCooldownCooldown { get; set; }
 		public int AlertPermissionCooldown { get; set; }
@@ -19,7 +19,7 @@ namespace SignCommands
 		public scPlayer(int index)
 		{
 			this.Index = index;
-			this.Cooldowns = new Dictionary<int, int>();
+			this.Cooldowns = new Dictionary<string, int>();
 			this.DestroyMode = false;
 			this.AlertDestroyCooldown = 0;
 			this.AlertPermissionCooldown = 0;
