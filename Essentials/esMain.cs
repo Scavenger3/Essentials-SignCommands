@@ -20,7 +20,7 @@ namespace Essentials
 		public DateTime TCheck = DateTime.UtcNow;
 
 		public static esConfig getConfig { get; set; }
-		internal static string ConfigPath { get { return Path.Combine(TShock.SavePath, "Essentials/EssentialsConfig.json"); } }
+		internal static string ConfigPath { get { return Path.Combine(TShock.SavePath, "Essentials", "EssentialsConfig.json"); } }
 
 		public override string Name
 		{
@@ -39,7 +39,7 @@ namespace Essentials
 
 		public override Version Version
 		{
-			get { return new Version("1.3.8.3.1"); }
+			get { return new Version("1.3.9"); }
 		}
 
 		public override void Initialize()
@@ -72,7 +72,7 @@ namespace Essentials
 			getConfig = new esConfig();
 		}
 
-		#region Hooks
+
 		public void OnInitialize()
 		{
 			#region Add Commands
@@ -127,9 +127,10 @@ namespace Essentials
 
 			if (File.Exists(@"tshock/PluginConfigs/EssentialsConfig.json") && !File.Exists(@"tshock/Essentials/EssentialsConfig.json"))
 				File.Move(@"tshock/PluginConfigs/EssentialsConfig.json", @"tshock/Essentials/EssentialsConfig.json");
-			esConfig.SetupConfig();
+			esConfig.LoadConfig();
 		}
 
+		#region esPlayer
 		public void OnGreetPlayer(int who, HandledEventArgs e)
 		{
 			try
@@ -183,7 +184,9 @@ namespace Essentials
 			}
 			catch { }
 		}
+		#endregion
 
+		#region Chat
 		public void OnChat(messageBuffer msg, int who, string text, HandledEventArgs e)
 		{
 			if (e.Handled)
@@ -281,14 +284,15 @@ namespace Essentials
 								tPly.Group.R, tPly.Group.G, tPly.Group.B);
 			}
 		}
-
+		#endregion
+		
+		#region Teams
 		public void GetData(GetDataEventArgs e)
 		{
 			try
 			{
 				switch (e.MsgID)
 				{
-					#region Teams
 					case PacketTypes.PlayerTeam:
 						using (var data = new MemoryStream(e.Msg.readBuffer, e.Index, e.Length))
 						{
@@ -350,7 +354,6 @@ namespace Essentials
 							}
 						}
 						break;
-					#endregion
 				}
 			}
 			catch (Exception ex)
@@ -359,7 +362,6 @@ namespace Essentials
 				Log.Error(ex.ToString());
 			}
 		}
-
 		#endregion
 
 		#region Timer
@@ -1764,7 +1766,7 @@ namespace Essentials
 
 				ply = players[0];
 			}
-			else
+			else if (!args.Player.Group.HasPermission("essentials.playertime.setother") && args.Parameters.Count == 2)
 			{
 				args.Player.SendMessage("Usage: /ptime <day/night/noon/midnight/reset>", Color.OrangeRed);
 				return;

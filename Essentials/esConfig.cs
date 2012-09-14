@@ -57,7 +57,7 @@ namespace Essentials
 
 		public static Action<esConfig> ConfigRead;
 
-		public static void SetupConfig()
+		public static void LoadConfig()
 		{
 			try
 			{

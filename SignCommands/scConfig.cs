@@ -4,28 +4,26 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using Newtonsoft.Json;
+using TShockAPI;
 
-namespace config
+namespace SignCommands
 {
 	public class scConfig
 	{
 		public string DefineSignCommands = "[Sign Command]";
 		public string CommandsStartWith = ">";
-		public bool GlobalTimeCooldown = false;
-		public int TimeCooldown = 20;
-		public int HealCooldown = 20;
-		public int ShowMsgCooldown = 20;
-		public int DamageCooldown = 20;
-		public bool GlobalBossCooldown = false;
-		public int BossCooldown = 20;
-		public int ItemCooldown = 60;
-		public int BuffCooldown = 20;
-		public bool GlobalSpawnMobCooldown = false;
-		public int SpawnMobCooldown = 20;
-		public bool GlobalKitCooldown = false;
-		public int KitCooldown = 20;
-		public bool GlobalDoCommandCooldown = false;
-		public int DoCommandCooldown = 20;
+		public Dictionary<string, int> CooldownGroups = new Dictionary<string, int> {
+			{ "global-time", 300 },
+			{ "heal", 60 },
+			{ "message", 10 },
+			{ "damage", 10 },
+			{ "boss", 300 },
+			{ "item", 300 },
+			{ "buff", 300 },
+			{ "spawnmob", 300 },
+			{ "kit", 300 },
+			{ "command", 300}
+		};
 
 		public static scConfig Read(string path)
 		{
@@ -66,5 +64,42 @@ namespace config
 		}
 
 		public static Action<scConfig> ConfigRead;
+
+		public static void LoadConfig()
+		{
+			try
+			{
+				if (File.Exists(SignCommands.ConfigPath))
+				{
+					SignCommands.getConfig = scConfig.Read(SignCommands.ConfigPath);
+				}
+				SignCommands.getConfig.Write(SignCommands.ConfigPath);
+			}
+			catch (Exception ex)
+			{
+				Log.ConsoleError("Config Exception in Sign Commands config file");
+				Log.Error(ex.ToString());
+			}
+		}
+
+		public static void ReloadConfig(CommandArgs args)
+		{
+			try
+			{
+				if (File.Exists(SignCommands.ConfigPath))
+				{
+					SignCommands.getConfig = scConfig.Read(SignCommands.ConfigPath);
+				}
+				SignCommands.getConfig.Write(SignCommands.ConfigPath);
+				args.Player.SendMessage("Sign Command Config Reloaded Successfully.", Color.MediumSeaGreen);
+				return;
+			}
+			catch (Exception ex)
+			{
+				args.Player.SendMessage("Error: Could not reload Sign Command config, Check log for more details.", Color.OrangeRed);
+				Log.Error("Config Exception in Sign Commands config file");
+				Log.Error(ex.ToString());
+			}
+		}
 	}
 }

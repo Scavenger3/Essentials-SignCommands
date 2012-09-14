@@ -14,20 +14,10 @@ namespace Essentials
 		{
 			esPlayer player = null;
 			foreach (esPlayer ply in Essentials.esPlayers)
-				if (ply.Index == id && ply.TSPlayer == TShock.Players[id])
+				if (ply.Index == id)
 					return ply;
 			return player;
 		}
-
-		/*private esPlayer GetesPlayerByName(string name)
-		{
-			var player = TShock.Utils.FindPlayer(name)[0];
-			if (player != null)
-				foreach (esPlayer ply in esPlayers)
-					if (ply.TSPlayer == player)
-						return ply;
-			return null;
-		}*/
 
 		/* Search IDs */
 		public static List<Item> GetItemByName(string name)

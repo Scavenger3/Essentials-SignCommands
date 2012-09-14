@@ -20,16 +20,21 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
     <OutputPath>..\Build\</OutputPath>
+    <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
     <OutputPath>..\Build\</OutputPath>
     <Optimize>true</Optimize>
+    <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="scCommand.cs" />
     <Compile Include="scConfig.cs" />
     <Compile Include="scMain.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="scPlayer.cs" />
+    <Compile Include="scSign.cs" />
+    <Compile Include="scUtils.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Community.CsharpSqlite, Version=3.7.5.0, Culture=neutral, processorArchitecture=x86">
@@ -43,6 +48,9 @@
     <Reference Include="HttpServer, Version=2.0.0.0, Culture=neutral, PublicKeyToken=5684c2c737cd4271, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Refs\HttpServer.dll</HintPath>
+    </Reference>
+    <Reference Include="InfiniteSigns">
+      <HintPath>..\Refs\InfiniteSigns.dll</HintPath>
     </Reference>
     <Reference Include="Kits">
       <HintPath>..\Refs\Kits.dll</HintPath>
