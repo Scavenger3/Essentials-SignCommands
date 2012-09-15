@@ -1544,7 +1544,7 @@ namespace Essentials
 		{
 			if (args.Parameters.Count < 1)
 			{
-				args.Player.SendMessage("Invalid syntax! Proper syntax: /disable <player> <reason>", Color.OrangeRed);
+				args.Player.SendMessage("Invalid syntax! Proper syntax: /disable <player/-list> <reason>", Color.OrangeRed);
 				return;
 			}
 
