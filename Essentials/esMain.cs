@@ -39,7 +39,7 @@ namespace Essentials
 
 		public override Version Version
 		{
-			get { return new Version("1.3.9.2"); }
+			get { return new Version("1.3.9.3"); }
 		}
 
 		public override void Initialize()
@@ -127,6 +127,10 @@ namespace Essentials
 
 			if (File.Exists(@"tshock/PluginConfigs/EssentialsConfig.json") && !File.Exists(@"tshock/Essentials/EssentialsConfig.json"))
 				File.Move(@"tshock/PluginConfigs/EssentialsConfig.json", @"tshock/Essentials/EssentialsConfig.json");
+
+			if (!File.Exists(ConfigPath))
+				esConfig.CreateExample();
+
 			esConfig.LoadConfig();
 		}
 
@@ -1126,6 +1130,20 @@ namespace Essentials
 			{
 				args.Player.SendMessage("You must be logged in to do that!", Color.OrangeRed);
 				return;
+			}
+			/* Make sure the player isnt in a SetHome Disabled region */
+			if (!args.Player.Group.HasPermission("essentials.home.bypassdisabled"))
+			{
+				foreach (string r in getConfig.DisableSetHomeInRegions)
+				{
+					var region = TShock.Regions.GetRegionByName(r);
+					if (region == null) continue;
+					if (region.InArea(args.Player.TileX, args.Player.TileY))
+					{
+						args.Player.SendMessage("You cannot set your home in this region!", Color.OrangeRed);
+						return;
+					}
+				}
 			}
 
 			/* get a list of the player's homes */

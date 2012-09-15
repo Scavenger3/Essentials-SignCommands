@@ -173,6 +173,15 @@ namespace SignCommands
 		{
 			if (args.Count < 1) return;
 			string boss = args[0].ToLower();
+
+			int amount = 1;
+			if (args.Count > 1)
+				int.TryParse(args[1], out amount);
+
+			amount = Math.Min(amount, Main.maxNPCs);
+			if (amount < 1)
+				amount = 1;
+
 			NPC npc = null;
 			switch (boss)
 			{
@@ -196,11 +205,14 @@ namespace SignCommands
 					break;
 				case "wof":
 					{
-						if (Main.wof >= 0 || (sPly.TSPlayer.Y / 16f < (float)(Main.maxTilesY - 205)))
+						for (int i = 0; i < amount; i++)
 						{
-							sPly.TSPlayer.SendMessage("Can't spawn Wall of Flesh!", Color.Red);
+							if (Main.wof >= 0 || (sPly.TSPlayer.Y / 16f < (float)(Main.maxTilesY - 205)))
+							{
+								sPly.TSPlayer.SendMessage("Can't spawn Wall of Flesh!", Color.Red);
+							}
+							NPC.SpawnWOF(new Vector2(sPly.TSPlayer.X, sPly.TSPlayer.Y));
 						}
-						NPC.SpawnWOF(new Vector2(sPly.TSPlayer.X, sPly.TSPlayer.Y));
 					}
 					break;
 				case "twins":
@@ -208,8 +220,11 @@ namespace SignCommands
 						NPC retinazer = TShock.Utils.GetNPCById(125);
 						NPC spaz = TShock.Utils.GetNPCById(126);
 						TSPlayer.Server.SetTime(false, 0.0);
-						TSPlayer.Server.SpawnNPC(retinazer.type, retinazer.name, 1, sPly.TSPlayer.TileX, sPly.TSPlayer.TileY);
-						TSPlayer.Server.SpawnNPC(spaz.type, spaz.name, 1, sPly.TSPlayer.TileX, sPly.TSPlayer.TileY);
+						for (int i = 0; i < amount; i++)
+						{
+							TSPlayer.Server.SpawnNPC(retinazer.type, retinazer.name, 1, sPly.TSPlayer.TileX, sPly.TSPlayer.TileY);
+							TSPlayer.Server.SpawnNPC(spaz.type, spaz.name, 1, sPly.TSPlayer.TileX, sPly.TSPlayer.TileY);
+						}
 					}
 					break;
 				case "destroyer":
@@ -227,7 +242,8 @@ namespace SignCommands
 			}
 
 			if (npc != null)
-				TSPlayer.Server.SpawnNPC(npc.type, npc.name, 1, sPly.TSPlayer.TileX, sPly.TSPlayer.TileY);
+				for (int i = 0; i < amount; i++)
+					TSPlayer.Server.SpawnNPC(npc.type, npc.name, 1, sPly.TSPlayer.TileX, sPly.TSPlayer.TileY);
 		}
 		#endregion
 

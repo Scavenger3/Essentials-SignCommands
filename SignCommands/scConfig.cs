@@ -12,18 +12,7 @@ namespace SignCommands
 	{
 		public string DefineSignCommands = "[Sign Command]";
 		public string CommandsStartWith = ">";
-		public Dictionary<string, int> CooldownGroups = new Dictionary<string, int> {
-			{ "global-time", 300 },
-			{ "heal", 60 },
-			{ "message", 10 },
-			{ "damage", 10 },
-			{ "boss", 300 },
-			{ "item", 300 },
-			{ "buff", 300 },
-			{ "spawnmob", 300 },
-			{ "kit", 300 },
-			{ "command", 300}
-		};
+		public Dictionary<string, int> CooldownGroups = new Dictionary<string, int>();
 
 		public static scConfig Read(string path)
 		{
@@ -113,6 +102,27 @@ namespace SignCommands
 				Log.Error("Config Exception in Sign Commands config file");
 				Log.Error(ex.ToString());
 			}
+		}
+
+		public static void CreateExample()
+		{
+			File.WriteAllText(SignCommands.ConfigPath,
+				"{" + Environment.NewLine +
+				"  \"DefineSignCommands\": \"[Sign Command]\"," + Environment.NewLine +
+				"  \"CommandsStartWith\": \">\"," + Environment.NewLine +
+				"  \"CooldownGroups\": {" + Environment.NewLine +
+				"    \"global-time\": 300," + Environment.NewLine +
+				"    \"heal\": 60," + Environment.NewLine +
+				"    \"message\": 10," + Environment.NewLine +
+				"    \"damage\": 10," + Environment.NewLine +
+				"    \"boss\": 300," + Environment.NewLine +
+				"    \"item\": 300," + Environment.NewLine +
+				"    \"buff\": 300," + Environment.NewLine +
+				"    \"spawnmob\": 300," + Environment.NewLine +
+				"    \"kit\": 300," + Environment.NewLine +
+				"    \"command\": 300" + Environment.NewLine +
+				"  }" + Environment.NewLine +
+				"}");
 		}
 	}
 }

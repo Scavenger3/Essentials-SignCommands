@@ -15,6 +15,7 @@ namespace Essentials
 		public string GreenPassword = "";
 		public string BluePassword = "";
 		public string YellowPassword = "";
+		public List<string> DisableSetHomeInRegions = new List<string>();
 
 
 		public static esConfig Read(string path)
@@ -96,6 +97,23 @@ namespace Essentials
 				Log.Error("Config Exception in Essentials config file");
 				Log.Error(ex.ToString());
 			}
+		}
+
+		public static void CreateExample()
+		{
+			File.WriteAllText(Essentials.ConfigPath,
+				"{" + Environment.NewLine +
+				"  \"ShowBackMessageOnDeath\": true," + Environment.NewLine +
+				"  \"PrefixNicknamesWith\": \"~\"," + Environment.NewLine +
+				"  \"UsePermissonsForTeams\": false," + Environment.NewLine +
+				"  \"RedPassword\": \"\"," + Environment.NewLine +
+				"  \"GreenPassword\": \"\"," + Environment.NewLine +
+				"  \"BluePassword\": \"\"," + Environment.NewLine +
+				"  \"YellowPassword\": \"\"," + Environment.NewLine +
+				"  \"DisableSetHomeInRegions\": [" + Environment.NewLine +
+				"	\"example\"" + Environment.NewLine +
+				"  ]" + Environment.NewLine +
+				"}");
 		}
 	}
 }
