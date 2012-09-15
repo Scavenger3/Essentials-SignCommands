@@ -535,18 +535,18 @@ namespace Essentials
 			foreach (esPlayer player in esPlayers)
 			{
 				if (player == null) continue;
-				if (player.TSPlayer.Group.HasPermission("essentials.helpop.recieve"))
+				if (player.TSPlayer.Group.HasPermission("essentials.helpop.receive"))
 				{
 					online.Add(player.TSPlayer.Name);
 					player.SendMessage(string.Format("[HelpOp] {0}: {1}", args.Player.Name, text), Color.RoyalBlue);
 				}
 			}
 			if (online.Count < 1)
-				args.Player.SendMessage("[HelpOp] There are no operators online to recieve your message!", Color.RoyalBlue);
+				args.Player.SendMessage("[HelpOp] There are no operators online to receive your message!", Color.RoyalBlue);
 			else
 			{
 				string to = string.Join(", ", online);
-				args.Player.SendMessage(string.Format("[HelpOp] Your message has been recieved by the operator(s): {0}", to), Color.RoyalBlue);
+				args.Player.SendMessage(string.Format("[HelpOp] Your message has been received by the operator(s): {0}", to), Color.RoyalBlue);
 			}
 		}
 		#endregion
