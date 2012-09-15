@@ -24,55 +24,36 @@ namespace Essentials
 			{
 				File.Move(Path.Combine(TShock.SavePath, "EssentialsHomes.sqlite"), Path.Combine(TShock.SavePath, "Deprecated-EssentialsHomes.sqlite"));
 			}
-			if (TShock.Config.StorageType.ToLower() == "sqlite")
+			switch (TShock.Config.StorageType.ToLower())
 			{
-				string sql = Path.Combine(TShock.SavePath, "Essentials", "Essentials.db");
-				db = new SqliteConnection(string.Format("uri=file://{0},Version=3", sql));
+				case "mysql":
+					string[] host = TShock.Config.MySqlHost.Split(':');
+					db = new MySqlConnection()
+					{
+						ConnectionString = string.Format("Server={0}; Port={1}; Database={2}; Uid={3}; Pwd={4};",
+						host[0],
+						host.Length == 1 ? "3306" : host[1],
+						TShock.Config.MySqlDbName,
+						TShock.Config.MySqlUsername,
+						TShock.Config.MySqlPassword)
+					};
+					break;
+				case "sqlite":
+					string sql = Path.Combine(TShock.SavePath, "Essentials", "Essentials.db");
+					db = new SqliteConnection(string.Format("uri=file://{0},Version=3", sql));
+					break;
 			}
-			else if (TShock.Config.StorageType.ToLower() == "mysql")
-			{
-				try
-				{
-					var hostport = TShock.Config.MySqlHost.Split(':');
-					db = new MySqlConnection();
-					db.ConnectionString =
-						String.Format("Server={0}; Port={1}; Database={2}; Uid={3}; Pwd={4};",
-									  hostport[0],
-									  hostport.Length > 1 ? hostport[1] : "3306",
-									  TShock.Config.MySqlDbName,
-									  TShock.Config.MySqlUsername,
-									  TShock.Config.MySqlPassword
-									  );
-				}
-				catch (MySqlException ex)
-				{
-					Log.Error(ex.ToString());
-					throw new Exception("MySql not setup correctly");
-				}
-			}
-			else
-			{
-				throw new Exception("Invalid storage type");
-			}
-
-			var table0 = new SqlTable("Homes",
+			SqlTableCreator sqlcreator = new SqlTableCreator(db,
+			db.GetSqlType() == SqlType.Sqlite ? (IQueryBuilder)new SqliteQueryCreator() : new MysqlQueryCreator());
+			sqlcreator.EnsureExists(new SqlTable("Homes",
 				new SqlColumn("UserID", MySqlDbType.Int32),
 				new SqlColumn("HomeX", MySqlDbType.Int32),
 				new SqlColumn("HomeY", MySqlDbType.Int32),
-				new SqlColumn("Name", MySqlDbType.VarChar),
-				new SqlColumn("WorldID", MySqlDbType.Int32)
-				);
-			var table1 = new SqlTable("Nicknames",
-				new SqlColumn("Name", MySqlDbType.VarChar),
-				new SqlColumn("Nickname", MySqlDbType.VarChar)
-				);
-
-			var creator0 = new SqlTableCreator(db,
-											  db.GetSqlType() == SqlType.Sqlite
-												? (IQueryBuilder)new SqliteQueryCreator()
-												: new MysqlQueryCreator());
-			creator0.EnsureExists(table0);
-			creator0.EnsureExists(table1);
+				new SqlColumn("Name", MySqlDbType.Text),
+				new SqlColumn("WorldID", MySqlDbType.Int32)));
+			sqlcreator.EnsureExists(new SqlTable("Nicknames",
+				new SqlColumn("Name", MySqlDbType.Text),
+				new SqlColumn("Nickname", MySqlDbType.Text)));
 
 			nicknames = ListNicknames();
 		}
