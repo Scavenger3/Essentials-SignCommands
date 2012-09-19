@@ -12,130 +12,102 @@ namespace Essentials
 		/* GET esPlayer! */
 		public static esPlayer GetesPlayerByID(int id)
 		{
-			esPlayer player = null;
 			foreach (esPlayer ply in Essentials.esPlayers)
 				if (ply.Index == id)
 					return ply;
-			return player;
+			return null;
 		}
 
 		/* Search IDs */
-		public static List<Item> GetItemByName(string name)
+		public static List<object> ItemIdSearch(string search)
 		{
-			var found = new List<Item>();
-			for (int i = -24; i < Main.maxItemTypes; i++)
+			try
 			{
-				try
+				var found = new List<object>();
+				for (int i = -24; i < Main.maxItemTypes; i++)
 				{
 					Item item = new Item();
 					item.netDefaults(i);
-					if (item.name.ToLower().Contains(name.ToLower()))
+					if (item.name.ToLower().Contains(search.ToLower()))
 						found.Add(item);
 				}
-				catch { }
+				return found;
 			}
-			return found;
+			catch { return new List<object>(); }
+		}
+		public static List<object> NPCIdSearch(string search)
+		{
+			try
+			{
+				var found = new List<object>();
+				for (int i = 1; i < Main.maxNPCTypes; i++)
+				{
+					NPC npc = new NPC();
+					npc.netDefaults(i);
+					if (npc.name.ToLower().Contains(search.ToLower()))
+						found.Add(npc);
+				}
+				return found;
+			}
+			catch { return new List<object>(); }
 		}
 
-		public static List<NPC> GetNPCByName(string name)
+		public static void DisplaySearchResults(TSPlayer Player, List<object> Results, int Page)
 		{
-			var found = new List<NPC>();
-			for (int i = 1; i < Main.maxNPCTypes; i++)
-			{
-				NPC npc = new NPC();
-				npc.netDefaults(i);
-				if (npc.name.ToLower().Contains(name.ToLower()))
-					found.Add(npc);
-			}
-			return found;
-		}
-		public static void BCsearchitem(CommandArgs args, List<Item> list, int page)
-		{
-			args.Player.SendMessage("Item Search:", Color.Yellow);
+			if (Results[0].GetType() == typeof(Item))
+				Player.SendMessage("Item Search:", Color.Yellow);
+			else if (Results[0].GetType() == typeof(NPC))
+				Player.SendMessage("NPC Search:", Color.Yellow);
 			var sb = new StringBuilder();
-			if (list.Count > (8 * (page - 1)))
+			if (Results.Count > (8 * (Page - 1)))
 			{
-				for (int j = (8 * (page - 1)); j < (8 * page); j++)
+				for (int j = (8 * (Page - 1)); j < (8 * Page); j++)
 				{
 					if (sb.Length != 0)
 						sb.Append(" | ");
-					sb.Append(list[j].netID).Append(": ").Append(list[j].name);
-					if (j == list.Count - 1)
+					if (Results[j].GetType() == typeof(Item))
+						sb.Append(((Item)Results[j]).netID).Append(": ").Append(((Item)Results[j]).name);
+					else if (Results[j].GetType() == typeof(NPC))
+						sb.Append(((NPC)Results[j]).netID).Append(": ").Append(((NPC)Results[j]).name);
+					if (j == Results.Count - 1)
 					{
-						args.Player.SendMessage(sb.ToString(), Color.MediumSeaGreen);
+						Player.SendMessage(sb.ToString(), Color.MediumSeaGreen);
 						break;
 					}
 					if ((j + 1) % 2 == 0)
 					{
-						args.Player.SendMessage(sb.ToString(), Color.MediumSeaGreen);
+						Player.SendMessage(sb.ToString(), Color.MediumSeaGreen);
 						sb.Clear();
 					}
 				}
 			}
-			if (list.Count > (8 * page))
+			if (Results.Count > (8 * Page))
 			{
-				args.Player.SendMessage(string.Format("Type /spage {0} for more Results.", (page + 1)), Color.Yellow);
-			}
-		}
-
-		public static void BCsearchnpc(CommandArgs args, List<NPC> list, int page)
-		{
-			args.Player.SendMessage("NPC Search:", Color.Yellow);
-			var sb = new StringBuilder();
-			if (list.Count > (8 * (page - 1)))
-			{
-				for (int j = (8 * (page - 1)); j < (8 * page); j++)
-				{
-					if (sb.Length != 0)
-						sb.Append(" | ");
-					sb.Append(list[j].netID).Append(": ").Append(list[j].name);
-					if (j == list.Count - 1)
-					{
-						args.Player.SendMessage(sb.ToString(), Color.MediumSeaGreen);
-						break;
-					}
-					if ((j + 1) % 2 == 0)
-					{
-						args.Player.SendMessage(sb.ToString(), Color.MediumSeaGreen);
-						sb.Clear();
-					}
-				}
-			}
-			if (list.Count > (8 * page))
-			{
-				args.Player.SendMessage(string.Format("Type /spage {0} for more Results.", (page + 1)), Color.Yellow);
+				Player.SendMessage(string.Format("Type /spage {0} for more Results.", (Page + 1)), Color.Yellow);
 			}
 		}
 
 		/* Sethome - how many homes can a user set. */
 		public static int NoOfHomesCanSet(TSPlayer ply)
 		{
-			List<string> permissions = ply.Group.TotalPermissions;
-			List<string> negated = ply.Group.negatedpermissions;
-			List<int> count = new List<int>();
-			if (ply.Group.HasPermission("essentials.home.*") || ply.Group.HasPermission("essentials.*") || ply.Group.HasPermission("*"))
+			if (ply.Group.HasPermission("essentials.home.set.*"))
 				return -1;
-			foreach (string p in permissions)
+
+			List<int> maxHomes = new List<int>();
+			foreach (string p in ply.Group.TotalPermissions)
 			{
-				if (p.StartsWith("essentials.home.") && p != "essentials.home." && !negated.Contains(p))
+				if (p.StartsWith("essentials.home.set.") && p != "essentials.home.set." && !ply.Group.negatedpermissions.Contains(p))
 				{
 					int x = 0;
-					if (int.TryParse(p.Remove(0, 16), out x))
-						count.Add(x);
+					if (int.TryParse(p.Remove(0, 20), out x))
+						maxHomes.Add(x);
 				}
 			}
 
-			if (count.Count == 1)
-				return count[0];
-			else if (count.Count > 1)
-			{
-				int top = 1;
-				foreach (int v in count)
-					if (v > top)
-						top = v;
-				return top;
-			}
-			return 1;
+			if (maxHomes.Count < 1)
+				return 1;
+			else
+				return maxHomes.Max();
 		}
 
 		/* Sethome - get next home */
@@ -144,17 +116,14 @@ namespace Essentials
 			List<int> intHomes = new List<int>();
 			foreach (string h in homes)
 			{
-				int x = -1;
+				int x = 0;
 				if (int.TryParse(h, out x))
 					intHomes.Add(x);
 			}
 			if (intHomes.Count < 1)
 				return "1";
-			int top = 1;
-			foreach (int v in intHomes)
-				if (v >= top)
-					top = v + 1;
-			return top.ToString();
+			else
+				return (intHomes.Max() + 1).ToString();
 		}
 
 		/* Top, Up and Down Methods */
@@ -197,5 +166,87 @@ namespace Essentials
 			}
 			return -1;
 		}
+
+		#region ParseParameters
+		/*
+		 * This code has been used under the terms of the GNU General Public License. Copyright (C) 2011-2012 The TShock Team.
+		 */
+		public static List<String> ParseParameters(string str)
+		{
+			var ret = new List<string>();
+			var sb = new StringBuilder();
+			bool instr = false;
+			for (int i = 0; i < str.Length; i++)
+			{
+				char c = str[i];
+
+				if (instr)
+				{
+					if (c == '\\')
+					{
+						if (i + 1 >= str.Length)
+							break;
+						c = GetEscape(str[++i]);
+					}
+					else if (c == '"')
+					{
+						ret.Add(sb.ToString());
+						sb.Clear();
+						instr = false;
+						continue;
+					}
+					sb.Append(c);
+				}
+				else
+				{
+					if (IsWhiteSpace(c))
+					{
+						if (sb.Length > 0)
+						{
+							ret.Add(sb.ToString());
+							sb.Clear();
+						}
+					}
+					else if (c == '"')
+					{
+						if (sb.Length > 0)
+						{
+							ret.Add(sb.ToString());
+							sb.Clear();
+						}
+						instr = true;
+					}
+					else
+					{
+						sb.Append(c);
+					}
+				}
+			}
+			if (sb.Length > 0)
+				ret.Add(sb.ToString());
+
+			return ret;
+		}
+
+		private static char GetEscape(char c)
+		{
+			switch (c)
+			{
+				case '\\':
+					return '\\';
+				case '"':
+					return '"';
+				case 't':
+					return '\t';
+				default:
+					return c;
+			}
+		}
+
+		private static bool IsWhiteSpace(char c)
+		{
+			return c == ' ' || c == '\t' || c == '\n';
+		}
+		#endregion
 	}
 }

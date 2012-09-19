@@ -10,7 +10,7 @@ namespace Essentials
 	{
 		public bool ShowBackMessageOnDeath = true;
 		public string PrefixNicknamesWith = "~";
-		public bool UsePermissonsForTeams = false;
+		public bool LockTeams = false;
 		public string RedPassword = "";
 		public string GreenPassword = "";
 		public string BluePassword = "";

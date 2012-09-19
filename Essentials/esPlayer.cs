@@ -11,46 +11,50 @@ namespace Essentials
 	{
 		public int Index { get; set; }
 		public TSPlayer TSPlayer { get { return TShock.Players[Index]; } }
-		public int lastXtp = -1;
-		public int lastYtp = -1;
-		public int lastXondeath = -1;
-		public int lastYondeath = -1;
-		public string lastaction = "none";
-		public bool ondeath = false;
-		public string lastsearch = string.Empty;
-		public string lastseachtype = "none";
-		public string RedPassword = string.Empty;
-		public string GreenPassword = string.Empty;
-		public string BluePassword = string.Empty;
-		public string YellowPassword = string.Empty;
-		public string LastCMD = string.Empty;
-		public bool Disabled = false;
-		public int DisabledX = -1;
-		public int DisabledY = -1;
-		public DateTime LastDisabledCheck = DateTime.UtcNow;
-		public bool SocialSpy = false;
-		public bool HasNickName = false;
-		public string Nickname = string.Empty;
-		public string OriginalName = string.Empty;
+		public int LastBackX { get; set; }
+		public int LastBackY { get; set; }
+		public BackAction LastBackAction { get; set; }
+		public bool SavedBackAction { get; set; }
+		public List<object> LastSearchResults { get; set; }
+		public string RedPassword { get; set; }
+		public string GreenPassword { get; set; }
+		public string BluePassword { get; set; }
+		public string YellowPassword { get; set; }
+		public string LastCMD { get; set; }
+		public bool Disabled { get; set; }
+		public int DisabledX { get; set; }
+		public int DisabledY { get; set; }
+		public DateTime LastDisabledCheck { get; set; }
+		public bool SocialSpy { get; set; }
+		public bool HasNickName { get; set; }
+		public string Nickname { get; set; }
+		public string OriginalName { get; set; }
 
 		public esPlayer(int index)
 		{
 			Index = index;
+			LastBackX = -1;
+			LastBackY = -1;
+			LastBackAction = BackAction.None;
+			SavedBackAction = false;
+			LastSearchResults = new List<object>();
+			RedPassword = string.Empty;
+			GreenPassword = string.Empty;
+			BluePassword = string.Empty;
+			YellowPassword = string.Empty;
+			LastCMD = string.Empty;
+			Disabled = false;
+			DisabledX = Main.spawnTileX;
+			DisabledY = Main.spawnTileY;
+			LastDisabledCheck = DateTime.UtcNow;
+			SocialSpy = false;
+			HasNickName = false;
+			Nickname = string.Empty;
+			OriginalName = string.Empty;
 		}
-
-		public void SendMessage(string message, Color color)
-		{
-			TShock.Players[Index].SendMessage(message, color);
-		}
-
-		public void Kick(string reason)
-		{
-			TShock.Players[Index].Disconnect(reason);
-		}
-
-		public void Teleport(int xtile, int ytile)
-		{
-			TShock.Players[Index].Teleport(xtile, ytile);
-		}
+	}
+	public enum BackAction
+	{
+		None, TP, Death
 	}
 }
