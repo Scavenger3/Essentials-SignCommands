@@ -52,6 +52,13 @@ namespace Essentials
 			Nickname = string.Empty;
 			OriginalName = string.Empty;
 		}
+
+		public void Disable()
+		{
+			TSPlayer.SetBuff(33, 330, true); //Weak
+			TSPlayer.SetBuff(32, 330, true); //Slow
+			TSPlayer.SetBuff(23, 330, true); //Cursed
+		}
 	}
 	public enum BackAction
 	{

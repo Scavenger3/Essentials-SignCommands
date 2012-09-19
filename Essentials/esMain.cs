@@ -196,6 +196,7 @@ namespace Essentials
 				return;
 			if (text == "/")
 			{
+				TShock.Players[who].SendMessage("Yes, that is how you execute commands! type /help for a list of them!", Color.LightSeaGreen);
 				e.Handled = true;
 				return;
 			}
@@ -309,59 +310,58 @@ namespace Essentials
 					if (ePly == null || tPly == null) return;
 					switch (team)
 					{
-
 						case 1:
 							{
-								if (!tPly.Group.HasPermission("essentials.team.red") && ePly.RedPassword != getConfig.RedPassword)
+								if (!tPly.Group.HasPermission("essentials.team.red") && (ePly.RedPassword != getConfig.RedPassword || ePly.RedPassword == ""))
 								{
 									e.Handled = true;
 									tPly.SetTeam(tPly.Team);
 									if (getConfig.RedPassword == "")
-										tPly.SendMessage("You do not have permission to join this team!", Color.Red);
+										tPly.SendMessage("You do not have permission to join that team!", Color.Red);
 									else
-										tPly.SendMessage("This team is locked, use \'/teamunlock red <password>\' to access it.", Color.Red);
+										tPly.SendMessage("That team is locked, use \'/teamunlock red <password>\' to access it.", Color.Red);
 
 								}
 							}
 							break;
 						case 2:
 							{
-								if (!tPly.Group.HasPermission("essentials.team.green") && ePly.GreenPassword != getConfig.GreenPassword)
+								if (!tPly.Group.HasPermission("essentials.team.green") && (ePly.GreenPassword != getConfig.GreenPassword || ePly.GreenPassword == ""))
 								{
 									e.Handled = true;
 									tPly.SetTeam(tPly.Team);
 									if (getConfig.GreenPassword == "")
-										tPly.SendMessage("You do not have permission to join this team!", Color.Red);
+										tPly.SendMessage("You do not have permission to join that team!", Color.Red);
 									else
-										tPly.SendMessage("This team is locked, use \'/teamunlock green <password>\' to access it.", Color.Red);
+										tPly.SendMessage("That team is locked, use \'/teamunlock green <password>\' to access it.", Color.Red);
 
 								}
 							}
 							break;
 						case 3:
 							{
-								if (!tPly.Group.HasPermission("essentials.team.blue") && ePly.BluePassword != getConfig.BluePassword)
+								if (!tPly.Group.HasPermission("essentials.team.blue") && (ePly.BluePassword != getConfig.BluePassword || ePly.BluePassword == ""))
 								{
 									e.Handled = true;
 									tPly.SetTeam(tPly.Team);
 									if (getConfig.BluePassword == "")
-										tPly.SendMessage("You do not have permission to join this team!", Color.Red);
+										tPly.SendMessage("You do not have permission to join that team!", Color.Red);
 									else
-										tPly.SendMessage("This team is locked, use \'/teamunlock blue <password>\' to access it.", Color.Red);
+										tPly.SendMessage("That team is locked, use \'/teamunlock blue <password>\' to access it.", Color.Red);
 
 								}
 							}
 							break;
 						case 4:
 							{
-								if (!tPly.Group.HasPermission("essentials.team.yellow") && ePly.YellowPassword != getConfig.YellowPassword)
+								if (!tPly.Group.HasPermission("essentials.team.yellow") && (ePly.YellowPassword != getConfig.YellowPassword || ePly.YellowPassword == ""))
 								{
 									e.Handled = true;
 									tPly.SetTeam(tPly.Team);
 									if (getConfig.YellowPassword == "")
-										tPly.SendMessage("You do not have permission to join this team!", Color.Red);
+										tPly.SendMessage("You do not have permission to join that team!", Color.Red);
 									else
-										tPly.SendMessage("This team is locked, use \'/teamunlock yellow <password>\' to access it.", Color.Red);
+										tPly.SendMessage("That team is locked, use \'/teamunlock yellow <password>\' to access it.", Color.Red);
 
 								}
 							}
@@ -434,15 +434,23 @@ namespace Essentials
 		{
 			if (args.Parameters.Count > 0 && args.Parameters[0] == "all")
 			{
+				bool full = true;
 				int i = 0;
 				foreach (Item item in args.TPlayer.inventory)
 				{
+					if (item == null) continue;
 					int amtToAdd = item.maxStack - item.stack;
-					if (item.stack > 0 && amtToAdd > 0)
+					if (item.stack > 0 && amtToAdd > 0 && !item.name.ToLower().Contains("coin"))
+					{
+						full = false;
 						args.Player.GiveItem(item.type, item.name, item.width, item.height, amtToAdd);
+					}
 					i++;
 				}
-				args.Player.SendMessage("Filled all your items!", Color.MediumSeaGreen);
+				if (!full)
+					args.Player.SendMessage("Filled all your items!", Color.MediumSeaGreen);
+				else
+					args.Player.SendMessage("Your inventory is already full!", Color.OrangeRed);
 			}
 			else
 			{
@@ -1442,27 +1450,33 @@ namespace Essentials
 			{
 				case "red":
 					{
-						ePly.RedPassword = Password;
 						if (Password == getConfig.RedPassword)
+						{
 							args.Player.SendMessage("You can now join red team!", Color.MediumSeaGreen);
+							ePly.RedPassword = Password;
+						}
 						else
 							args.Player.SendMessage("Incorrect Password!", Color.OrangeRed);
 					}
 					break;
 				case "green":
 					{
-						ePly.GreenPassword = Password;
 						if (Password == getConfig.GreenPassword)
+						{
 							args.Player.SendMessage("You can now join green team!", Color.MediumSeaGreen);
+							ePly.GreenPassword = Password;
+						}
 						else
 							args.Player.SendMessage("Incorrect Password!", Color.OrangeRed);
 					}
 					break;
 				case "blue":
 					{
-						ePly.BluePassword = Password;
 						if (Password == getConfig.BluePassword)
+						{
 							args.Player.SendMessage("You can now join blue team!", Color.MediumSeaGreen);
+							ePly.BluePassword = Password;
+						}
 						else
 							args.Player.SendMessage("Incorrect Password!", Color.OrangeRed);
 					}
@@ -1471,7 +1485,10 @@ namespace Essentials
 					{
 						ePly.YellowPassword = Password;
 						if (Password == getConfig.YellowPassword)
+						{
 							args.Player.SendMessage("You can now join yellow team!", Color.MediumSeaGreen);
+							ePly.BluePassword = Password;
+						}
 						else
 							args.Player.SendMessage("Incorrect Password!", Color.OrangeRed);
 					}
@@ -1579,43 +1596,43 @@ namespace Essentials
 			}
 			else
 			{
-				var plr = players[0];
-				var plre = esUtils.GetesPlayerByID(plr.Index);
+				var tPly = players[0];
+				var ePly = esUtils.GetesPlayerByID(tPly.Index);
 
-				if (!plre.Disabled)
+				if (!ePly.Disabled)
 				{
-					string reason = "";
-					for (int i = 1; i < args.Parameters.Count; i++)
-						reason = reason + args.Parameters[i] + " ";
+					List<string> RParams = args.Parameters;
+					RParams.RemoveAt(0);
+					string Reason = string.Join(" ", RParams);
 
-					plre.DisabledX = plr.TileX;
-					plre.DisabledY = plr.TileY;
-					plre.Disabled = true;
-					plr.Disable(reason);
-					plre.LastDisabledCheck = DateTime.UtcNow;
+					ePly.DisabledX = tPly.TileX;
+					ePly.DisabledY = tPly.TileY;
+					ePly.Disabled = true;
+					ePly.Disable();
+					ePly.LastDisabledCheck = DateTime.UtcNow;
 
 					int[] pos = new int[2];
-					pos[0] = plre.DisabledX;
-					pos[1] = plre.DisabledY;
+					pos[0] = ePly.DisabledX;
+					pos[1] = ePly.DisabledY;
 
-					disabled.Add(plr.Name, pos);
+					disabled.Add(tPly.Name, pos);
 
-					args.Player.SendMessage(string.Format("You disabled {0}, He can not be enabled until you type /disable {1}", plr.Name, args.Parameters[0]), Color.MediumSeaGreen);
-					if (reason == "")
-						plr.SendMessage(string.Format("You have been disabled by {0}", args.Player.Name, reason), Color.MediumSeaGreen);
+					args.Player.SendMessage(string.Format("You disabled {0}, He can not be enabled until you type \"/disable {1}\"", tPly.Name, tPly.Name), Color.MediumSeaGreen);
+					if (Reason == "")
+						tPly.SendMessage(string.Format("You have been disabled by {0}", args.Player.Name), Color.MediumSeaGreen);
 					else
-						plr.SendMessage(string.Format("You have been disabled by {0} for {1}", args.Player.Name, reason), Color.MediumSeaGreen);
+						tPly.SendMessage(string.Format("You have been disabled by {0} for {1}", args.Player.Name, Reason), Color.MediumSeaGreen);
 				}
 				else
 				{
-					plre.Disabled = false;
-					plre.DisabledX = 0;
-					plre.DisabledY = 0;
+					ePly.Disabled = false;
+					ePly.DisabledX = 0;
+					ePly.DisabledY = 0;
 
-					disabled.Remove(plr.Name);
+					disabled.Remove(tPly.Name);
 
-					args.Player.SendMessage(string.Format("{0} is no longer disabled!", plr.Name), Color.MediumSeaGreen);
-					plr.SendMessage("You are no longer disabled!", Color.MediumSeaGreen);
+					args.Player.SendMessage(string.Format("{0} is no longer disabled!", tPly.Name), Color.MediumSeaGreen);
+					tPly.SendMessage("You are no longer disabled!", Color.MediumSeaGreen);
 				}
 			}
 		}
@@ -1637,7 +1654,7 @@ namespace Essentials
 				ePly.LastBackY = args.Player.TileY;
 				ePly.LastBackAction = BackAction.TP;
 			}
-			if (args.Player.Teleport(args.Player.TileX, Y + 3))
+			if (args.Player.Teleport(args.Player.TileX, Y))
 				args.Player.SendMessage("Teleported you to the top-most block!", Color.MediumSeaGreen);
 			else
 				args.Player.SendMessage("Teleport Failed!", Color.OrangeRed);
@@ -1677,7 +1694,7 @@ namespace Essentials
 				args.Player.SendMessage("You cannot go up anymore!", Color.OrangeRed);
 				return;
 			}
-			if (args.Player.Teleport(args.Player.TileX, Y + 3))
+			if (args.Player.Teleport(args.Player.TileX, Y))
 				if (limit)
 					args.Player.SendMessage(string.Format("Teleported you up {0} level(s)! You cant go up any further!", levels), Color.MediumSeaGreen);
 				else
@@ -1720,7 +1737,7 @@ namespace Essentials
 				args.Player.SendMessage("You cannot go down anymore!", Color.OrangeRed);
 				return;
 			}
-			if (args.Player.Teleport(args.Player.TileX, Y + 3))
+			if (args.Player.Teleport(args.Player.TileX, Y))
 				if (limit)
 					args.Player.SendMessage(string.Format("Teleported you down {0} level(s)! You cant go down any further!", levels), Color.MediumSeaGreen);
 				else
@@ -1876,14 +1893,10 @@ namespace Essentials
 		#region SocialSpy
 		private void CMDsocialspy(CommandArgs args)
 		{
-			esPlayer ply = esUtils.GetesPlayerByID(args.Player.Index);
-
-			if (ply.SocialSpy)
-				args.Player.SendMessage("Socialspy Disabled!", Color.MediumSeaGreen);
-			else
-				args.Player.SendMessage("Socialspy Enabled!", Color.MediumSeaGreen);
-
-			ply.SocialSpy = !ply.SocialSpy;
+			esPlayer ePly = esUtils.GetesPlayerByID(args.Player.Index);
+			
+			ePly.SocialSpy = !ePly.SocialSpy;
+			args.Player.SendMessage(string.Format("Socialspy {0}abled", (ePly.SocialSpy ? "En" : "Dis")), Color.MediumSeaGreen);
 		}
 		#endregion
 
@@ -2010,12 +2023,12 @@ namespace Essentials
 				return;
 			}
 
-			System.Text.RegularExpressions.Regex alphanumeric = new System.Text.RegularExpressions.Regex("^[a-zA-Z0-9_ ]*$");
+			/*System.Text.RegularExpressions.Regex alphanumeric = new System.Text.RegularExpressions.Regex("^[a-zA-Z0-9_ ]*$");
 			if (alphanumeric.Match(nickname).Success == false)
 			{
 				args.Player.SendMessage("Nicknames must be Alphanumeric!", Color.OrangeRed);
 				return;
-			}
+			}*/
 
 			if (!eNickPly.HasNickName)
 			{
