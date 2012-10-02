@@ -9,15 +9,16 @@ using MySql.Data.MySqlClient;
 using Terraria;
 using TShockAPI;
 using Hooks;
+using System.Reflection;
 
 namespace Essentials
 {
 	[APIVersion(1, 12)]
 	public class Essentials : TerrariaPlugin
 	{
-		public Dictionary<string, int[]> disabled = new Dictionary<string, int[]>();
-		public static List<esPlayer> esPlayers = new List<esPlayer>();
-		public DateTime TCheck = DateTime.UtcNow;
+		public Dictionary<string, int[]> disabled { get; set; }
+		public static List<esPlayer> esPlayers { get; set; }
+		public DateTime TCheck { get; set; }
 
 		public static esConfig getConfig { get; set; }
 		internal static string ConfigPath { get { return Path.Combine(TShock.SavePath, "Essentials", "EssentialsConfig.json"); } }
@@ -39,7 +40,7 @@ namespace Essentials
 
 		public override Version Version
 		{
-			get { return new Version("1.3.9.4"); }
+			get { return Assembly.GetExecutingAssembly().GetName().Version; }
 		}
 
 		public override void Initialize()
@@ -69,7 +70,11 @@ namespace Essentials
 		public Essentials(Main game) : base(game)
 		{
 			Order = -1;
-			getConfig = new esConfig();
+			this.TCheck = DateTime.UtcNow;
+			this.disabled = new Dictionary<string, int[]>();
+			Essentials.esPlayers = new List<esPlayer>();
+			Essentials.getConfig = new esConfig();
+			Type t = TShock.Utils.GetType();
 		}
 
 		public void OnInitialize()
@@ -95,7 +100,7 @@ namespace Essentials
 			Commands.ChatCommands.Add(new Command("essentials.home", CMDdelhome, "delhome"));
 			Commands.ChatCommands.Add(new Command("essentials.essentials", CMDessentials, "essentials"));
 			Commands.ChatCommands.Add(new Command(/*no permission*/ CMDteamunlock, "teamunlock"));
-			Commands.ChatCommands.Add(new Command("essentials.lastcommand", CMDequals, "="));
+			Commands.ChatCommands.Add(new Command("essentials.lastcommand", CMDequals, "=") { DoLog = false });
 			Commands.ChatCommands.Add(new Command("essentials.pvp.killr", CMDkillr, "killr"));
 			Commands.ChatCommands.Add(new Command("essentials.disable", CMDdisable, "disable"));
 			Commands.ChatCommands.Add(new Command("essentials.level.top", CMDtop, "top"));
@@ -108,6 +113,7 @@ namespace Essentials
 			Commands.ChatCommands.Add(new Command("essentials.near", CMDnear, "near"));
 			Commands.ChatCommands.Add(new Command("essentials.nick.set", CMDnick, "nick"));
 			Commands.ChatCommands.Add(new Command("essentials.realname", CMDrealname, "realname"));
+			Commands.ChatCommands.Add(new Command("essentials.exacttime", CMDetime, "etime", "exacttime"));
 			#endregion
 
 			TCheck = DateTime.UtcNow;
@@ -196,7 +202,7 @@ namespace Essentials
 				return;
 			if (text == "/")
 			{
-				TShock.Players[who].SendMessage("Yes, that is how you execute commands! type /help for a list of them!", Color.LightSeaGreen);
+				//TShock.Players[who].SendMessage("Yes, that is how you execute commands! type /help for a list of them!", Color.LightSeaGreen);
 				e.Handled = true;
 				return;
 			}
@@ -271,9 +277,9 @@ namespace Essentials
 					if (player.SocialSpy && player != ePly)
 					{
 						if ((text.StartsWith("/reply ") || text.StartsWith("/r ")) && tPly.LastWhisper != null)
-							ePly.TSPlayer.SendMessage(string.Format("[SocialSpy] from {0} to {1}: {2}", tPly.Name, tPly.LastWhisper.Name, text), Color.Gray);
+							player.TSPlayer.SendMessage(string.Format("[SocialSpy] from {0} to {1}: {2}", tPly.Name, tPly.LastWhisper.Name, text), Color.Gray);
 						else
-							ePly.TSPlayer.SendMessage(string.Format("[SocialSpy] {0}: {1}", tPly.Name, text), Color.Gray);
+							player.TSPlayer.SendMessage(string.Format("[SocialSpy] {0}: {1}", tPly.Name, text), Color.Gray);
 					}
 				}
 			}
@@ -298,7 +304,7 @@ namespace Essentials
 		{
 			try
 			{
-				if (e.MsgID != PacketTypes.PlayerTeam || !getConfig.LockTeams) return;
+				if (e.MsgID != PacketTypes.PlayerTeam || !(getConfig.LockRedTeam || getConfig.LockGreenTeam || getConfig.LockBlueTeam || getConfig.LockYellowTeam)) return;
 				using (var data = new MemoryStream(e.Msg.readBuffer, e.Index, e.Length))
 				{
 					var reader = new BinaryReader(data);
@@ -312,11 +318,11 @@ namespace Essentials
 					{
 						case 1:
 							{
-								if (!tPly.Group.HasPermission("essentials.team.red") && (ePly.RedPassword != getConfig.RedPassword || ePly.RedPassword == ""))
+								if (getConfig.LockRedTeam && !tPly.Group.HasPermission(getConfig.RedTeamPermission) && (ePly.RedPassword != getConfig.RedTeamPassword || ePly.RedPassword == ""))
 								{
 									e.Handled = true;
 									tPly.SetTeam(tPly.Team);
-									if (getConfig.RedPassword == "")
+									if (getConfig.RedTeamPassword == "")
 										tPly.SendMessage("You do not have permission to join that team!", Color.Red);
 									else
 										tPly.SendMessage("That team is locked, use \'/teamunlock red <password>\' to access it.", Color.Red);
@@ -326,11 +332,11 @@ namespace Essentials
 							break;
 						case 2:
 							{
-								if (!tPly.Group.HasPermission("essentials.team.green") && (ePly.GreenPassword != getConfig.GreenPassword || ePly.GreenPassword == ""))
+								if (getConfig.LockGreenTeam && !tPly.Group.HasPermission(getConfig.GreenTeamPermission) && (ePly.GreenPassword != getConfig.GreenTeamPassword || ePly.GreenPassword == ""))
 								{
 									e.Handled = true;
 									tPly.SetTeam(tPly.Team);
-									if (getConfig.GreenPassword == "")
+									if (getConfig.GreenTeamPassword == "")
 										tPly.SendMessage("You do not have permission to join that team!", Color.Red);
 									else
 										tPly.SendMessage("That team is locked, use \'/teamunlock green <password>\' to access it.", Color.Red);
@@ -340,11 +346,11 @@ namespace Essentials
 							break;
 						case 3:
 							{
-								if (!tPly.Group.HasPermission("essentials.team.blue") && (ePly.BluePassword != getConfig.BluePassword || ePly.BluePassword == ""))
+								if (getConfig.LockBlueTeam && !tPly.Group.HasPermission(getConfig.BlueTeamPermission) && (ePly.BluePassword != getConfig.BlueTeamPassword || ePly.BluePassword == ""))
 								{
 									e.Handled = true;
 									tPly.SetTeam(tPly.Team);
-									if (getConfig.BluePassword == "")
+									if (getConfig.BlueTeamPassword == "")
 										tPly.SendMessage("You do not have permission to join that team!", Color.Red);
 									else
 										tPly.SendMessage("That team is locked, use \'/teamunlock blue <password>\' to access it.", Color.Red);
@@ -354,11 +360,11 @@ namespace Essentials
 							break;
 						case 4:
 							{
-								if (!tPly.Group.HasPermission("essentials.team.yellow") && (ePly.YellowPassword != getConfig.YellowPassword || ePly.YellowPassword == ""))
+								if (getConfig.LockYellowTeam && !tPly.Group.HasPermission(getConfig.YellowTeamPermission) && (ePly.YellowPassword != getConfig.YellowTeamPassword || ePly.YellowPassword == ""))
 								{
 									e.Handled = true;
 									tPly.SetTeam(tPly.Team);
-									if (getConfig.YellowPassword == "")
+									if (getConfig.YellowTeamPassword == "")
 										tPly.SendMessage("You do not have permission to join that team!", Color.Red);
 									else
 										tPly.SendMessage("That team is locked, use \'/teamunlock yellow <password>\' to access it.", Color.Red);
@@ -405,6 +411,22 @@ namespace Essentials
 							else if (ePly.SavedBackAction && !ePly.TSPlayer.Dead)
 								ePly.SavedBackAction = false;
 
+							if (ePly.pTime != -1)
+							{
+								if (ePly.pTime < 1)
+								{
+									ePly.pTime = 5;
+									bool oldIsDay = Main.dayTime;
+									double oldTime = Main.time;
+									Main.dayTime = ePly.ptDay;
+									Main.time = ePly.ptTime;
+									ePly.TSPlayer.SendData(PacketTypes.TimeSet, "", 0, Main.sunModY, Main.moonModY);
+									Main.dayTime = oldIsDay;
+									Main.time = oldTime;
+								}
+								else
+									ePly.pTime--;
+							}
 
 							if (ePly.Disabled && ((DateTime.UtcNow - ePly.LastDisabledCheck).TotalMilliseconds) > 3000)
 							{
@@ -1425,7 +1447,7 @@ namespace Essentials
 		#region Team Unlock
 		private void CMDteamunlock(CommandArgs args)
 		{
-			if (!getConfig.LockTeams)
+			if (!getConfig.LockRedTeam && !getConfig.LockGreenTeam && !getConfig.LockBlueTeam && !getConfig.LockYellowTeam)
 			{
 				args.Player.SendMessage("Teams are not locked!", Color.OrangeRed);
 				return;
@@ -1450,47 +1472,66 @@ namespace Essentials
 			{
 				case "red":
 					{
-						if (Password == getConfig.RedPassword)
+						if (getConfig.LockRedTeam)
 						{
-							args.Player.SendMessage("You can now join red team!", Color.MediumSeaGreen);
-							ePly.RedPassword = Password;
+							if (Password == getConfig.RedTeamPassword && getConfig.RedTeamPassword != "")
+							{
+								args.Player.SendMessage("You can now join red team!", Color.MediumSeaGreen);
+								ePly.RedPassword = Password;
+							}
+							else
+								args.Player.SendMessage("Incorrect Password!", Color.OrangeRed);
 						}
 						else
-							args.Player.SendMessage("Incorrect Password!", Color.OrangeRed);
+							args.Player.SendMessage("The red team isn't locked!", Color.OrangeRed);
 					}
 					break;
 				case "green":
 					{
-						if (Password == getConfig.GreenPassword)
+						if (getConfig.LockGreenTeam)
 						{
-							args.Player.SendMessage("You can now join green team!", Color.MediumSeaGreen);
-							ePly.GreenPassword = Password;
+							if (Password == getConfig.GreenTeamPassword && getConfig.GreenTeamPassword != "")
+							{
+								args.Player.SendMessage("You can now join green team!", Color.MediumSeaGreen);
+								ePly.GreenPassword = Password;
+							}
+							else
+								args.Player.SendMessage("Incorrect Password!", Color.OrangeRed);
 						}
 						else
-							args.Player.SendMessage("Incorrect Password!", Color.OrangeRed);
+							args.Player.SendMessage("The green team isn't locked!", Color.OrangeRed);
 					}
 					break;
 				case "blue":
 					{
-						if (Password == getConfig.BluePassword)
+						if (getConfig.LockBlueTeam)
 						{
-							args.Player.SendMessage("You can now join blue team!", Color.MediumSeaGreen);
-							ePly.BluePassword = Password;
+							if (Password == getConfig.BlueTeamPassword && getConfig.BlueTeamPassword != "")
+							{
+								args.Player.SendMessage("You can now join blue team!", Color.MediumSeaGreen);
+								ePly.BluePassword = Password;
+							}
+							else
+								args.Player.SendMessage("Incorrect Password!", Color.OrangeRed);
 						}
 						else
-							args.Player.SendMessage("Incorrect Password!", Color.OrangeRed);
+							args.Player.SendMessage("The blue team isn't lock!", Color.OrangeRed);
 					}
 					break;
 				case "yellow":
 					{
-						ePly.YellowPassword = Password;
-						if (Password == getConfig.YellowPassword)
+						if (getConfig.LockYellowTeam)
 						{
-							args.Player.SendMessage("You can now join yellow team!", Color.MediumSeaGreen);
-							ePly.BluePassword = Password;
+							if (Password == getConfig.YellowTeamPassword && getConfig.YellowTeamPassword != "")
+							{
+								args.Player.SendMessage("You can now join yellow team!", Color.MediumSeaGreen);
+								ePly.YellowPassword = Password;
+							}
+							else
+								args.Player.SendMessage("Incorrect Password!", Color.OrangeRed);
 						}
 						else
-							args.Player.SendMessage("Incorrect Password!", Color.OrangeRed);
+							args.Player.SendMessage("The yellow team isn't locked!", Color.OrangeRed);
 					}
 					break;
 				default:
@@ -1783,57 +1824,72 @@ namespace Essentials
 			}
 
 			bool same = args.Player.Equals(ply);
+			esPlayer ePly = esUtils.GetesPlayerByID(ply.Index);
 
 			bool oldIsDay = Main.dayTime;
 			double oldTime = Main.time;
-			switch (args.Parameters[0])
+			switch (args.Parameters[0].ToLower())
 			{
 				case "day":
-					Main.dayTime = true;
-					Main.time = 150;
-					ply.SendData(PacketTypes.TimeSet, "", 0, Main.sunModY, Main.moonModY);
-					Main.dayTime = oldIsDay;
-					Main.time = oldTime;
-					args.Player.SendMessage(string.Format("Set {0}'s time to day!", ply.Name), Color.MediumSeaGreen);
-					if (!same)
-						ply.SendMessage(string.Format("{0} set your time to day!", args.Player.Name), Color.MediumSeaGreen);
+					{
+						ePly.pTime = 5;
+						Main.dayTime = true; ePly.ptDay = true;
+						Main.time = 150.0; ePly.ptTime = 150.0;
+						ply.SendData(PacketTypes.TimeSet, "", 0, Main.sunModY, Main.moonModY);
+						Main.dayTime = oldIsDay;
+						Main.time = oldTime;
+						args.Player.SendMessage(string.Format("Set {0}'s time to permanently day!", ply.Name), Color.MediumSeaGreen);
+						if (!same)
+							ply.SendMessage(string.Format("{0} set your time to permanently day!", args.Player.Name), Color.MediumSeaGreen);
+					}
 					break;
 				case "night":
-					TSPlayer.Server.SetTime(false, 0.0);
-					Main.dayTime = false;
-					Main.time = 0;
-					ply.SendData(PacketTypes.TimeSet, "", 0, Main.sunModY, Main.moonModY);
-					Main.dayTime = oldIsDay;
-					Main.time = oldTime;
-					args.Player.SendMessage(string.Format("Set {0}'s time to night!", ply.Name), Color.MediumSeaGreen);
-					if (!same)
-						ply.SendMessage(string.Format("{0} set your time to night!", args.Player.Name), Color.MediumSeaGreen);
+					{
+						ePly.pTime = 5;
+						Main.dayTime = false; ePly.ptDay = false;
+						Main.time = 0.0; ePly.ptTime = 0.0;
+						ply.SendData(PacketTypes.TimeSet, "", 0, Main.sunModY, Main.moonModY);
+						Main.dayTime = oldIsDay;
+						Main.time = oldTime;
+						args.Player.SendMessage(string.Format("Set {0}'s time to permanently night!", ply.Name), Color.MediumSeaGreen);
+						if (!same)
+							ply.SendMessage(string.Format("{0} set your time to permanently night!", args.Player.Name), Color.MediumSeaGreen);
+					}
 					break;
 				case "noon":
-					Main.dayTime = true;
-					Main.time = 27000.0;
-					ply.SendData(PacketTypes.TimeSet, "", 0, Main.sunModY, Main.moonModY);
-					Main.dayTime = oldIsDay;
-					Main.time = oldTime;
-					args.Player.SendMessage(string.Format("Set {0}'s time to noon!", ply.Name), Color.MediumSeaGreen);
-					if (!same)
-						ply.SendMessage(string.Format("{0} set your time to noon!", args.Player.Name), Color.MediumSeaGreen);
+					{
+						ePly.pTime = 5;
+						Main.dayTime = true; ePly.ptDay = true;
+						Main.time = 27000.0; ePly.ptTime = 27000.0;
+						ply.SendData(PacketTypes.TimeSet, "", 0, Main.sunModY, Main.moonModY);
+						Main.dayTime = oldIsDay;
+						Main.time = oldTime;
+						args.Player.SendMessage(string.Format("Set {0}'s time to permanently noon!", ply.Name), Color.MediumSeaGreen);
+						if (!same)
+							ply.SendMessage(string.Format("{0} set your time to permanently noon!", args.Player.Name), Color.MediumSeaGreen);
+					}
 					break;
 				case "midnight":
-					Main.dayTime = false;
-					Main.time = 16200.0;
-					ply.SendData(PacketTypes.TimeSet, "", 0, Main.sunModY, Main.moonModY);
-					Main.dayTime = oldIsDay;
-					Main.time = oldTime;
-					args.Player.SendMessage(string.Format("Set {0}'s time to midnight!", ply.Name), Color.MediumSeaGreen);
-					if (!same)
-						ply.SendMessage(string.Format("{0} set your time to midnight!", args.Player.Name), Color.MediumSeaGreen);
+					{
+						ePly.pTime = 5;
+						Main.dayTime = false; ePly.ptDay = false;
+						Main.time = 16200.0; ePly.ptTime = 16200.0;
+						ply.SendData(PacketTypes.TimeSet, "", 0, Main.sunModY, Main.moonModY);
+						Main.dayTime = oldIsDay;
+						Main.time = oldTime;
+						args.Player.SendMessage(string.Format("Set {0}'s time to permanently midnight!", ply.Name), Color.MediumSeaGreen);
+						if (!same)
+							ply.SendMessage(string.Format("{0} set your time to permanently midnight!", args.Player.Name), Color.MediumSeaGreen);
+					}
 					break;
 				case "reset":
-					ply.SendData(PacketTypes.TimeSet, "", 0, Main.sunModY, Main.moonModY);
-					args.Player.SendMessage(string.Format("{0}'s time is the same as the servers!", ply.Name), Color.MediumSeaGreen);
-					if (!same)
-						ply.SendMessage(string.Format("{0} reset your time to the same as the servers!", args.Player.Name), Color.MediumSeaGreen);
+					{
+						ePly.pTime = -1;
+						ply.SendData(PacketTypes.TimeSet, "", 0, Main.sunModY, Main.moonModY);
+						args.Player.SendMessage(string.Format("{0}'s time is the same as the servers!", ply.Name), Color.MediumSeaGreen);
+						if (!same)
+							ply.SendMessage(string.Format("{0} reset your time to the same as the servers!", args.Player.Name), Color.MediumSeaGreen);
+					}
 					break;
 				default:
 					args.Player.SendMessage("Usage: /ptime <day/night/dusk/noon/midnight/reset> [player]", Color.OrangeRed);
@@ -2109,6 +2165,82 @@ namespace Essentials
 
 			args.Player.SendMessage(string.Format("The user \'{0}\' has the nickname \'{1}\'!", ply.OriginalName, ply.Nickname), Color.MediumSeaGreen);
 
+		}
+		#endregion
+
+		#region Exact Time
+		private void CMDetime(CommandArgs args)
+		{
+			if (args.Parameters.Count != 1 || !args.Parameters[0].Contains(':'))
+			{
+				args.Player.SendMessage("Usage: /etime <hours>:<minutes>", Color.OrangeRed);
+				return;
+			}
+
+			string[] split = args.Parameters[0].Split(':');
+			string sHours = split[0];
+			string sMinutes = split[1];
+
+			bool PM = false;
+			int Hours = -1;
+			int Minutes = -1;
+			if (!int.TryParse(sHours, out Hours) || !int.TryParse(sMinutes, out Minutes))
+			{
+				args.Player.SendMessage("Usage: /etime <hours>:<minutes>", Color.OrangeRed);
+				return;
+			}
+			if (Hours < 0 || Hours > 24)
+			{
+				args.Player.SendMessage("Hours is out of range.", Color.OrangeRed);
+				return;
+			}
+			if (Minutes < 0 || Minutes > 59)
+			{
+				args.Player.SendMessage("Minutes is out of range.", Color.OrangeRed);
+				return;
+			}
+
+			int TFHour = Hours;
+
+			if (TFHour == 24 || TFHour == 0)
+			{
+				Hours = 12;
+			}
+			if (TFHour >= 12 && TFHour < 24)
+			{
+				PM = true;
+				if (Hours > 12)
+					Hours -= 12;
+			}
+
+			int THour = Hours;
+
+			Hours = TFHour;
+			if (Hours == 24)
+				Hours = 0;
+
+			double TimeMinutes = Minutes / 60.0;
+			double MainTime = TimeMinutes + Hours;
+
+			if (MainTime >= 4.5 && MainTime < 24)
+				MainTime -= 24.0;
+
+			MainTime = MainTime + 19.5;
+			MainTime = MainTime / 24.0 * 86400.0;
+
+			bool Day = false;
+			if ((!PM && ((THour > 4 || (THour == 4 && Minutes >= 30))) && THour < 12) || (PM && ((THour < 7 || (THour == 7 && Minutes < 30)) || THour == 12)))
+				Day = true;
+
+			if (!Day)
+				MainTime -= 54000.0;
+
+			TSPlayer.Server.SetTime(Day, MainTime);
+
+			string min = Minutes.ToString();
+			if (Minutes < 10)
+				min = "0" + Minutes.ToString();
+			TShock.Utils.Broadcast(string.Format("{0} set time to {1}:{2} {3}", args.Player.Name, THour, min, (PM ? "PM" : "AM")), Color.LightSeaGreen);
 		}
 		#endregion
 	}

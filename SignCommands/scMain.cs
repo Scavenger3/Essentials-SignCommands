@@ -12,6 +12,7 @@ using System.Data;
 using MySql.Data.MySqlClient;
 using Mono.Data.Sqlite;
 using TShockAPI.DB;
+using System.Reflection;
 
 namespace SignCommands
 {
@@ -45,7 +46,7 @@ namespace SignCommands
 
 		public override Version Version
 		{
-			get { return new Version("1.3.9.3"); }
+			get { return Assembly.GetExecutingAssembly().GetName().Version; }
 		}
 
 		public override void Initialize()

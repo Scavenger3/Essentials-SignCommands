@@ -1,6 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Essentials", "Essentials\Essentials.csproj", "{85F20ADC-C2D1-416D-B7FF-9433C75A8F01}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SignCommands", "SignCommands\SignCommands.csproj", "{AC6A21C4-6EFB-414B-BCE3-6B8F99F65165}"

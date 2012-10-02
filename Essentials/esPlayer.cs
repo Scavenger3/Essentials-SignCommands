@@ -29,6 +29,9 @@ namespace Essentials
 		public bool HasNickName { get; set; }
 		public string Nickname { get; set; }
 		public string OriginalName { get; set; }
+		public int pTime { get; set; }
+		public double ptTime { get; set; }
+		public bool ptDay { get; set; }
 
 		public esPlayer(int index)
 		{
@@ -51,6 +54,9 @@ namespace Essentials
 			HasNickName = false;
 			Nickname = string.Empty;
 			OriginalName = string.Empty;
+			pTime = -1;
+			ptTime = 0.0;
+			ptDay = true;
 		}
 
 		public void Disable()

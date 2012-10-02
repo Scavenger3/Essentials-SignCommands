@@ -10,11 +10,18 @@ namespace Essentials
 	{
 		public bool ShowBackMessageOnDeath = true;
 		public string PrefixNicknamesWith = "~";
-		public bool LockTeams = false;
-		public string RedPassword = "";
-		public string GreenPassword = "";
-		public string BluePassword = "";
-		public string YellowPassword = "";
+		public bool LockRedTeam = false;
+		public string RedTeamPassword = "";
+		public string RedTeamPermission = "essentials.team.red";
+		public bool LockGreenTeam = false;
+		public string GreenTeamPassword = "";
+		public string GreenTeamPermission = "essentials.team.green";
+		public bool LockBlueTeam = false;
+		public string BlueTeamPassword = "";
+		public string BlueTeamPermission = "essentials.team.blue";
+		public bool LockYellowTeam = false;
+		public string YellowTeamPassword = "";
+		public string YellowTeamPermission = "essentials.team.yellow";
 		public List<string> DisableSetHomeInRegions = new List<string>();
 
 
