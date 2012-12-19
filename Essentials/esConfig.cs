@@ -86,9 +86,9 @@ namespace Essentials
 		{
 			try
 			{
-				if (!Directory.Exists(@"tshock/Essentials/"))
+				if (!Directory.Exists(Essentials.EssDirectory))
 				{
-					Directory.CreateDirectory(@"tshock/Essentials/");
+					Directory.CreateDirectory(Essentials.EssDirectory);
 				}
 
 				if (File.Exists(Essentials.ConfigPath))
@@ -112,13 +112,20 @@ namespace Essentials
 				"{" + Environment.NewLine +
 				"  \"ShowBackMessageOnDeath\": true," + Environment.NewLine +
 				"  \"PrefixNicknamesWith\": \"~\"," + Environment.NewLine +
-				"  \"UsePermissonsForTeams\": false," + Environment.NewLine +
-				"  \"RedPassword\": \"\"," + Environment.NewLine +
-				"  \"GreenPassword\": \"\"," + Environment.NewLine +
-				"  \"BluePassword\": \"\"," + Environment.NewLine +
-				"  \"YellowPassword\": \"\"," + Environment.NewLine +
+				"  \"LockRedTeam\": false," + Environment.NewLine +
+				"  \"RedTeamPassword\": \"\"," + Environment.NewLine +
+				"  \"RedTeamPermission\": \"essentials.team.red\"," + Environment.NewLine +
+				"  \"LockGreenTeam\": true," + Environment.NewLine +
+				"  \"GreenTeamPassword\": \"\"," + Environment.NewLine +
+				"  \"GreenTeamPermission\": \"essentials.team.green\"," + Environment.NewLine +
+				"  \"LockBlueTeam\": true," + Environment.NewLine +
+				"  \"BlueTeamPassword\": \"\"," + Environment.NewLine +
+				"  \"BlueTeamPermission\": \"essentials.team.blue\"," + Environment.NewLine +
+				"  \"LockYellowTeam\": false," + Environment.NewLine +
+				"  \"YellowTeamPassword\": \"\"," + Environment.NewLine +
+				"  \"YellowTeamPermission\": \"essentials.team.yellow\"," + Environment.NewLine +
 				"  \"DisableSetHomeInRegions\": [" + Environment.NewLine +
-				"	\"example\"" + Environment.NewLine +
+				"    \"example\"" + Environment.NewLine +
 				"  ]" + Environment.NewLine +
 				"}");
 		}

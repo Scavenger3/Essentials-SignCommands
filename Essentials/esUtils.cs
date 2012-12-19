@@ -51,12 +51,11 @@ namespace Essentials
 			}
 			catch { return new List<object>(); }
 		}
-
 		public static void DisplaySearchResults(TSPlayer Player, List<object> Results, int Page)
 		{
-			if (Results[0].GetType() == typeof(Item))
+			if (Results[0] is Item)
 				Player.SendMessage("Item Search:", Color.Yellow);
-			else if (Results[0].GetType() == typeof(NPC))
+			else if (Results[0] is NPC)
 				Player.SendMessage("NPC Search:", Color.Yellow);
 			var sb = new StringBuilder();
 			if (Results.Count > (8 * (Page - 1)))
@@ -65,9 +64,9 @@ namespace Essentials
 				{
 					if (sb.Length != 0)
 						sb.Append(" | ");
-					if (Results[j].GetType() == typeof(Item))
+					if (Results[j] is Item)
 						sb.Append(((Item)Results[j]).netID).Append(": ").Append(((Item)Results[j]).name);
-					else if (Results[j].GetType() == typeof(NPC))
+					else if (Results[j] is NPC)
 						sb.Append(((NPC)Results[j]).netID).Append(": ").Append(((NPC)Results[j]).name);
 					if (j == Results.Count - 1)
 					{
@@ -136,7 +135,6 @@ namespace Essentials
 			}
 			return -1;
 		}
-
 		public static int GetUp(int TileX, int TileY)
 		{
 			for (int y = TileY - 2; y > 0; y--)
@@ -151,7 +149,6 @@ namespace Essentials
 			}
 			return -1;
 		}
-
 		public static int GetDown(int TileX, int TileY)
 		{
 			for (int y = TileY + 4; y < Main.maxTilesY; y++)
@@ -168,9 +165,6 @@ namespace Essentials
 		}
 
 		#region ParseParameters
-		/*
-		 * This code has been used under the terms of the GNU General Public License. Copyright (C) 2011-2012 The TShock Team.
-		 */
 		public static List<String> ParseParameters(string str)
 		{
 			var ret = new List<string>();
@@ -227,7 +221,6 @@ namespace Essentials
 
 			return ret;
 		}
-
 		private static char GetEscape(char c)
 		{
 			switch (c)
@@ -242,7 +235,6 @@ namespace Essentials
 					return c;
 			}
 		}
-
 		private static bool IsWhiteSpace(char c)
 		{
 			return c == ' ' || c == '\t' || c == '\n';

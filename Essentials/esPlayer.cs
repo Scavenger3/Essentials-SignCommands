@@ -35,35 +35,35 @@ namespace Essentials
 
 		public esPlayer(int index)
 		{
-			Index = index;
-			LastBackX = -1;
-			LastBackY = -1;
-			LastBackAction = BackAction.None;
-			SavedBackAction = false;
-			LastSearchResults = new List<object>();
-			RedPassword = string.Empty;
-			GreenPassword = string.Empty;
-			BluePassword = string.Empty;
-			YellowPassword = string.Empty;
-			LastCMD = string.Empty;
-			Disabled = false;
-			DisabledX = Main.spawnTileX;
-			DisabledY = Main.spawnTileY;
-			LastDisabledCheck = DateTime.UtcNow;
-			SocialSpy = false;
-			HasNickName = false;
-			Nickname = string.Empty;
-			OriginalName = string.Empty;
-			pTime = -1;
-			ptTime = 0.0;
-			ptDay = true;
+			this.Index = index;
+			this.LastBackX = -1;
+			this.LastBackY = -1;
+			this.LastBackAction = BackAction.None;
+			this.SavedBackAction = false;
+			this.LastSearchResults = new List<object>();
+			this.RedPassword = string.Empty;
+			this.GreenPassword = string.Empty;
+			this.BluePassword = string.Empty;
+			this.YellowPassword = string.Empty;
+			this.LastCMD = string.Empty;
+			this.Disabled = false;
+			this.DisabledX = Main.spawnTileX;
+			this.DisabledY = Main.spawnTileY;
+			this.LastDisabledCheck = DateTime.UtcNow;
+			this.SocialSpy = false;
+			this.HasNickName = false;
+			this.Nickname = string.Empty;
+			this.OriginalName = string.Empty;
+			this.pTime = -1;
+			this.ptTime = 0.0;
+			this.ptDay = true;
 		}
 
 		public void Disable()
 		{
-			TSPlayer.SetBuff(33, 330, true); //Weak
-			TSPlayer.SetBuff(32, 330, true); //Slow
-			TSPlayer.SetBuff(23, 330, true); //Cursed
+			this.TSPlayer.SetBuff(33, 330, true); //Weak
+			this.TSPlayer.SetBuff(32, 330, true); //Slow
+			this.TSPlayer.SetBuff(23, 330, true); //Cursed
 		}
 	}
 	public enum BackAction
