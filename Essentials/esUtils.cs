@@ -53,10 +53,15 @@ namespace Essentials
 		}
 		public static void DisplaySearchResults(TSPlayer Player, List<object> Results, int Page)
 		{
+			if (Results.Count < 1)
+			{
+				Player.SendInfoMessage("No results found!");
+				return;
+			}
 			if (Results[0] is Item)
-				Player.SendMessage("Item Search:", Color.Yellow);
+				Player.SendInfoMessage("Item Search:");
 			else if (Results[0] is NPC)
-				Player.SendMessage("NPC Search:", Color.Yellow);
+				Player.SendInfoMessage("NPC Search:");
 			var sb = new StringBuilder();
 			if (Results.Count > (8 * (Page - 1)))
 			{
@@ -97,9 +102,9 @@ namespace Essentials
 			{
 				if (p.StartsWith("essentials.home.set.") && p != "essentials.home.set." && !ply.Group.negatedpermissions.Contains(p))
 				{
-					int x = 0;
-					if (int.TryParse(p.Remove(0, 20), out x))
-						maxHomes.Add(x);
+					int m = 0;
+					if (int.TryParse(p.Remove(0, 20), out m))
+						maxHomes.Add(m);
 				}
 			}
 
@@ -115,9 +120,9 @@ namespace Essentials
 			List<int> intHomes = new List<int>();
 			foreach (string h in homes)
 			{
-				int x = 0;
-				if (int.TryParse(h, out x))
-					intHomes.Add(x);
+				int m = 0;
+				if (int.TryParse(h, out m))
+					intHomes.Add(m);
 			}
 			if (intHomes.Count < 1)
 				return "1";

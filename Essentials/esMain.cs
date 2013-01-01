@@ -108,12 +108,13 @@ namespace Essentials
 			Commands.ChatCommands.Add(new Command("essentials.level.down", CMDdown, "down"));
 			Commands.ChatCommands.Add(new Command("essentials.playertime.set", CMDptime, "ptime"));
 			Commands.ChatCommands.Add(new Command("essentials.ping", CMDping, "ping", "pong", "echo"));
-			Commands.ChatCommands.Add(new Command("essentials.udo", CMDudo, "udo"));
+			Commands.ChatCommands.Add(new Command("essentials.sudo", CMDsudo, "sudo"));
 			Commands.ChatCommands.Add(new Command("essentials.socialspy", CMDsocialspy, "socialspy"));
 			Commands.ChatCommands.Add(new Command("essentials.near", CMDnear, "near"));
 			Commands.ChatCommands.Add(new Command("essentials.nick.set", CMDnick, "nick"));
 			Commands.ChatCommands.Add(new Command("essentials.realname", CMDrealname, "realname"));
 			Commands.ChatCommands.Add(new Command("essentials.exacttime", CMDetime, "etime", "exacttime"));
+			Commands.ChatCommands.Add(new Command("essentials.forcelogin", CMDforcelogin, "forcelogin"));
 			#endregion
 
 			LastCheck = DateTime.UtcNow;
@@ -156,7 +157,7 @@ namespace Essentials
 					ply.Disabled = true;
 					ply.TSPlayer.Disable();
 					ply.LastDisabledCheck = DateTime.UtcNow;
-					ply.TSPlayer.SendMessage("You are still disabled!", Color.OrangeRed);
+					ply.TSPlayer.SendWarningMessage("You are still disabled!");
 				}
 
 				string nickname;
@@ -195,105 +196,109 @@ namespace Essentials
 		#region Chat
 		public void OnChat(messageBuffer msg, int who, string text, HandledEventArgs e)
 		{
-			if (e.Handled)
-				return;
-			if (text == "/")
+			try
 			{
-				//TShock.Players[who].SendMessage("Yes, that is how you execute commands! type /help for a list of them!", Color.LightSeaGreen);
-				e.Handled = true;
-				return;
-			}
-
-			var ePly = esUtils.GetesPlayerByID(who);
-			var tPly = TShock.Players[who];
-
-			if (text.StartsWith("/") && text != "/=" && !text.StartsWith("/= ") && !text.StartsWith("/ "))
-			{
-				ePly.LastCMD = text;
-			}
-
-			if (text.StartsWith("/tp "))
-			{
-				#region /tp
-				if (tPly.Group.HasPermission("tp") && tPly.RealPlayer)
+				if (e.Handled)
+					return;
+				if (text == "/")
 				{
-					/* Make sure the tp is valid */
-					List<string> Params = esUtils.ParseParameters(text);
-					Params.RemoveAt(0);
-
-					string plStr = String.Join(" ", Params);
-					var players = TShock.Utils.FindPlayer(plStr);
-
-					if (Params.Count > 0 && players.Count == 1 && players[0].TPAllow && tPly.Group.HasPermission(Permissions.tpall))
-					{
-						ePly.LastBackX = tPly.TileX;
-						ePly.LastBackY = tPly.TileY;
-						ePly.LastBackAction = BackAction.TP;
-					}
+					//TShock.Players[who].SendMessage("Yes, that is how you execute commands! type /help for a list of them!", Color.LightSeaGreen);
+					e.Handled = true;
+					return;
 				}
-				#endregion
-			}
-			else if (text == "/home" || text.StartsWith("/home ") || text == "/spawn" || text.StartsWith("/spawn "))
-			{
-				#region /home & /spawn
-				if (tPly.Group.HasPermission("tp") && tPly.RealPlayer)
-				{
-					ePly.LastBackX = tPly.TileX;
-					ePly.LastBackY = tPly.TileY;
-					ePly.LastBackAction = BackAction.TP;
-				}
-				#endregion
-			}
-			else if (text.StartsWith("/warp "))
-			{
-				#region /warp
-				if (tPly.Group.HasPermission("warp") && tPly.RealPlayer)
-				{
-					/* Make sure the warp is valid */
-					List<string> Params = esUtils.ParseParameters(text);
-					Params.RemoveAt(0);
 
-					if (Params.Count > 0 && !Params[0].Equals("list"))
+				var ePly = esUtils.GetesPlayerByID(who);
+				var tPly = TShock.Players[who];
+
+				if (text.StartsWith("/") && text != "/=" && !text.StartsWith("/= ") && !text.StartsWith("/ "))
+				{
+					ePly.LastCMD = text;
+				}
+
+				if (text.StartsWith("/tp "))
+				{
+					#region /tp
+					if (tPly.Group.HasPermission("tp") && tPly.RealPlayer)
 					{
-						string warpName = String.Join(" ", Params);
-						var warp = TShock.Warps.FindWarp(warpName);
-						if (warp != null && warp.WarpPos != Vector2.Zero)
+						/* Make sure the tp is valid */
+						List<string> Params = esUtils.ParseParameters(text);
+						Params.RemoveAt(0);
+
+						string plStr = String.Join(" ", Params);
+						var players = TShock.Utils.FindPlayer(plStr);
+
+						if (Params.Count > 0 && players.Count == 1 && players[0].TPAllow && tPly.Group.HasPermission(Permissions.tpall))
 						{
 							ePly.LastBackX = tPly.TileX;
 							ePly.LastBackY = tPly.TileY;
 							ePly.LastBackAction = BackAction.TP;
 						}
 					}
+					#endregion
 				}
-				#endregion
-			}
-			else if (text.StartsWith("/whisper ") || text.StartsWith("/w ") || text.StartsWith("/tell ") || text.StartsWith("/reply ") || text.StartsWith("/r ") || text.StartsWith("/p "))
-			{
-				if (!tPly.Group.HasPermission("whisper")) return;
-				foreach (esPlayer player in esPlayers)
+				else if (text == "/home" || text.StartsWith("/home ") || text == "/spawn" || text.StartsWith("/spawn "))
 				{
-					if (player.SocialSpy && player != ePly)
+					#region /home & /spawn
+					if (tPly.Group.HasPermission("tp") && tPly.RealPlayer)
 					{
-						if ((text.StartsWith("/reply ") || text.StartsWith("/r ")) && tPly.LastWhisper != null)
-							player.TSPlayer.SendMessage(string.Format("[SocialSpy] from {0} to {1}: {2}", tPly.Name, tPly.LastWhisper.Name, text), Color.Gray);
-						else
-							player.TSPlayer.SendMessage(string.Format("[SocialSpy] {0}: {1}", tPly.Name, text), Color.Gray);
+						ePly.LastBackX = tPly.TileX;
+						ePly.LastBackY = tPly.TileY;
+						ePly.LastBackAction = BackAction.TP;
+					}
+					#endregion
+				}
+				else if (text.StartsWith("/warp "))
+				{
+					#region /warp
+					if (tPly.Group.HasPermission("warp") && tPly.RealPlayer)
+					{
+						/* Make sure the warp is valid */
+						List<string> Params = esUtils.ParseParameters(text);
+						Params.RemoveAt(0);
+
+						if (Params.Count > 0 && !Params[0].Equals("list"))
+						{
+							string warpName = String.Join(" ", Params);
+							var warp = TShock.Warps.FindWarp(warpName);
+							if (warp != null && warp.WarpPos != Vector2.Zero)
+							{
+								ePly.LastBackX = tPly.TileX;
+								ePly.LastBackY = tPly.TileY;
+								ePly.LastBackAction = BackAction.TP;
+							}
+						}
+					}
+					#endregion
+				}
+				else if (text.StartsWith("/whisper ") || text.StartsWith("/w ") || text.StartsWith("/tell ") || text.StartsWith("/reply ") || text.StartsWith("/r ") || text.StartsWith("/p "))
+				{
+					if (!tPly.Group.HasPermission("whisper")) return;
+					foreach (esPlayer player in esPlayers)
+					{
+						if (player.SocialSpy && player != ePly)
+						{
+							if ((text.StartsWith("/reply ") || text.StartsWith("/r ")) && tPly.LastWhisper != null)
+								player.TSPlayer.SendMessage(string.Format("[SocialSpy] from {0} to {1}: {2}", tPly.Name, tPly.LastWhisper.Name ?? "?", text), Color.Gray);
+							else
+								player.TSPlayer.SendMessage(string.Format("[SocialSpy] {0}: {1}", tPly.Name, text), Color.Gray);
+						}
 					}
 				}
+				else if (ePly.HasNickName && !text.StartsWith("/") && !tPly.mute)
+				{
+					e.Handled = true;
+					string nick = getConfig.PrefixNicknamesWith + ePly.Nickname;
+					TShock.Utils.Broadcast(String.Format(TShock.Config.ChatFormat, tPly.Group.Name, tPly.Group.Prefix, nick, tPly.Group.Suffix, text),
+									tPly.Group.R, tPly.Group.G, tPly.Group.B);
+				}
+				else if (ePly.HasNickName && text.StartsWith("/me ") && !tPly.mute)
+				{
+					e.Handled = true;
+					string nick = getConfig.PrefixNicknamesWith + ePly.Nickname;
+					TShock.Utils.Broadcast(string.Format("*{0} {1}", nick, text.Remove(0, 4)), 205, 133, 63);
+				}
 			}
-			else if (ePly.HasNickName && !text.StartsWith("/") && !tPly.mute)
-			{
-				e.Handled = true;
-				string nick = getConfig.PrefixNicknamesWith + ePly.Nickname;
-				TShock.Utils.Broadcast(String.Format(TShock.Config.ChatFormat, tPly.Group.Name, tPly.Group.Prefix, nick, tPly.Group.Suffix, text),
-								tPly.Group.R, tPly.Group.G, tPly.Group.B);
-			}
-			else if (ePly.HasNickName && text.StartsWith("/me ") && !tPly.mute)
-			{
-				e.Handled = true;
-				string nick = getConfig.PrefixNicknamesWith + ePly.Nickname;
-				TShock.Utils.Broadcast(string.Format("*{0} {1}", nick, text.Remove(0, 4)), 205, 133, 63);
-			}
+			catch { }
 		}
 		#endregion
 		
@@ -1646,8 +1651,8 @@ namespace Essentials
 
 					disabled.Add(tPly.Name, pos);
 
-					args.Player.SendMessage(string.Format("You disabled {0}, He can not be enabled until you type \"/disable {1}\"", tPly.Name, tPly.Name), Color.MediumSeaGreen);
-					if (Reason == "")
+					args.Player.SendMessage(string.Format("You disabled {0}, He can not be enabled until you type \"/disable {0}\"", tPly.Name), Color.MediumSeaGreen);
+					if (Reason == string.Empty)
 						tPly.SendMessage(string.Format("You have been disabled by {0}", args.Player.Name), Color.MediumSeaGreen);
 					else
 						tPly.SendMessage(string.Format("You have been disabled by {0} for {1}", args.Player.Name, Reason), Color.MediumSeaGreen);
@@ -1893,12 +1898,12 @@ namespace Essentials
 		}
 		#endregion
 
-		#region udo
-		private void CMDudo(CommandArgs args)
+		#region sudo
+		private void CMDsudo(CommandArgs args)
 		{
 			if (args.Parameters.Count < 2)
 			{
-				args.Player.SendMessage("Usage: /udo <player> <command>", Color.OrangeRed);
+				args.Player.SendMessage("Usage: /sudo <player> <command>", Color.OrangeRed);
 				return;
 			}
 
@@ -1915,13 +1920,13 @@ namespace Essentials
 			}
 
 			TSPlayer ply = players[0];
-			if (ply.Group.HasPermission("essentials.udo.immune"))
+			if (ply.Group.HasPermission("essentials.sudo.immune"))
 			{
 				args.Player.SendMessage("You cannot force that player to do a command!", Color.OrangeRed);
 				return;
 			}
 			Group oldGroup = null;
-			if (args.Player.Group.HasPermission("essentials.udo.super"))
+			if (args.Player.Group.HasPermission("essentials.sudo.super"))
 			{
 				oldGroup = ply.Group;
 				ply.Group = new SuperAdminGroup();
@@ -2236,6 +2241,52 @@ namespace Essentials
 			if (Minutes < 10)
 				min = "0" + Minutes.ToString();
 			TShock.Utils.Broadcast(string.Format("{0} set time to {1}:{2} {3}", args.Player.Name, THour, min, (PM ? "PM" : "AM")), Color.LightSeaGreen);
+		}
+		#endregion
+
+		#region Force Login
+		private void CMDforcelogin(CommandArgs args)
+		{
+			if (TShock.Config.ServerSideInventory)
+			{
+				args.Player.SendWarningMessage("This command cannot be used when Server Side Inventory is enabled");
+				return;
+			}
+			if (args.Parameters.Count < 1 || args.Parameters.Count > 2)
+			{
+				args.Player.SendWarningMessage("Usage: /forcelogin <account> [player]");
+				return;
+			}
+			var user = TShock.Users.GetUserByName(args.Parameters[0]);
+			if (user == null)
+			{
+				args.Player.SendWarningMessage("User {0} does not exist!".SFormat(args.Parameters[0]));
+				return;
+			}
+			var group = TShock.Utils.GetGroup(user.Group);
+
+			var player = args.Player;
+			if (args.Parameters.Count == 2)
+			{
+				var found = TShock.Utils.FindPlayer(args.Parameters[1]);
+				if (found.Count != 1)
+				{
+					args.Player.SendWarningMessage(string.Format("{0} matched!", found.Count < 1 ? "No players" : "More than one player"));
+					return;
+				}
+				player = found[0];
+			}
+
+			player.Group = group;
+			player.UserAccountName = user.Name;
+			player.UserID = TShock.Users.GetUserID(player.UserAccountName);
+			player.IsLoggedIn = true;
+			player.IgnoreActionsForInventory = "none";
+
+			player.SendSuccessMessage(string.Format("{0} in as {1}", (player != args.Player ? "{0} Logged you".SFormat(args.Player.Name) : "Logged"), user.Name));
+			if (player != args.Player)
+				args.Player.SendSuccessMessage("Logged " + player.Name + " in as " + user.Name);
+			Log.ConsoleInfo(string.Format("{0} forced logged in {1}as user: {2}.", args.Player.Name, args.Player != player ? player.Name + " " : string.Empty, user.Name));
 		}
 		#endregion
 	}

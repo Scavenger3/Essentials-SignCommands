@@ -15,8 +15,6 @@ namespace Essentials
 	{
 		private static IDbConnection db;
 
-		//public static Dictionary<string, string> nicknames = new Dictionary<string, string>();
-
 		#region Setup Database
 		public static void SetupDB()
 		{
@@ -56,8 +54,6 @@ namespace Essentials
 			sqlcreator.EnsureExists(new SqlTable("Nicknames",
 				new SqlColumn("Name", MySqlDbType.Text),
 				new SqlColumn("Nickname", MySqlDbType.Text)));
-
-			//nicknames = ListNicknames();
 		}
 		#endregion
 
@@ -158,8 +154,6 @@ namespace Essentials
 		#region Add Nickname
 		public static bool AddNickname(string Name, string Nickname)
 		{
-			//nicknames.Add(Name, Nickname);
-
 			String query = "INSERT INTO Nicknames (Name, Nickname) VALUES (@0, @1);";
 
 			if (db.Query(query, Name, Nickname) != 1)
@@ -174,8 +168,6 @@ namespace Essentials
 		#region Update Nickname
 		public static bool UpdateNickname(string Name, string Nickname)
 		{
-			//nicknames[Name] = Nickname;
-
 			String query = "UPDATE Nicknames SET Nickname=@0 WHERE Name=@1;";
 
 			if (db.Query(query, Nickname, Name) != 1)
@@ -190,8 +182,6 @@ namespace Essentials
 		#region Remove Nickname
 		public static bool RemoveNickname(string Name)
 		{
-			//nicknames.Remove(Name);
-
 			String query = "DELETE FROM Nicknames WHERE Name=@0;";
 
 			if (db.Query(query, Name) != 1)
