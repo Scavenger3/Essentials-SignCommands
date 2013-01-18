@@ -24,12 +24,12 @@ namespace Essentials
 		public string YellowTeamPermission = "essentials.team.yellow";
 		public List<string> DisableSetHomeInRegions = new List<string>();
 
-
-		public static esConfig Read(string path)
+		internal static string ConfigPath { get { return Path.Combine(TShock.SavePath, "Essentials", "EssentialsConfig.json"); } }
+		public static esConfig Read()
 		{
-			if (!File.Exists(path))
+			if (!File.Exists(ConfigPath))
 				return new esConfig();
-			using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+			using (var fs = new FileStream(ConfigPath, FileMode.Open, FileAccess.Read, FileShare.Read))
 			{
 				return Read(fs);
 			}
@@ -46,9 +46,9 @@ namespace Essentials
 			}
 		}
 
-		public void Write(string path)
+		public void Write()
 		{
-			using (var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Write))
+			using (var fs = new FileStream(ConfigPath, FileMode.Create, FileAccess.Write, FileShare.Write))
 			{
 				Write(fs);
 			}
@@ -69,15 +69,11 @@ namespace Essentials
 		{
 			try
 			{
-				if (File.Exists(Essentials.ConfigPath))
-				{
-					Essentials.getConfig = esConfig.Read(Essentials.ConfigPath);
-				}
-				Essentials.getConfig.Write(Essentials.ConfigPath);
+				DoLoad();
 			}
 			catch (Exception ex)
 			{
-				Log.ConsoleError("Error in Essentials config file, Check the logs for more details!");
+				Log.ConsoleError("[Essentials] Config Exception! Check logs for more details.");
 				Log.Error(ex.ToString());
 			}
 		}
@@ -86,29 +82,32 @@ namespace Essentials
 		{
 			try
 			{
-				if (!Directory.Exists(Essentials.EssDirectory))
-				{
-					Directory.CreateDirectory(Essentials.EssDirectory);
-				}
+				if (!Directory.Exists(Essentials.PluginDirectory))
+					Directory.CreateDirectory(Essentials.PluginDirectory);
 
-				if (File.Exists(Essentials.ConfigPath))
-				{
-					Essentials.getConfig = esConfig.Read(Essentials.ConfigPath);
-				}
-				Essentials.getConfig.Write(Essentials.ConfigPath);
-				args.Player.SendMessage("Essentials Config Reloaded Successfully.", Color.MediumSeaGreen);
+				DoLoad();
+				args.Player.SendMessage("[Essentials] Config reloaded successfully!", Color.MediumSeaGreen);
 			}
 			catch (Exception ex)
 			{
-				args.Player.SendMessage("Error: Could not reload Essentials config, Check log for more details.", Color.IndianRed);
-				Log.Error("Config Exception in Essentials config file");
+				args.Player.SendWarningMessage("[Essnetials] Reload failed! Check logs for more details.");
+				Log.Error("[Essentials] Config Exception:");
 				Log.Error(ex.ToString());
 			}
 		}
 
+		public static void DoLoad()
+		{
+			if (!File.Exists(ConfigPath))
+				CreateExample();
+			
+			Essentials.getConfig = esConfig.Read();
+			Essentials.getConfig.Write();
+		}
+
 		public static void CreateExample()
 		{
-			File.WriteAllText(Essentials.ConfigPath,
+			File.WriteAllText(ConfigPath,
 				"{" + Environment.NewLine +
 				"  \"ShowBackMessageOnDeath\": true," + Environment.NewLine +
 				"  \"PrefixNicknamesWith\": \"~\"," + Environment.NewLine +

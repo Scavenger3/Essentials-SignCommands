@@ -13,12 +13,15 @@ namespace SignCommands
 		public string DefineSignCommands = "[Sign Command]";
 		public string CommandsStartWith = ">";
 		public Dictionary<string, int> CooldownGroups = new Dictionary<string, int>();
+		public bool ShowDestroyMessage = true;
 
-		public static scConfig Read(string path)
+		internal static string ConfigDirectory { get { return Path.Combine(TShock.SavePath, "PluginConfigs"); } }
+		internal static string ConfigPath { get { return Path.Combine(TShock.SavePath, "PluginConfigs", "SignCommandsConfig.json"); } }
+		public static scConfig Read()
 		{
-			if (!File.Exists(path))
+			if (!File.Exists(ConfigPath))
 				return new scConfig();
-			using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+			using (var fs = new FileStream(ConfigPath, FileMode.Open, FileAccess.Read, FileShare.Read))
 			{
 				return Read(fs);
 			}
@@ -35,9 +38,9 @@ namespace SignCommands
 			}
 		}
 
-		public void Write(string path)
+		public void Write()
 		{
-			using (var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Write))
+			using (var fs = new FileStream(ConfigPath, FileMode.Create, FileAccess.Write, FileShare.Write))
 			{
 				Write(fs);
 			}
@@ -58,22 +61,11 @@ namespace SignCommands
 		{
 			try
 			{
-				if (File.Exists(SignCommands.ConfigPath))
-				{
-					SignCommands.getConfig = scConfig.Read(SignCommands.ConfigPath);
-				}
-				List<string> groups = new List<string>(SignCommands.getConfig.CooldownGroups.Keys);
-				foreach (string g in groups)
-				{
-					int useless = -1;
-					if (int.TryParse(g, out useless))
-						SignCommands.getConfig.CooldownGroups.Remove(g);
-				}
-				SignCommands.getConfig.Write(SignCommands.ConfigPath);
+				DoLoad();
 			}
 			catch (Exception ex)
 			{
-				Log.ConsoleError("Config Exception in Sign Commands config file");
+				Log.ConsoleError("[Sign Commands] Config Exception! Check logs for more details.");
 				Log.Error(ex.ToString());
 			}
 		}
@@ -82,31 +74,32 @@ namespace SignCommands
 		{
 			try
 			{
-				if (File.Exists(SignCommands.ConfigPath))
-				{
-					SignCommands.getConfig = scConfig.Read(SignCommands.ConfigPath);
-				}
-				List<string> groups = new List<string>(SignCommands.getConfig.CooldownGroups.Keys);
-				foreach (string g in groups)
-				{
-					int useless = -1;
-					if (int.TryParse(g, out useless))
-						SignCommands.getConfig.CooldownGroups.Remove(g);
-				}
-				SignCommands.getConfig.Write(SignCommands.ConfigPath);
-				args.Player.SendMessage("Sign Command Config Reloaded Successfully.", Color.MediumSeaGreen);
+				DoLoad();
+				args.Player.SendMessage("[Sign Commands] Config reloaded successfully!", Color.MediumSeaGreen);
 			}
 			catch (Exception ex)
 			{
-				args.Player.SendMessage("Error: Could not reload Sign Command config, Check log for more details.", Color.OrangeRed);
-				Log.Error("Config Exception in Sign Commands config file");
+				args.Player.SendWarningMessage("[Sign Commands] Reload failed! Check logs for more details.");
+				Log.Error("[Sign Commands] Config Exception:");
 				Log.Error(ex.ToString());
 			}
 		}
 
+		public static void DoLoad()
+		{
+			if (!Directory.Exists(ConfigDirectory))
+				Directory.CreateDirectory(ConfigDirectory);
+
+			if (!File.Exists(ConfigPath))
+				scConfig.CreateExample();
+
+			SignCommands.getConfig = scConfig.Read();
+			SignCommands.getConfig.Write();
+		}
+
 		public static void CreateExample()
 		{
-			File.WriteAllText(SignCommands.ConfigPath,
+			File.WriteAllText(ConfigPath,
 				"{" + Environment.NewLine +
 				"  \"DefineSignCommands\": \"[Sign Command]\"," + Environment.NewLine +
 				"  \"CommandsStartWith\": \">\"," + Environment.NewLine +
@@ -121,7 +114,8 @@ namespace SignCommands
 				"    \"spawnmob\": 300," + Environment.NewLine +
 				"    \"kit\": 300," + Environment.NewLine +
 				"    \"command\": 300" + Environment.NewLine +
-				"  }" + Environment.NewLine +
+				"  }," + Environment.NewLine +
+				"  \"ShowDestroyMessage\": true," + Environment.NewLine +
 				"}");
 		}
 	}

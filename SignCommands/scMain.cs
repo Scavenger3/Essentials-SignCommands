@@ -20,14 +20,27 @@ namespace SignCommands
 	public class SignCommands : TerrariaPlugin
 	{
 		public static scConfig getConfig { get; set; }
-		internal static string ConfigPath { get { return Path.Combine(TShock.SavePath, "PluginConfigs", "SignCommandsConfig.json"); } }
+		public static scPlayer[] scPlayers { get; set; }
+		public static Dictionary<string, DateTime> GlobalCooldowns { get; set; }
+		public static Dictionary<string, Dictionary<string, DateTime>> OfflineCooldowns { get; set; }
+		public static bool UsingInfiniteSigns { get; set; }
+		public static bool UsingVault { get; set; }
 
-		public static List<scPlayer> scPlayers = new List<scPlayer>();
-		public static Dictionary<string, int> GlobalCooldowns = new Dictionary<string, int>();
-		public static Dictionary<string, Dictionary<string, int>> LoggedOutCooldowns = new Dictionary<string, Dictionary<string, int>>();
+		DateTime lastCooldown { get; set; }
+		DateTime lastPurge { get; set; }
 
-		/*public bool UsingInfiniteSigns = false;*/
-		public DateTime lastCooldown = DateTime.UtcNow;
+		public SignCommands(Main game) : base(game)
+		{
+			getConfig = new scConfig();
+			scPlayers = new scPlayer[256];
+			GlobalCooldowns = new Dictionary<string, DateTime>();
+			OfflineCooldowns = new Dictionary<string, Dictionary<string, DateTime>>();
+			UsingInfiniteSigns = File.Exists(Path.Combine("ServerPlugins", "InfiniteSigns.dll"));
+			UsingVault = File.Exists(Path.Combine("ServerPlugins", "Vault.dll"));
+			this.lastCooldown = DateTime.UtcNow;
+			this.lastPurge = DateTime.UtcNow;
+			Order = -1;
+		}
 
 		public override string Name
 		{
@@ -52,7 +65,13 @@ namespace SignCommands
 		public override void Initialize()
 		{
 			GameHooks.Initialize += OnInitialize;
-			NetHooks.GetData += GetData;
+			if (!UsingInfiniteSigns)
+				NetHooks.GetData += GetData;
+			else
+			{
+				try { LoadDelegates(); }
+				catch { }
+			}
 			NetHooks.GreetPlayer += OnGreetPlayer;
 			ServerHooks.Leave += OnLeave;
 			GameHooks.Update += OnUpdate;
@@ -63,52 +82,34 @@ namespace SignCommands
 			if (disposing)
 			{
 				GameHooks.Initialize -= OnInitialize;
-				NetHooks.GetData -= GetData;
+				if (!UsingInfiniteSigns)
+					NetHooks.GetData -= GetData;
+				else
+				{
+					try { UnloadDelegates(); }
+					catch { }
+				}
 				NetHooks.GreetPlayer -= OnGreetPlayer;
 				ServerHooks.Leave -= OnLeave;
 				GameHooks.Update -= OnUpdate;
-
-				/* UnLoad Infinite Signs Delegates /
-				if (UsingInfiniteSigns)
-				{
-					try
-					{
-						UnloadDelegates();
-					}
-					catch { }
-				}*/
 			}
 			base.Dispose(disposing);
 		}
 
 		#region Load Unload Delegates
-		/*private void LoadDelegates()
+		private void LoadDelegates()
 		{
-			try
-			{
-				InfiniteSigns.InfiniteSigns.SignEdit += OnSignEdit;
-				InfiniteSigns.InfiniteSigns.SignHit += OnSignHit;
-				InfiniteSigns.InfiniteSigns.SignKill += OnSignKill;
-			}
-			catch { }
+			InfiniteSigns.InfiniteSigns.SignEdit += OnSignEdit;
+			InfiniteSigns.InfiniteSigns.SignHit += OnSignHit;
+			InfiniteSigns.InfiniteSigns.SignKill += OnSignKill;
 		}
 		private void UnloadDelegates()
 		{
-			try
-			{
-				InfiniteSigns.InfiniteSigns.SignEdit -= OnSignEdit;
-				InfiniteSigns.InfiniteSigns.SignHit -= OnSignHit;
-				InfiniteSigns.InfiniteSigns.SignKill -= OnSignKill;
-			}
-			catch { }
-		}*/
-		#endregion
-
-		public SignCommands(Main game) : base(game)
-		{
-			getConfig = new scConfig();
-			Order = -1;
+			InfiniteSigns.InfiniteSigns.SignEdit -= OnSignEdit;
+			InfiniteSigns.InfiniteSigns.SignHit -= OnSignHit;
+			InfiniteSigns.InfiniteSigns.SignKill -= OnSignKill;
 		}
+		#endregion
 
 		#region Initialize
 		public void OnInitialize()
@@ -118,42 +119,17 @@ namespace SignCommands
 			Commands.ChatCommands.Add(new Command("essentials.signs.reload", CMDscreload, "screload"));
 
 			/* Load Config */
-			if (!Directory.Exists(@"tshock/PluginConfigs/"))
-				Directory.CreateDirectory(@"tshock/PluginConfigs/");
-
-			if (!File.Exists(ConfigPath))
-				scConfig.CreateExample();
-
 			scConfig.LoadConfig();
-
-			/* Check for InfiniteSigns.dll /
-			if (File.Exists(@"serverplugins/InfiniteSigns.dll"))
-				UsingInfiniteSigns = true;
-
-			if (UsingInfiniteSigns)
-			{
-				/* Load Delegates /
-				try
-				{
-					LoadDelegates();
-				}
-				catch { }
-			}*/
 		}
 		#endregion
 
 		#region Commands
 		private void CMDdestsign(CommandArgs args)
 		{
-			scPlayer play = scUtils.GetscPlayerByID(args.Player.Index);
-			if (play == null) return;
+			scPlayer sPly = scPlayers[args.Player.Index];
 
-			play.DestroyMode = !play.DestroyMode;
-
-			if (play.DestroyMode)
-				args.Player.SendMessage("You are now in destroy mode, Type \"/destsign\" to return to use mode!", Color.LightGreen);
-			else
-				args.Player.SendMessage("You are now in use mode, Type \"/destsign\" to return to destroy mode!", Color.LightGreen);
+			sPly.DestroyMode = true;
+			args.Player.SendMessage("You can now destroy a sign!", Color.MediumSeaGreen);
 		}
 
 		private void CMDscreload(CommandArgs args)
@@ -165,33 +141,20 @@ namespace SignCommands
 		#region scPlayers
 		public void OnGreetPlayer(int who, HandledEventArgs e)
 		{
-			lock (scPlayers)
-				scPlayers.Add(new scPlayer(who));
+			scPlayers[who] = new scPlayer(who);
 
-			if (LoggedOutCooldowns.ContainsKey(TShock.Players[who].Name))
+			if (OfflineCooldowns.ContainsKey(TShock.Players[who].Name))
 			{
-				scPlayer ply = scUtils.GetscPlayerByID(who);
-				if (ply == null) return;
-				lock (ply.Cooldowns)
-					ply.Cooldowns = LoggedOutCooldowns[ply.TSPlayer.Name];
-				lock (LoggedOutCooldowns)
-					LoggedOutCooldowns.Remove(ply.TSPlayer.Name);
+				scPlayers[who].Cooldowns = OfflineCooldowns[TShock.Players[who].Name];
+				OfflineCooldowns.Remove(TShock.Players[who].Name);
 			}
 		}
 
 		public void OnLeave(int who)
 		{
-			lock (scPlayers)
-				for (int i = 0; i < scPlayers.Count; i++)
-					if (scPlayers[i].Index == who)
-					{
-						scPlayer ply = scUtils.GetscPlayerByID(who);
-						if (ply != null && ply.Cooldowns.Count > 0)
-							LoggedOutCooldowns.Add(ply.TSPlayer.Name, ply.Cooldowns);
-
-						scPlayers.RemoveAt(i);
-						break;
-					}
+			if (scPlayers[who].Cooldowns.Count > 0)
+				OfflineCooldowns.Add(TShock.Players[who].Name, scPlayers[who].Cooldowns);
+			scPlayers[who] = null;
 		}
 		#endregion
 
@@ -201,61 +164,71 @@ namespace SignCommands
 			if ((DateTime.UtcNow - lastCooldown).TotalMilliseconds >= 1000)
 			{
 				lastCooldown = DateTime.UtcNow;
-
-				List<string> CooldownGroups = new List<string>(SignCommands.GlobalCooldowns.Keys);
-				lock (SignCommands.GlobalCooldowns)
+				foreach (scPlayer sPly in scPlayers)
 				{
-					foreach (string g in CooldownGroups)
-					{
-						if (SignCommands.GlobalCooldowns[g] > 0)
-							SignCommands.GlobalCooldowns[g]--;
-						else if (SignCommands.GlobalCooldowns[g] == 0)
-							SignCommands.GlobalCooldowns.Remove(g);
-					}
+					if (sPly.AlertCooldownCooldown > 0)
+						sPly.AlertCooldownCooldown--;
+					if (sPly.AlertPermissionCooldown > 0)
+						sPly.AlertPermissionCooldown--;
+					if (sPly.AlertDestroyCooldown > 0)
+						sPly.AlertDestroyCooldown--;
 				}
 
-				lock (scPlayers)
+				if ((DateTime.UtcNow - lastPurge).TotalMinutes >= 5)
 				{
-					foreach (scPlayer sPly in scPlayers)
+					lastPurge = DateTime.UtcNow;
+
+					List<string> CooldownGroups = new List<string>(GlobalCooldowns.Keys);
+					foreach (string g in CooldownGroups)
 					{
-						if (sPly.AlertCooldownCooldown > 0)
-							sPly.AlertCooldownCooldown--;
+						if (DateTime.UtcNow > GlobalCooldowns[g])
+							GlobalCooldowns.Remove(g);
+					}
 
-						if (sPly.AlertPermissionCooldown > 0)
-							sPly.AlertPermissionCooldown--;
-
-						if (sPly.AlertDestroyCooldown > 0)
-							sPly.AlertDestroyCooldown--;
-
-						List<string> CooldownIds = new List<string>(sPly.Cooldowns.Keys);
-						lock (sPly.Cooldowns)
+					List<string> OfflinePlayers = new List<string>(OfflineCooldowns.Keys);
+					foreach (string p in OfflinePlayers)
+					{
+						List<string> OfflinePlayerCooldowns = new List<string>(OfflineCooldowns[p].Keys);
+						foreach (string g in OfflinePlayerCooldowns)
 						{
-							foreach (string id in CooldownIds)
-							{
-								if (sPly.Cooldowns[id] > 0)
-									sPly.Cooldowns[id]--;
-								else if (sPly.Cooldowns[id] == 0)
-									sPly.Cooldowns.Remove(id);
-							}
+							if (DateTime.UtcNow > OfflineCooldowns[p][g])
+								OfflineCooldowns[p].Remove(g);
+						}
+						if (OfflineCooldowns[p].Count == 0)
+							OfflineCooldowns.Remove(p);
+					}
+
+					foreach (var sPly in scPlayers)
+					{
+						List<string> CooldownIds = new List<string>(sPly.Cooldowns.Keys);
+						foreach (string id in CooldownIds)
+						{
+							if (DateTime.UtcNow > sPly.Cooldowns[id])
+								sPly.Cooldowns.Remove(id);
 						}
 					}
 				}
+
 			}
 		}
 		#endregion
 
 		#region OnSignEdit
-		/*private void OnSignEdit(InfiniteSigns.SignEventArgs args)
+		private void OnSignEdit(InfiniteSigns.SignEventArgs args)
 		{
-			args.Handled = OnSignEdit(args.X, args.Y, args.text, args.who, args.id);
-		}*/
-		private bool OnSignEdit(int X, int Y, string text, int who, int id)
+			if (args.Handled) return;
+			try
+			{
+				args.Handled = OnSignEdit(args.X, args.Y, args.text, args.Who);
+			}
+			catch { }
+		}
+		private bool OnSignEdit(int X, int Y, string text, int who)
 		{
 			if (!text.ToLower().StartsWith(getConfig.DefineSignCommands.ToLower())) return false;
-			TSPlayer tPly = TShock.Players[who];
-			scSign sign = new scSign(text, id);
 
-			if (tPly == null) return false;
+			TSPlayer tPly = TShock.Players[who];
+			scSign sign = new scSign(text, new Point(X, Y));
 
 			if (scUtils.CanCreate(tPly, sign)) return false;
 
@@ -263,27 +236,30 @@ namespace SignCommands
 			return true;
 		}
 		#endregion
-
+		
 		#region OnSignHit
-		/*private void OnSignHit(InfiniteSigns.SignEventArgs args)
+		private void OnSignHit(InfiniteSigns.SignEventArgs args)
 		{
-			args.Handled = OnSignHit(args.X, args.Y, args.text, args.who, args.id);
-		}*/
-		private bool OnSignHit(int X, int Y, string text, int who, int id)
+			if (args.Handled) return;
+			try
+			{
+				args.Handled = OnSignHit(args.X, args.Y, args.text, args.Who);
+			}
+			catch { }
+		}
+		private bool OnSignHit(int X, int Y, string text, int who)
 		{
 			if (!text.ToLower().StartsWith(getConfig.DefineSignCommands.ToLower())) return false;
 			TSPlayer tPly = TShock.Players[who];
-			scPlayer sPly = scUtils.GetscPlayerByID(who);
-			scSign sign = new scSign(text, id);
-
-			if (tPly == null || sPly == null) return false;
+			scPlayer sPly = scPlayers[who];
+			scSign sign = new scSign(text, new Point(X, Y));
 
 			bool CanBreak = scUtils.CanBreak(tPly, sign);
 			if (sPly.DestroyMode && CanBreak) return false;
 
-			if (CanBreak && sPly.AlertDestroyCooldown == 0)
+			if (getConfig.ShowDestroyMessage && CanBreak && sPly.AlertDestroyCooldown == 0)
 			{
-				tPly.SendMessage("To destroy this sign, Type \'/destsign\'", Color.Orange);
+				tPly.SendMessage("To destroy this sign, Type \"/destsign\"", Color.Orange);
 				sPly.AlertDestroyCooldown = 10;
 			}
 
@@ -294,50 +270,49 @@ namespace SignCommands
 		#endregion
 
 		#region OnSignKill
-		/*private void OnSignKill(InfiniteSigns.SignEventArgs args)
+		private void OnSignKill(InfiniteSigns.SignEventArgs args)
 		{
-			args.Handled = OnSignKill(args.X, args.Y, args.text, args.who, args.id);
-		}*/
-		private bool OnSignKill(int X, int Y, string text, int who, int id)
+			if (args.Handled) return;
+			try
+			{
+				args.Handled = OnSignKill(args.X, args.Y, args.text, args.Who);
+			}
+			catch { }
+		}
+		private bool OnSignKill(int X, int Y, string text, int who)
 		{
 			if (!text.ToLower().StartsWith(getConfig.DefineSignCommands.ToLower())) return false;
 
-			scPlayer sPly = scUtils.GetscPlayerByID(who);
-			scSign sign = new scSign(text, id);
+			var sPly = scPlayers[who];
+			scSign sign = new scSign(text, new Point(X, Y));
 
-			if (sPly == null) return false;
 			if (sPly.DestroyMode && scUtils.CanBreak(sPly.TSPlayer, sign))
 			{
-				foreach (scPlayer ply in scPlayers)
+				sPly.DestroyMode = false;
+				string id = new Point(X, Y).ToString();
+				List<string> OfflinePlayers = new List<string>(OfflineCooldowns.Keys);
+				foreach (var p in OfflinePlayers)
 				{
-					lock (ply.Cooldowns)
-						if (ply.Cooldowns.ContainsKey(id.ToString()))
-							ply.Cooldowns.Remove(id.ToString());
+					if (OfflineCooldowns[p].ContainsKey(id))
+						OfflineCooldowns[p].Remove(id);
 				}
 
-				lock (SignCommands.LoggedOutCooldowns)
+				foreach (var Ply in scPlayers)
 				{
-					List<string> Users = new List<string>(SignCommands.LoggedOutCooldowns.Keys);
-					foreach (string user in Users)
-					{
-						if (SignCommands.LoggedOutCooldowns[user].ContainsKey(id.ToString()))
-							SignCommands.LoggedOutCooldowns[user].Remove(id.ToString());
-					}
+					if (Ply.Cooldowns.ContainsKey(id))
+						Ply.Cooldowns.Remove(id);
 				}
 				return false;
 			}
-			else
-			{
-				sign.ExecuteCommands(sPly);
-				return true;
-			}
+			sign.ExecuteCommands(sPly);
+			return true;
 		}
 		#endregion
 
 		#region GetData
 		public void GetData(GetDataEventArgs e)
 		{
-			if (e.Handled == true) return;
+			if (e.Handled || UsingInfiniteSigns) return;
 			try
 			{
 				switch (e.MsgID)
@@ -345,20 +320,19 @@ namespace SignCommands
 					#region Sign Edit
 					case PacketTypes.SignNew:
 						{
-							/*if (!UsingInfiniteSigns)
-							{*/
 							int X = BitConverter.ToInt32(e.Msg.readBuffer, e.Index + 2);
 							int Y = BitConverter.ToInt32(e.Msg.readBuffer, e.Index + 6);
 							string text = Encoding.UTF8.GetString(e.Msg.readBuffer, e.Index + 10, e.Length - 11);
 
 							int id = Terraria.Sign.ReadSign(X, Y);
-							if (id == -1 || Main.sign[id] == null) return;
-							if (OnSignEdit(X, Y, text, e.Msg.whoAmI, id))
+							if (id < 0 || Main.sign[id] == null) return;
+							X = Main.sign[id].x;
+							Y = Main.sign[id].y;
+							if (OnSignEdit(X, Y, text, e.Msg.whoAmI))
 							{
 								e.Handled = true;
 								TShock.Players[e.Msg.whoAmI].SendData(PacketTypes.SignNew, "", id);
 							}
-							/*}*/
 						}
 						break;
 					#endregion
@@ -366,30 +340,28 @@ namespace SignCommands
 					#region Tile Modify
 					case PacketTypes.Tile:
 						{
-							/*if (!UsingInfiniteSigns)
-							{*/
 							int X = BitConverter.ToInt32(e.Msg.readBuffer, e.Index + 1);
 							int Y = BitConverter.ToInt32(e.Msg.readBuffer, e.Index + 5);
 
 							if (Main.tile[X, Y].type != 55) return;
 
 							int id = Terraria.Sign.ReadSign(X, Y);
-							if (id == -1 || Main.sign[id] == null) return;
-
+							if (id < 0 || Main.sign[id] == null) return;
+							X = Main.sign[id].x;
+							Y = Main.sign[id].y;
 							string text = Main.sign[id].text;
 
 							bool handle = false;
 							if (e.Msg.readBuffer[e.Index] == 0 && e.Msg.readBuffer[e.Index + 9] == 0)
-								handle = OnSignKill(X, Y, text, e.Msg.whoAmI, id);
+								handle = OnSignKill(X, Y, text, e.Msg.whoAmI);
 							else
-								handle = OnSignHit(X, Y, text, e.Msg.whoAmI, id);
+								handle = OnSignHit(X, Y, text, e.Msg.whoAmI);
 
 							if (handle)
 							{
 								e.Handled = true;
 								TShock.Players[e.Msg.whoAmI].SendTileSquare(X, Y);
 							}
-							/*}*/
 						}
 						break;
 					#endregion
@@ -397,7 +369,7 @@ namespace SignCommands
 			}
 			catch (Exception ex)
 			{
-				Log.Error("[Sign Commands] Exception while recieving data: ");
+				Log.Error("[Sign Commands] Exception:");
 				Log.Error(ex.ToString());
 			}
 		}

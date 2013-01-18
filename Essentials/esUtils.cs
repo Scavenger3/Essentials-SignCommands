@@ -9,15 +9,6 @@ namespace Essentials
 {
 	public static class esUtils
 	{
-		/* GET esPlayer! */
-		public static esPlayer GetesPlayerByID(int id)
-		{
-			foreach (esPlayer ply in Essentials.esPlayers)
-				if (ply.Index == id)
-					return ply;
-			return null;
-		}
-
 		/* Search IDs */
 		public static List<object> ItemIdSearch(string search)
 		{
@@ -53,11 +44,6 @@ namespace Essentials
 		}
 		public static void DisplaySearchResults(TSPlayer Player, List<object> Results, int Page)
 		{
-			if (Results.Count < 1)
-			{
-				Player.SendInfoMessage("No results found!");
-				return;
-			}
 			if (Results[0] is Item)
 				Player.SendInfoMessage("Item Search:");
 			else if (Results[0] is NPC)
@@ -136,35 +122,25 @@ namespace Essentials
 			for (int y = 0; y < Main.maxTilesY; y++)
 			{
 				if (WorldGen.SolidTile(TileX, y))
-					return y - 1;
+					return y - 3;
 			}
 			return -1;
 		}
 		public static int GetUp(int TileX, int TileY)
 		{
-			for (int y = TileY - 2; y > 0; y--)
+			for (int y = TileY - 1; y > 0; y--)
 			{
-				if (!WorldGen.SolidTile(TileX, y))
-				{
-					if (WorldGen.SolidTile(TileX, y + 1) && !WorldGen.SolidTile(TileX, y - 1) && !WorldGen.SolidTile(TileX, y - 2))
-					{
-						return y;
-					}
-				}
+				if (WorldGen.SolidTile(TileX, y + 1) && !WorldGen.SolidTile(TileX, y) && !WorldGen.SolidTile(TileX, y - 1) && !WorldGen.SolidTile(TileX, y - 2))
+					return y - 2;
 			}
 			return -1;
 		}
 		public static int GetDown(int TileX, int TileY)
 		{
-			for (int y = TileY + 4; y < Main.maxTilesY; y++)
+			for (int y = TileY + 3; y < Main.maxTilesY; y++)
 			{
-				if (!WorldGen.SolidTile(TileX, y))
-				{
-					if (WorldGen.SolidTile(TileX, y + 1) && !WorldGen.SolidTile(TileX, y - 1) && !WorldGen.SolidTile(TileX, y - 2))
-					{
-						return y;
-					}
-				}
+				if (WorldGen.SolidTile(TileX, y + 1) && !WorldGen.SolidTile(TileX, y) && !WorldGen.SolidTile(TileX, y - 1) && !WorldGen.SolidTile(TileX, y - 2))
+					return y - 2;
 			}
 			return -1;
 		}

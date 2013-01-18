@@ -29,7 +29,6 @@ namespace Essentials
 		public bool HasNickName { get; set; }
 		public string Nickname { get; set; }
 		public string OriginalName { get; set; }
-		public int pTime { get; set; }
 		public double ptTime { get; set; }
 		public bool ptDay { get; set; }
 
@@ -47,15 +46,14 @@ namespace Essentials
 			this.YellowPassword = string.Empty;
 			this.LastCMD = string.Empty;
 			this.Disabled = false;
-			this.DisabledX = Main.spawnTileX;
-			this.DisabledY = Main.spawnTileY;
+			this.DisabledX = -1;
+			this.DisabledY = -1;
 			this.LastDisabledCheck = DateTime.UtcNow;
 			this.SocialSpy = false;
 			this.HasNickName = false;
 			this.Nickname = string.Empty;
 			this.OriginalName = string.Empty;
-			this.pTime = -1;
-			this.ptTime = 0.0;
+			this.ptTime = -1.0;
 			this.ptDay = true;
 		}
 
@@ -68,6 +66,8 @@ namespace Essentials
 	}
 	public enum BackAction
 	{
-		None, TP, Death
+		None = 0,
+		TP = 1,
+		Death = 2
 	}
 }

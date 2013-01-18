@@ -8,22 +8,18 @@ namespace SignCommands
 {
 	public class scSign
 	{
-		public int ID { get; set; }
-		public int MyCooldown { get; set; }
+		public Point Position { get; set; }
+		public int Cooldown { get; set; }
 		public string CooldownGroup { get; set; }
-		public bool HasGroup { get; set; }
-		public bool GlobalCooldown { get; set; }
+		public int Cost { get; set; }
 		public List<scCommand> Commands { get; set; }
-
-		public scSign(string text, int id)
+		public scSign(string text, Point position)
 		{
-			this.ID = id;
-			this.Commands = new List<scCommand>();
-			this.MyCooldown = 0;
+			this.Position = position;
+			this.Cooldown = 0;
 			this.CooldownGroup = string.Empty;
-			this.HasGroup = false;
-			this.GlobalCooldown = false;
-
+			this.Cost = 0;
+			this.Commands = new List<scCommand>();
 			ParseCommands(text);
 		}
 
@@ -47,45 +43,43 @@ namespace SignCommands
 
 			foreach (string cmd in commands)
 			{
-				List<string> args = new List<string> { cmd };
-				if (cmd.Contains(' '))
-					args = cmd.Split(' ').ToList();
+				/* Parse Parameters */
+				var args = scUtils.ParseParameters(cmd);
 
-				string main = args[0];
+				var name = args[0];
 				args.RemoveAt(0);
 
-				/* Parse Parameters */
-				args = scUtils.ParseParameters(string.Join(" ", args));
-
-				this.Commands.Add(new scCommand(this, main, args));
+				this.Commands.Add(new scCommand(this, name, args));
 			}
 
-			/* Parse Cooldown */
 			List<scCommand> Commands = this.Commands.ToList();
 			foreach (scCommand cmd in Commands)
 			{
-				if (cmd.command == "cooldown")
+				/* Parse Cooldown */
+				if (cmd.command == "cooldown" && cmd.args.Count > 0)
 				{
-					if (cmd.args.Count < 1) continue;
-					int seconds = 0;
-					string group = string.Empty;
+					int seconds;
 					if (!int.TryParse(cmd.args[0], out seconds))
 					{
-						group = cmd.args[0].ToLower();
-						if (SignCommands.getConfig.CooldownGroups.ContainsKey(group.ToLower()))
-						{
-							this.HasGroup = true;
-							seconds = SignCommands.getConfig.CooldownGroups[group];
-						}
+						this.CooldownGroup = cmd.args[0].ToLower();
+						if (SignCommands.getConfig.CooldownGroups.ContainsKey(this.CooldownGroup))
+							this.Cooldown = SignCommands.getConfig.CooldownGroups[this.CooldownGroup];
 						else
-							group = string.Empty;
+							this.CooldownGroup = string.Empty;
 					}
-					this.MyCooldown = seconds;
-					this.CooldownGroup = group.ToLower();
-					this.GlobalCooldown = group.ToLower().StartsWith("global");
+					else
+						this.Cooldown = seconds;
 					this.Commands.Remove(cmd);
-					break;
 				}
+				/* Parse Cost */
+				else if (SignCommands.UsingVault && cmd.command == "cost" && cmd.args.Count > 0)
+				{
+					int amount;
+					if (int.TryParse(cmd.args[0], out amount))
+						this.Cost = amount;
+					this.Commands.Remove(cmd);
+				}
+				/* Check if Valid */
 				else if (!cmd.AmIValid())
 				{
 					this.Commands.Remove(cmd);
@@ -97,28 +91,28 @@ namespace SignCommands
 		#region ExecuteCommands
 		public void ExecuteCommands(scPlayer sPly)
 		{
-			#region Check Cooldowns
-			if (!sPly.TSPlayer.Group.HasPermission("essentials.signs.nocooldown") && this.MyCooldown > 0)
+			#region Check Cooldown
+			if (!sPly.TSPlayer.Group.HasPermission("essentials.signs.nocooldown") && this.Cooldown > 0)
 			{
-				if (this.GlobalCooldown)
+				if (this.CooldownGroup.StartsWith("global-"))
 				{
 					lock (SignCommands.GlobalCooldowns)
 					{
 						if (!SignCommands.GlobalCooldowns.ContainsKey(this.CooldownGroup))
-							SignCommands.GlobalCooldowns.Add(this.CooldownGroup, this.MyCooldown);
+							SignCommands.GlobalCooldowns.Add(this.CooldownGroup, DateTime.UtcNow.AddSeconds(this.Cooldown));
 						else
 						{
-							if (SignCommands.GlobalCooldowns[this.CooldownGroup] > 0)
+							if (SignCommands.GlobalCooldowns[this.CooldownGroup] > DateTime.UtcNow)
 							{
 								if (sPly.AlertCooldownCooldown == 0)
 								{
-									sPly.TSPlayer.SendMessage(string.Format("Everyone must wait another {0} seconds before using this sign!", SignCommands.GlobalCooldowns[this.CooldownGroup]), Color.OrangeRed);
+									sPly.TSPlayer.SendMessage(string.Format("Everyone must wait another {0} seconds before using this sign!", (int)(SignCommands.GlobalCooldowns[this.CooldownGroup] - DateTime.UtcNow).TotalSeconds), Color.OrangeRed);
 									sPly.AlertCooldownCooldown = 3;
 								}
 								return;
 							}
 							else
-								SignCommands.GlobalCooldowns[this.CooldownGroup] = this.MyCooldown;
+								SignCommands.GlobalCooldowns[this.CooldownGroup] = DateTime.UtcNow.AddSeconds(this.Cooldown);
 						}
 					}
 				}
@@ -126,51 +120,34 @@ namespace SignCommands
 				{
 					lock (sPly.Cooldowns)
 					{
-						if (this.HasGroup)
-						{
-							if (!sPly.Cooldowns.ContainsKey(this.CooldownGroup))
-								sPly.Cooldowns.Add(this.CooldownGroup, this.MyCooldown);
-							else
-							{
-								if (sPly.Cooldowns[this.CooldownGroup] > 0)
-								{
-									if (sPly.AlertCooldownCooldown == 0)
-									{
-										sPly.TSPlayer.SendMessage(string.Format("You must wait another {0} seconds before using this sign!", sPly.Cooldowns[this.CooldownGroup]), Color.OrangeRed);
-										sPly.AlertCooldownCooldown = 3;
-									}
-									return;
-								}
-								else
-								{
-									sPly.Cooldowns[this.CooldownGroup] = this.MyCooldown;
-								}
-							}
-						}
+						string CooldownID = string.Concat(this.Position.ToString());
+						if (this.CooldownGroup != string.Empty)
+							CooldownID = this.CooldownGroup;
+
+						if (!sPly.Cooldowns.ContainsKey(CooldownID))
+							sPly.Cooldowns.Add(CooldownID, DateTime.UtcNow.AddSeconds(this.Cooldown));
 						else
 						{
-							if (!sPly.Cooldowns.ContainsKey(this.ID.ToString()))
-								sPly.Cooldowns.Add(this.ID.ToString(), this.MyCooldown);
-							else
+							if (sPly.Cooldowns[CooldownID] > DateTime.UtcNow)
 							{
-								if (sPly.Cooldowns[this.ID.ToString()] > 0)
+								if (sPly.AlertCooldownCooldown == 0)
 								{
-									if (sPly.AlertCooldownCooldown == 0)
-									{
-										sPly.TSPlayer.SendMessage(string.Format("You must wait another {0} seconds before using this sign!", sPly.Cooldowns[this.ID.ToString()]), Color.OrangeRed);
-										sPly.AlertCooldownCooldown = 3;
-									}
-									return;
+									sPly.TSPlayer.SendMessage(string.Format("You must wait another {0} seconds before using this sign!", (int)(sPly.Cooldowns[CooldownID] - DateTime.UtcNow).TotalSeconds), Color.OrangeRed);
+									sPly.AlertCooldownCooldown = 3;
 								}
-								else
-								{
-									sPly.Cooldowns[this.ID.ToString()] = this.MyCooldown;
-								}
+								return;
 							}
+							else
+								sPly.Cooldowns[CooldownID] = DateTime.UtcNow.AddSeconds(this.Cooldown);
 						}
 					}
 				}
 			}
+			#endregion
+
+			#region Check Cost
+			if (SignCommands.UsingVault && this.Cost > 0 && !chargeSign(sPly))
+				return;
 			#endregion
 
 			int DoesntHavePermission = 0;
@@ -185,11 +162,42 @@ namespace SignCommands
 				cmd.ExecuteCommand(sPly);
 			}
 
-			if (DoesntHavePermission != 0 && sPly.AlertPermissionCooldown == 0)
+			if (DoesntHavePermission > 0 && sPly.AlertPermissionCooldown == 0)
 			{
 				sPly.TSPlayer.SendMessage(string.Format("You do not have permission to use {0} command(s) on that sign!", DoesntHavePermission), Color.OrangeRed);
 				sPly.AlertPermissionCooldown = 5;
 			}
+		}
+		#endregion
+
+		#region Vault
+		bool chargeSign(scPlayer sPly)
+		{
+			try
+			{
+				int NewBalance = Vault.Vault.GetBalance(sPly.TSPlayer.Name) - this.Cost;
+				if (NewBalance < 0)
+				{
+					if (sPly.AlertCooldownCooldown == 0)
+					{
+						sPly.TSPlayer.SendMessage(string.Format("You must have at least {0} to execute this sign!", Vault.Vault.MoneyToString(this.Cost)), Color.OrangeRed);
+						sPly.AlertCooldownCooldown = 3;
+					}
+					return false;
+				}
+				if (!Vault.Vault.SetBalance(sPly.TSPlayer.Name, NewBalance, false))
+				{
+					if (sPly.AlertCooldownCooldown == 0)
+					{
+						sPly.TSPlayer.SendMessage("Changing your balance failed!", Color.OrangeRed);
+						sPly.AlertCooldownCooldown = 3;
+					}
+					return false;
+				}
+				sPly.TSPlayer.SendMessage("Charged {0}, Your balance is now {1}!".SFormat(Vault.Vault.MoneyToString(this.Cost), Vault.Vault.MoneyToString(NewBalance)), Color.OrangeRed);
+				return true;
+			}
+			catch { return true; }
 		}
 		#endregion
 	}

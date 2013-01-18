@@ -8,21 +8,10 @@ namespace SignCommands
 {
 	public static class scUtils
 	{
-		public static scPlayer GetscPlayerByID(int id)
-		{
-			scPlayer player = null;
-			foreach (scPlayer ply in SignCommands.scPlayers)
-			{
-				if (ply.Index == id)
-					return ply;
-			}
-			return player;
-		}
-
 		public static bool CanCreate(TSPlayer player, scSign sign)
 		{
 			foreach (scCommand cmd in sign.Commands)
-				if (!player.Group.HasPermission(string.Format("essentials.signs.create.{0}", cmd.command)))
+				if (!player.Group.HasPermission(string.Concat("essentials.signs.create.", cmd.command)))
 					return false;
 			return true;
 		}
@@ -30,15 +19,12 @@ namespace SignCommands
 		public static bool CanBreak(TSPlayer player, scSign sign)
 		{
 			foreach (scCommand cmd in sign.Commands)
-				if (!player.Group.HasPermission(string.Format("essentials.signs.break.{0}", cmd.command)))
+				if (!player.Group.HasPermission(string.Concat("essentials.signs.break.", cmd.command)))
 					return false;
 			return true;
 		}
 
 		#region ParseParameters
-		/*
-		 * This code has been used under the terms of the GNU General Public License. Copyright (C) 2011-2012 The TShock Team.
-		 */
 		public static List<String> ParseParameters(string str)
 		{
 			var ret = new List<string>();
@@ -95,7 +81,6 @@ namespace SignCommands
 
 			return ret;
 		}
-
 		private static char GetEscape(char c)
 		{
 			switch (c)
@@ -110,7 +95,6 @@ namespace SignCommands
 					return c;
 			}
 		}
-
 		private static bool IsWhiteSpace(char c)
 		{
 			return c == ' ' || c == '\t' || c == '\n';
