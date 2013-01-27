@@ -263,15 +263,13 @@ namespace Essentials
 				else if (text.StartsWith("/whisper ") || text.StartsWith("/w ") || text.StartsWith("/tell ") || text.StartsWith("/reply ") || text.StartsWith("/r ") || text.StartsWith("/p "))
 				{
 					if (!tPly.Group.HasPermission("whisper")) return;
-					foreach (esPlayer player in esPlayers)
+					foreach (var player in esPlayers)
 					{
-						if (player.SocialSpy && player != ePly)
-						{
-							if ((text.StartsWith("/reply ") || text.StartsWith("/r ")) && tPly.LastWhisper != null)
-								player.TSPlayer.SendMessage(string.Format("[SocialSpy] from {0} to {1}: {2}", tPly.Name, tPly.LastWhisper.Name ?? "?", text), Color.Gray);
-							else
-								player.TSPlayer.SendMessage(string.Format("[SocialSpy] {0}: {1}", tPly.Name, text), Color.Gray);
-						}
+						if (player == null || !player.SocialSpy || player == ePly) continue;
+						if ((text.StartsWith("/reply ") || text.StartsWith("/r ")) && tPly.LastWhisper != null)
+							player.TSPlayer.SendMessage(string.Format("[SocialSpy] from {0} to {1}: {2}", tPly.Name, tPly.LastWhisper.Name ?? "?", text), Color.Gray);
+						else
+							player.TSPlayer.SendMessage(string.Format("[SocialSpy] {0}: {1}", tPly.Name, text), Color.Gray);
 					}
 				}
 				else if (ePly.HasNickName && !text.StartsWith("/") && !tPly.mute)
@@ -408,7 +406,7 @@ namespace Essentials
 				{
 					lock (esPlayers)
 					{
-						foreach (esPlayer ePly in esPlayers)
+						foreach (var ePly in esPlayers)
 						{
 							if (ePly == null) continue;
 
@@ -591,13 +589,11 @@ namespace Essentials
 
 			List<string> online = new List<string>();
 
-			foreach (esPlayer ePly in esPlayers)
+			foreach (var ePly in esPlayers)
 			{
-				if (ePly != null && ePly.TSPlayer.Group.HasPermission("essentials.helpop.receive"))
-				{
-					online.Add(ePly.TSPlayer.Name);
-					ePly.TSPlayer.SendMessage(string.Format("[HelpOp] {0}: {1}", args.Player.Name, text), Color.RoyalBlue);
-				}
+				if (ePly == null || !ePly.TSPlayer.Group.HasPermission("essentials.helpop.receive")) continue;
+				online.Add(ePly.TSPlayer.Name);
+				ePly.TSPlayer.SendMessage(string.Format("[HelpOp] {0}: {1}", args.Player.Name, text), Color.RoyalBlue);
 			}
 			if (online.Count < 1)
 				args.Player.SendMessage("[HelpOp] There are no operators online to receive your message!", Color.RoyalBlue);
@@ -679,10 +675,10 @@ namespace Essentials
 			if (args.Parameters.Count > 0)
 				Reason = " (" + string.Join(" ", args.Parameters) + ")";
 
-			foreach (esPlayer ePly in esPlayers)
+			foreach (var ePly in esPlayers)
 			{
-				if (!ePly.TSPlayer.Group.HasPermission("essentials.kickall.immune"))
-					ePly.TSPlayer.Disconnect(string.Format("Everyone has been kicked{0}", Reason));
+				if (ePly == null || !ePly.TSPlayer.Group.HasPermission("essentials.kickall.immune")) continue;
+				ePly.TSPlayer.Disconnect(string.Format("Everyone has been kicked{0}", Reason));
 			}
 			TShock.Utils.Broadcast("Everyone has been kicked from the server!", Color.MediumSeaGreen);
 		}
@@ -1875,7 +1871,7 @@ namespace Essentials
 		private void CMDnear(CommandArgs args)
 		{
 			var Players = new Dictionary<string, int>();
-			foreach (esPlayer ePly in esPlayers)
+			foreach (var ePly in esPlayers)
 			{
 				if (ePly == null || ePly.Index == args.Player.Index) continue;
 				int x = Math.Abs(args.Player.TileX - ePly.TSPlayer.TileX);
@@ -2041,12 +2037,10 @@ namespace Essentials
 			if (search == "-all")
 			{
 				List<string> Nicks = new List<string>();
-				foreach (esPlayer player in esPlayers)
+				foreach (var player in esPlayers)
 				{
-					if (player != null && player.HasNickName)
-					{
-						Nicks.Add(string.Format("{0}{1}({2})", getConfig.PrefixNicknamesWith, player.Nickname, player.OriginalName));
-					}
+					if (player == null || !player.HasNickName) continue;
+					Nicks.Add(string.Concat(getConfig.PrefixNicknamesWith, player.Nickname, "(", player.OriginalName, ")"));
 				}
 
 				if (Nicks.Count < 1)
@@ -2059,14 +2053,15 @@ namespace Essentials
 				search = search.Remove(0, getConfig.PrefixNicknamesWith.Length);
 
 			List<esPlayer> PlayersFound = new List<esPlayer>();
-			foreach (esPlayer player in esPlayers)
+			foreach (var player in esPlayers)
 			{
-				if (player.HasNickName && player.Nickname.ToLower() == search)
+				if (player == null || !player.HasNickName) continue;
+				if (player.Nickname.ToLower() == search)
 				{
 					PlayersFound = new List<esPlayer> { player };
 					break;
 				}
-				else if (player.HasNickName && player.Nickname.ToLower().Contains(search))
+				else if (player.Nickname.ToLower().Contains(search))
 					PlayersFound.Add(player);
 			}
 			if (PlayersFound.Count != 1)

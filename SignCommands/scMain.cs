@@ -161,54 +161,61 @@ namespace SignCommands
 		#region Timer
 		private void OnUpdate()
 		{
+
 			if ((DateTime.UtcNow - lastCooldown).TotalMilliseconds >= 1000)
 			{
 				lastCooldown = DateTime.UtcNow;
-				foreach (scPlayer sPly in scPlayers)
+				try
 				{
-					if (sPly.AlertCooldownCooldown > 0)
-						sPly.AlertCooldownCooldown--;
-					if (sPly.AlertPermissionCooldown > 0)
-						sPly.AlertPermissionCooldown--;
-					if (sPly.AlertDestroyCooldown > 0)
-						sPly.AlertDestroyCooldown--;
-				}
-
-				if ((DateTime.UtcNow - lastPurge).TotalMinutes >= 5)
-				{
-					lastPurge = DateTime.UtcNow;
-
-					List<string> CooldownGroups = new List<string>(GlobalCooldowns.Keys);
-					foreach (string g in CooldownGroups)
-					{
-						if (DateTime.UtcNow > GlobalCooldowns[g])
-							GlobalCooldowns.Remove(g);
-					}
-
-					List<string> OfflinePlayers = new List<string>(OfflineCooldowns.Keys);
-					foreach (string p in OfflinePlayers)
-					{
-						List<string> OfflinePlayerCooldowns = new List<string>(OfflineCooldowns[p].Keys);
-						foreach (string g in OfflinePlayerCooldowns)
-						{
-							if (DateTime.UtcNow > OfflineCooldowns[p][g])
-								OfflineCooldowns[p].Remove(g);
-						}
-						if (OfflineCooldowns[p].Count == 0)
-							OfflineCooldowns.Remove(p);
-					}
-
 					foreach (var sPly in scPlayers)
 					{
-						List<string> CooldownIds = new List<string>(sPly.Cooldowns.Keys);
-						foreach (string id in CooldownIds)
+						if (sPly == null) continue;
+						if (sPly.AlertCooldownCooldown > 0)
+							sPly.AlertCooldownCooldown--;
+						if (sPly.AlertPermissionCooldown > 0)
+							sPly.AlertPermissionCooldown--;
+						if (sPly.AlertDestroyCooldown > 0)
+							sPly.AlertDestroyCooldown--;
+					}
+
+					if ((DateTime.UtcNow - lastPurge).TotalMinutes >= 5)
+					{
+						lastPurge = DateTime.UtcNow;
+
+						List<string> CooldownGroups = new List<string>(GlobalCooldowns.Keys);
+						foreach (string g in CooldownGroups)
 						{
-							if (DateTime.UtcNow > sPly.Cooldowns[id])
-								sPly.Cooldowns.Remove(id);
+							if (DateTime.UtcNow > GlobalCooldowns[g])
+								GlobalCooldowns.Remove(g);
+						}
+
+						List<string> OfflinePlayers = new List<string>(OfflineCooldowns.Keys);
+						foreach (string p in OfflinePlayers)
+						{
+							List<string> OfflinePlayerCooldowns = new List<string>(OfflineCooldowns[p].Keys);
+							foreach (string g in OfflinePlayerCooldowns)
+							{
+								if (DateTime.UtcNow > OfflineCooldowns[p][g])
+									OfflineCooldowns[p].Remove(g);
+							}
+							if (OfflineCooldowns[p].Count == 0)
+								OfflineCooldowns.Remove(p);
+						}
+
+						foreach (var sPly in scPlayers)
+						{
+							if (sPly == null) continue;
+							List<string> CooldownIds = new List<string>(sPly.Cooldowns.Keys);
+							foreach (string id in CooldownIds)
+							{
+								if (DateTime.UtcNow > sPly.Cooldowns[id])
+									sPly.Cooldowns.Remove(id);
+							}
 						}
 					}
-				}
 
+				}
+				catch { }
 			}
 		}
 		#endregion
@@ -299,8 +306,8 @@ namespace SignCommands
 
 				foreach (var Ply in scPlayers)
 				{
-					if (Ply.Cooldowns.ContainsKey(id))
-						Ply.Cooldowns.Remove(id);
+					if (Ply == null || !Ply.Cooldowns.ContainsKey(id)) continue;
+					Ply.Cooldowns.Remove(id);
 				}
 				return false;
 			}
