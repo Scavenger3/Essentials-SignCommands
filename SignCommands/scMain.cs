@@ -96,7 +96,7 @@ namespace SignCommands
 			base.Dispose(disposing);
 		}
 
-		#region Load Unload Delegates
+		#region Load / Unload Delegates
 		private void LoadDelegates()
 		{
 			InfiniteSigns.InfiniteSigns.SignEdit += OnSignEdit;
@@ -141,27 +141,34 @@ namespace SignCommands
 		#region scPlayers
 		public void OnGreetPlayer(int who, HandledEventArgs e)
 		{
-			scPlayers[who] = new scPlayer(who);
-
-			if (OfflineCooldowns.ContainsKey(TShock.Players[who].Name))
+			try
 			{
-				scPlayers[who].Cooldowns = OfflineCooldowns[TShock.Players[who].Name];
-				OfflineCooldowns.Remove(TShock.Players[who].Name);
+				scPlayers[who] = new scPlayer(who);
+
+				if (OfflineCooldowns.ContainsKey(TShock.Players[who].Name))
+				{
+					scPlayers[who].Cooldowns = OfflineCooldowns[TShock.Players[who].Name];
+					OfflineCooldowns.Remove(TShock.Players[who].Name);
+				}
 			}
+			catch { }
 		}
 
 		public void OnLeave(int who)
 		{
-			if (scPlayers[who].Cooldowns.Count > 0)
-				OfflineCooldowns.Add(TShock.Players[who].Name, scPlayers[who].Cooldowns);
-			scPlayers[who] = null;
+			try
+			{
+				if (scPlayers[who] != null && scPlayers[who].Cooldowns.Count > 0)
+					OfflineCooldowns.Add(TShock.Players[who].Name, scPlayers[who].Cooldowns);
+				scPlayers[who] = null;
+			}
+			catch { }
 		}
 		#endregion
 
 		#region Timer
 		private void OnUpdate()
 		{
-
 			if ((DateTime.UtcNow - lastCooldown).TotalMilliseconds >= 1000)
 			{
 				lastCooldown = DateTime.UtcNow;
@@ -223,9 +230,9 @@ namespace SignCommands
 		#region OnSignEdit
 		private void OnSignEdit(InfiniteSigns.SignEventArgs args)
 		{
-			if (args.Handled) return;
 			try
 			{
+				if (args.Handled) return;
 				args.Handled = OnSignEdit(args.X, args.Y, args.text, args.Who);
 			}
 			catch { }
@@ -247,9 +254,9 @@ namespace SignCommands
 		#region OnSignHit
 		private void OnSignHit(InfiniteSigns.SignEventArgs args)
 		{
-			if (args.Handled) return;
 			try
 			{
+				if (args.Handled) return;
 				args.Handled = OnSignHit(args.X, args.Y, args.text, args.Who);
 			}
 			catch { }
@@ -279,9 +286,9 @@ namespace SignCommands
 		#region OnSignKill
 		private void OnSignKill(InfiniteSigns.SignEventArgs args)
 		{
-			if (args.Handled) return;
 			try
 			{
+				if (args.Handled) return;
 				args.Handled = OnSignKill(args.X, args.Y, args.text, args.Who);
 			}
 			catch { }
@@ -319,9 +326,9 @@ namespace SignCommands
 		#region GetData
 		public void GetData(GetDataEventArgs e)
 		{
-			if (e.Handled || UsingInfiniteSigns) return;
 			try
 			{
+				if (e.Handled || UsingInfiniteSigns) return;
 				switch (e.MsgID)
 				{
 					#region Sign Edit

@@ -650,7 +650,7 @@ namespace Essentials
 				var NPCsFound = TShock.Utils.GetNPCByIdOrName(args.Parameters[0]);
 				if (NPCsFound.Count != 1)
 				{
-					args.Player.SendWarningMessage(string.Concat(NPCsFound.Count < 1 ? "Less" : "More", " than one NPC matched!"));
+					args.Player.SendWarningMessage(NPCsFound.Count < 1 ? "No NPCs matched!" : "More than one NPC matched!");
 					return;
 				}
 				Name = NPCsFound[0].name;
@@ -1549,7 +1549,7 @@ namespace Essentials
 			var PlayersFound = TShock.Utils.FindPlayer(args.Parameters[0]);
 			if (PlayersFound.Count != 1)
 			{
-				args.Player.SendWarningMessage(string.Concat((PlayersFound.Count < 1 ? "Less" : "More"), " than one player matched!"));
+				args.Player.SendWarningMessage(PlayersFound.Count < 1 ? "No players matched!" : "More than one player matched!");
 				return;
 			}
 
@@ -1751,7 +1751,7 @@ namespace Essentials
 				var PlayersFound = TShock.Utils.FindPlayer(args.Parameters[1]);
 				if (PlayersFound.Count != -1)
 				{
-					args.Player.SendWarningMessage(string.Concat(PlayersFound.Count < 1 ? "Less" : "More", " than one player matched!"));
+					args.Player.SendWarningMessage(PlayersFound.Count < 1 ? "No players matched!" : "More than one player matched!");
 					return;
 				}
 				Ply = PlayersFound[0];
@@ -1827,7 +1827,7 @@ namespace Essentials
 			var PlayersFound = TShock.Utils.FindPlayer(args.Parameters[0]);
 			if (PlayersFound.Count != 1)
 			{
-				args.Player.SendWarningMessage(string.Concat(PlayersFound.Count < 1 ? "Less" : "More", " than one player matched!"));
+				args.Player.SendWarningMessage(PlayersFound.Count < 1 ? "No Players matched!" : "More than one player matched!");
 				return;
 			}
 
@@ -1954,7 +1954,7 @@ namespace Essentials
 				var PlayersFound = TShock.Utils.FindPlayer(args.Parameters[0]);
 				if (PlayersFound.Count != 1)
 				{
-					args.Player.SendWarningMessage(string.Concat(PlayersFound.Count < 1 ? "Less" : "More", " than one player matched!"));
+					args.Player.SendWarningMessage(PlayersFound.Count < 1 ? "No players matched" : "More than one player matched!");
 					return;
 				}
 
@@ -2066,7 +2066,7 @@ namespace Essentials
 			}
 			if (PlayersFound.Count != 1)
 			{
-				args.Player.SendWarningMessage(string.Concat(PlayersFound.Count < 1 ? "Less" : "More", " than one player matched!"));
+				args.Player.SendWarningMessage(PlayersFound.Count < 1 ? "No players matched!" : "More than one player matched!");
 				return;
 			}
 
@@ -2178,7 +2178,7 @@ namespace Essentials
 				PlayersFound = TShock.Utils.FindPlayer(args.Parameters[1]);
 				if (PlayersFound.Count != 1)
 				{
-					args.Player.SendWarningMessage(string.Concat(PlayersFound.Count < 1 ? "Less" : "More", " than one player matched!"));
+					args.Player.SendWarningMessage(PlayersFound.Count < 1 ? "No players matched" : "More than one player matched!");
 					return;
 				}
 			}
