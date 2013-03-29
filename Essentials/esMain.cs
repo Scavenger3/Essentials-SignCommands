@@ -107,6 +107,8 @@ namespace Essentials
 			Commands.ChatCommands.Add(new Command("essentials.level.top", CMDtop, "top"));
 			Commands.ChatCommands.Add(new Command("essentials.level.up", CMDup, "up"));
 			Commands.ChatCommands.Add(new Command("essentials.level.down", CMDdown, "down"));
+			Commands.ChatCommands.Add(new Command("essentials.level.side", CMDleft, "left"));
+			Commands.ChatCommands.Add(new Command("essentials.level.side", CMDright, "right"));
 			Commands.ChatCommands.Add(new Command("essentials.playertime.set", CMDptime, "ptime"));
 			Commands.ChatCommands.Add(new Command("essentials.ping", CMDping, "ping", "pong", "echo"));
 			Commands.ChatCommands.Add(new Command("essentials.sudo", CMDsudo, "sudo"));
@@ -1726,6 +1728,51 @@ namespace Essentials
 
 			if (args.Player.Teleport(args.Player.TileX, Y + 3))
 				args.Player.SendMessage(string.Format("Teleported you down {0} level(s)!{1}", levels, limit ? " You can't go down any further!" : string.Empty), Color.MediumSeaGreen);
+			else
+				args.Player.SendMessage("Teleport Failed!", Color.OrangeRed);
+		}
+		#endregion
+
+		#region Left & Right
+		private void CMDleft(CommandArgs args)
+		{
+			int X = esUtils.GetLeft(args.Player.TileX, args.Player.TileY);
+			if (X == -1)
+			{
+				args.Player.SendMessage("You cannot go any further left!", Color.OrangeRed);
+				return;
+			}
+
+			esPlayer ePly = esPlayers[args.Player.Index];
+			if (ePly != null)
+			{
+				ePly.LastBackX = args.Player.TileX;
+				ePly.LastBackY = args.Player.TileY;
+				ePly.LastBackAction = BackAction.TP;
+			}
+			if (args.Player.Teleport(X, args.Player.TileY + 3))
+				args.Player.SendMessage(string.Format("Teleported you to the left!"), Color.MediumSeaGreen);
+			else
+				args.Player.SendMessage("Teleport Failed!", Color.OrangeRed);
+		}
+		private void CMDright(CommandArgs args)
+		{
+			int X = esUtils.GetRight(args.Player.TileX, args.Player.TileY);
+			if (X == -1)
+			{
+				args.Player.SendMessage("You cannot go any further right!", Color.OrangeRed);
+				return;
+			}
+
+			esPlayer ePly = esPlayers[args.Player.Index];
+			if (ePly != null)
+			{
+				ePly.LastBackX = args.Player.TileX;
+				ePly.LastBackY = args.Player.TileY;
+				ePly.LastBackAction = BackAction.TP;
+			}
+			if (args.Player.Teleport(X, args.Player.TileY + 3))
+				args.Player.SendMessage(string.Format("Teleported you to the right!"), Color.MediumSeaGreen);
 			else
 				args.Player.SendMessage("Teleport Failed!", Color.OrangeRed);
 		}
