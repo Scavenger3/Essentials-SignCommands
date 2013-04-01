@@ -23,7 +23,8 @@ namespace Essentials
 		public static esConfig getConfig { get; set; }
 		internal static string PluginDirectory { get { return Path.Combine(TShock.SavePath, "Essentials"); } }
 
-		public Essentials(Main game) : base(game)
+		public Essentials(Main game)
+			: base(game)
 		{
 			this.Order = -1;
 			this.LastCheck = DateTime.UtcNow;
@@ -82,7 +83,7 @@ namespace Essentials
 		{
 			#region Add Commands
 			Commands.ChatCommands.Add(new Command("essentials.more", CMDmore, "more"));
-			Commands.ChatCommands.Add(new Command("essentials.position.get", CMDpos, "pos", "getpos"));
+			Commands.ChatCommands.Add(new Command(new List<string> { "essentials.position.get", "essentials.position.getother" }, CMDpos, "pos", "getpos"));
 			Commands.ChatCommands.Add(new Command("essentials.position.tp", CMDtppos, "tppos"));
 			Commands.ChatCommands.Add(new Command("essentials.position.ruler", CMDruler, "ruler"));
 			Commands.ChatCommands.Add(new Command("essentials.helpop.ask", CMDhelpop, "helpop"));
@@ -91,7 +92,7 @@ namespace Essentials
 			Commands.ChatCommands.Add(new Command("essentials.killnpc", CMDkillnpc, "killnpc"));
 			Commands.ChatCommands.Add(new Command("essentials.kickall.kick", CMDkickall, "kickall"));
 			Commands.ChatCommands.Add(new Command("essentials.moon", CMDmoon, "moon"));
-			Commands.ChatCommands.Add(new Command("essentials.back.tp", CMDback, "b"));
+			Commands.ChatCommands.Add(new Command(new List<string> { "essentials.back.tp", "essentials.back.death" }, CMDback, "b"));
 			Commands.ChatCommands.Add(new Command("essentials.convertbiomes", CMDcbiome, "cbiome", "bconvert"));
 			Commands.ChatCommands.Add(new Command("essentials.ids.search", CMDsitems, "sitem", "si", "searchitem"));
 			Commands.ChatCommands.Add(new Command("essentials.ids.search", CMDspage, "spage", "sp"));
@@ -109,15 +110,16 @@ namespace Essentials
 			Commands.ChatCommands.Add(new Command("essentials.level.down", CMDdown, "down"));
 			Commands.ChatCommands.Add(new Command("essentials.level.side", CMDleft, "left"));
 			Commands.ChatCommands.Add(new Command("essentials.level.side", CMDright, "right"));
-			Commands.ChatCommands.Add(new Command("essentials.playertime.set", CMDptime, "ptime"));
+			Commands.ChatCommands.Add(new Command(new List<string> { "essentials.playertime.set", "essentials.playertime.setother" }, CMDptime, "ptime"));
 			Commands.ChatCommands.Add(new Command("essentials.ping", CMDping, "ping", "pong", "echo"));
 			Commands.ChatCommands.Add(new Command("essentials.sudo", CMDsudo, "sudo"));
 			Commands.ChatCommands.Add(new Command("essentials.socialspy", CMDsocialspy, "socialspy"));
 			Commands.ChatCommands.Add(new Command("essentials.near", CMDnear, "near"));
-			Commands.ChatCommands.Add(new Command("essentials.nick.set", CMDnick, "nick"));
+			Commands.ChatCommands.Add(new Command(new List<string> { "essentials.nick.set", "essentials.nick.setother" }, CMDnick, "nick"));
 			Commands.ChatCommands.Add(new Command("essentials.realname", CMDrealname, "realname"));
 			Commands.ChatCommands.Add(new Command("essentials.exacttime", CMDetime, "etime", "exacttime"));
 			Commands.ChatCommands.Add(new Command("essentials.forcelogin", CMDforcelogin, "forcelogin"));
+			Commands.ChatCommands.Add(new Command("essentials.killprojectiles", CMDkillproj, "killproj"));
 			#endregion
 
 			foreach (Group grp in TShock.Groups.groups)
@@ -125,7 +127,7 @@ namespace Essentials
 				if (grp.Name != "superadmin" && grp.HasPermission("essentials.back.death") && !grp.HasPermission("essentials.back.tp"))
 					grp.AddPermission("essentials.back.tp");
 			}
-			
+
 			if (!Directory.Exists(PluginDirectory))
 				Directory.CreateDirectory(PluginDirectory);
 
@@ -228,7 +230,7 @@ namespace Essentials
 					}
 					#endregion
 				}
-                else if (text == "/spawn" || text.StartsWith("/spawn "))
+				else if (text == "/spawn" || text.StartsWith("/spawn "))
 				{
 					#region /spawn
 					if (tPly.Group.HasPermission("spawn") && tPly.RealPlayer)
@@ -291,7 +293,7 @@ namespace Essentials
 			catch { }
 		}
 		#endregion
-		
+
 		#region Get Data
 		public void GetData(GetDataEventArgs e)
 		{
@@ -1087,7 +1089,7 @@ namespace Essentials
 			List<object> Results = esUtils.NPCIdSearch(Search);
 
 			if (Results.Count < 1)
-			{ 
+			{
 				args.Player.SendMessage("Could not find any matching NPCs !", Color.OrangeRed);
 				return;
 			}
@@ -1515,7 +1517,7 @@ namespace Essentials
 					}
 					break;
 				default:
-						args.Player.SendMessage("Usage: /teamunlock <red/green/blue/yellow> <password>", Color.OrangeRed);
+					args.Player.SendMessage("Usage: /teamunlock <red/green/blue/yellow> <password>", Color.OrangeRed);
 					break;
 			}
 		}
@@ -1693,6 +1695,13 @@ namespace Essentials
 				Y = newY;
 			}
 
+			esPlayer ePly = esPlayers[args.Player.Index];
+			if (ePly != null)
+			{
+				ePly.LastBackX = args.Player.TileX;
+				ePly.LastBackY = args.Player.TileY;
+				ePly.LastBackAction = BackAction.TP;
+			}
 			if (args.Player.Teleport(args.Player.TileX, Y + 3))
 				args.Player.SendMessage(string.Format("Teleported you up {0} level(s)!{1}", levels, limit ? " You cant go up any further!" : string.Empty), Color.MediumSeaGreen);
 			else
@@ -1726,6 +1735,13 @@ namespace Essentials
 				Y = newY;
 			}
 
+			esPlayer ePly = esPlayers[args.Player.Index];
+			if (ePly != null)
+			{
+				ePly.LastBackX = args.Player.TileX;
+				ePly.LastBackY = args.Player.TileY;
+				ePly.LastBackAction = BackAction.TP;
+			}
 			if (args.Player.Teleport(args.Player.TileX, Y + 3))
 				args.Player.SendMessage(string.Format("Teleported you down {0} level(s)!{1}", levels, limit ? " You can't go down any further!" : string.Empty), Color.MediumSeaGreen);
 			else
@@ -1736,12 +1752,31 @@ namespace Essentials
 		#region Left & Right
 		private void CMDleft(CommandArgs args)
 		{
+			int levels = 1;
+			if (args.Parameters.Count > 0 && !int.TryParse(args.Parameters[0], out levels))
+			{
+				args.Player.SendMessage("Usage: /left [No. times]", Color.OrangeRed);
+				return;
+			}
+
 			int X = esUtils.GetLeft(args.Player.TileX, args.Player.TileY);
 			if (X == -1)
 			{
 				args.Player.SendMessage("You cannot go any further left!", Color.OrangeRed);
 				return;
 			}
+			bool limit = false;
+			for (int i = 1; i < levels; i++)
+			{
+				int newX = esUtils.GetLeft(X, args.Player.TileY);
+				if (newX == -1)
+				{
+					levels = i;
+					limit = true;
+					break;
+				}
+				X = newX;
+			}
 
 			esPlayer ePly = esPlayers[args.Player.Index];
 			if (ePly != null)
@@ -1751,18 +1786,37 @@ namespace Essentials
 				ePly.LastBackAction = BackAction.TP;
 			}
 			if (args.Player.Teleport(X, args.Player.TileY + 3))
-				args.Player.SendMessage(string.Format("Teleported you to the left!"), Color.MediumSeaGreen);
+				args.Player.SendMessage(string.Concat("Teleported you to the left", levels != 1 ? " " + levels.ToString() + "times!" : "!", limit ? " You can't go any further!" : string.Empty), Color.MediumSeaGreen);
 			else
 				args.Player.SendMessage("Teleport Failed!", Color.OrangeRed);
 		}
 		private void CMDright(CommandArgs args)
 		{
+			int levels = 1;
+			if (args.Parameters.Count > 0 && !int.TryParse(args.Parameters[0], out levels))
+			{
+				args.Player.SendMessage("Usage: /right [No. times]", Color.OrangeRed);
+				return;
+			}
+
 			int X = esUtils.GetRight(args.Player.TileX, args.Player.TileY);
 			if (X == -1)
 			{
 				args.Player.SendMessage("You cannot go any further right!", Color.OrangeRed);
 				return;
 			}
+			bool limit = false;
+			for (int i = 1; i < levels; i++)
+			{
+				int newX = esUtils.GetRight(X, args.Player.TileY);
+				if (newX == -1)
+				{
+					levels = i;
+					limit = true;
+					break;
+				}
+				X = newX;
+			}
 
 			esPlayer ePly = esPlayers[args.Player.Index];
 			if (ePly != null)
@@ -1772,7 +1826,7 @@ namespace Essentials
 				ePly.LastBackAction = BackAction.TP;
 			}
 			if (args.Player.Teleport(X, args.Player.TileY + 3))
-				args.Player.SendMessage(string.Format("Teleported you to the right!"), Color.MediumSeaGreen);
+				args.Player.SendMessage(string.Concat("Teleported you to the right", levels != 1 ? " " + levels.ToString() + "times!" : "!", limit ? " You can't go any further!" : string.Empty), Color.MediumSeaGreen);
 			else
 				args.Player.SendMessage("Teleport Failed!", Color.OrangeRed);
 		}
@@ -1908,7 +1962,7 @@ namespace Essentials
 		private void CMDsocialspy(CommandArgs args)
 		{
 			esPlayer ePly = esPlayers[args.Player.Index];
-			
+
 			ePly.SocialSpy = !ePly.SocialSpy;
 			args.Player.SendMessage(string.Format("Socialspy {0}abled", (ePly.SocialSpy ? "En" : "Dis")), Color.MediumSeaGreen);
 		}
@@ -2241,6 +2295,23 @@ namespace Essentials
 			if (Player != args.Player)
 				args.Player.SendSuccessMessage(string.Format("Logged {0} in as {1}", Player.Name, user.Name));
 			Log.ConsoleInfo(string.Format("{0} forced logged in {1}as user: {2}.", args.Player.Name, args.Player != Player ? Player.Name + " " : string.Empty, user.Name));
+		}
+		#endregion
+
+		#region Kill Projectiles
+		private void CMDkillproj(CommandArgs args)
+		{
+			int removed = 0;
+			for (int i = 0; i < Main.projectile.Length; i++)
+			{
+				if (Main.projectile[i] != null && Main.projectile[i].active)
+				{
+					Main.projectile[i].Kill();
+					NetMessage.SendData(29, -1, -1, "", Main.projectile[i].whoAmI, Main.projectile[i].owner);
+					removed++;
+				}
+			}
+			args.Player.SendSuccessMessage("Removed {0} projectiles!".SFormat(removed));
 		}
 		#endregion
 	}

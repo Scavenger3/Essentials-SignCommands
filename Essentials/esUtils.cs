@@ -31,7 +31,7 @@ namespace Essentials
 			try
 			{
 				var found = new List<object>();
-				for (int i = 1; i < Main.maxNPCTypes; i++)
+				for (int i = -17; i < Main.maxNPCTypes; i++)
 				{
 					NPC npc = new NPC();
 					npc.netDefaults(i);
