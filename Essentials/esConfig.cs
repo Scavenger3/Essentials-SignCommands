@@ -70,7 +70,7 @@ namespace Essentials
 			}
 			catch (Exception ex)
 			{
-				Log.ConsoleError("[Essentials] Config Exception! Check logs for more details.");
+				Log.ConsoleError("[Essentials] Config Exception. Check logs for more details.");
 				Log.Error(ex.ToString());
 			}
 		}
@@ -83,11 +83,11 @@ namespace Essentials
 					Directory.CreateDirectory(Essentials.SavePath);
 				}
 				Essentials.Config = esConfig.Read(ConfigPath).Write(ConfigPath);
-				args.Player.SendSuccessMessage("[Essentials] Config reloaded successfully!");
+				Send.Success(args.Player, "[Essentials] Config reloaded successfully.");
 			}
 			catch (Exception ex)
 			{
-				args.Player.SendWarningMessage("[Essnetials] Reload failed! Check logs for more details.");
+				Send.Error(args.Player, "[Essnetials] Reload failed. Check logs for more details.");
 				Log.Error(string.Concat("[Essentials] Config Exception:\n", ex.ToString()));
 			}
 		}

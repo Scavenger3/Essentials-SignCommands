@@ -63,7 +63,7 @@ namespace SignCommands
 			}
 			catch (Exception ex)
 			{
-				Log.ConsoleError("[Sign Commands] Config Exception! Check logs for more details.");
+				Log.ConsoleError("[Sign Commands] Config Exception. Check logs for more details.");
 				Log.Error(ex.ToString());
 			}
 		}
@@ -76,11 +76,11 @@ namespace SignCommands
 					Directory.CreateDirectory(SavePath);
 				}
 				SignCommands.Config = scConfig.Read(ConfigPath).Write(ConfigPath);
-				args.Player.SendSuccessMessage("[Sign Commands] Config reloaded successfully!");
+				Send.Success(args.Player, "[Sign Commands] Config reloaded successfully.");
 			}
 			catch (Exception ex)
 			{
-				args.Player.SendWarningMessage("[Sign Commands] Reload failed! Check logs for more details.");
+				Send.Error(args.Player, "[Sign Commands] Reload failed. Check logs for more details.");
 				Log.Error(string.Concat("[Sign Commands] Config Exception:\n", ex.ToString()));
 			}
 		}

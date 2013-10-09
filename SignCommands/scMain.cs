@@ -74,7 +74,7 @@ namespace SignCommands
 			scPlayer sPly = scPlayers[args.Player.Index];
 
 			sPly.DestroyMode = true;
-			args.Player.SendMessage("You can now destroy a sign!", Color.MediumSeaGreen);
+			Send.Success(args.Player, "You can now destroy a sign.");
 		}
 
 		private void CMDscreload(CommandArgs args)
@@ -169,7 +169,7 @@ namespace SignCommands
 
 			if (scUtils.CanCreate(tPly, sign)) return false;
 
-			tPly.SendMessage("You do not have permission to create that sign command!", Color.IndianRed);
+			Send.Error(tPly, "You do not have permission to create that sign command.");
 			return true;
 		}
 		#endregion
@@ -187,7 +187,7 @@ namespace SignCommands
 
 			if (Config.ShowDestroyMessage && CanBreak && sPly.AlertDestroyCooldown == 0)
 			{
-				tPly.SendMessage("To destroy this sign, Type \"/destsign\"", Color.Orange);
+				Send.Info(tPly, "To destroy this sign, Type \"/destsign\".");
 				sPly.AlertDestroyCooldown = 10;
 			}
 

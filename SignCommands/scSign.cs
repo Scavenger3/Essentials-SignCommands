@@ -105,7 +105,7 @@ namespace SignCommands
 							{
 								if (sPly.AlertCooldownCooldown == 0)
 								{
-									sPly.TSPlayer.SendMessage(string.Format("Everyone must wait another {0} seconds before using this sign!", (int)(SignCommands.GlobalCooldowns[this.CooldownGroup] - DateTime.UtcNow).TotalSeconds), Color.OrangeRed);
+									Send.Error(sPly.TSPlayer, "Everyone must wait another {0} seconds before using this sign.", (int)(SignCommands.GlobalCooldowns[this.CooldownGroup] - DateTime.UtcNow).TotalSeconds);
 									sPly.AlertCooldownCooldown = 3;
 								}
 								return;
@@ -131,7 +131,7 @@ namespace SignCommands
 							{
 								if (sPly.AlertCooldownCooldown == 0)
 								{
-									sPly.TSPlayer.SendMessage(string.Format("You must wait another {0} seconds before using this sign!", (int)(sPly.Cooldowns[CooldownID] - DateTime.UtcNow).TotalSeconds), Color.OrangeRed);
+									Send.Error(sPly.TSPlayer, "You must wait another {0} seconds before using this sign.", (int)(sPly.Cooldowns[CooldownID] - DateTime.UtcNow).TotalSeconds);
 									sPly.AlertCooldownCooldown = 3;
 								}
 								return;
@@ -163,7 +163,7 @@ namespace SignCommands
 
 			if (DoesntHavePermission > 0 && sPly.AlertPermissionCooldown == 0)
 			{
-				sPly.TSPlayer.SendMessage(string.Format("You do not have permission to use {0} command(s) on that sign!", DoesntHavePermission), Color.OrangeRed);
+				Send.Error(sPly.TSPlayer, "You do not have permission to use {0} command(s) on that sign.", DoesntHavePermission);
 				sPly.AlertPermissionCooldown = 5;
 			}
 		}
@@ -180,13 +180,13 @@ namespace SignCommands
 				{
 					if (sPly.AlertCooldownCooldown == 0)
 					{
-						sPly.TSPlayer.SendMessage(string.Format("You must have at least {0} to execute this sign!", CostString), Color.OrangeRed);
+						Send.Error(sPly.TSPlayer, "You must have at least {0} to execute this sign.", CostString);
 						sPly.AlertCooldownCooldown = 3;
 					}
 					return false;
 				}
 				account.Balance -= this.Cost;
-				sPly.TSPlayer.SendMessage(string.Format("Charged {0}, Your balance is now {1}!", CostString, account.Balance.ToString()), Color.OrangeRed);
+				Send.Error(sPly.TSPlayer, "Charged {0}, Your balance is now {1}.", CostString, account.Balance.ToString());
 				return true;
 			}
 			catch { return true; }
