@@ -82,8 +82,8 @@ namespace Essentials
 		{
 			try
 			{
-				if (!Directory.Exists(Essentials.PluginDirectory))
-					Directory.CreateDirectory(Essentials.PluginDirectory);
+				if (!Directory.Exists(Essentials.SavePath))
+					Directory.CreateDirectory(Essentials.SavePath);
 
 				DoLoad();
 				args.Player.SendMessage("[Essentials] Config reloaded successfully!", Color.MediumSeaGreen);
@@ -100,9 +100,9 @@ namespace Essentials
 		{
 			if (!File.Exists(ConfigPath))
 				CreateExample();
-			
-			Essentials.getConfig = esConfig.Read();
-			Essentials.getConfig.Write();
+
+			Essentials.Config = esConfig.Read();
+			Essentials.Config.Write();
 		}
 
 		public static void CreateExample()

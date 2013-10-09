@@ -183,8 +183,6 @@ namespace Essentials
 					!WorldGen.SolidTile(x, TileY + 1) && !WorldGen.SolidTile(x + 1, TileY + 1) &&
 					!WorldGen.SolidTile(x, TileY + 2) && !WorldGen.SolidTile(x + 1, TileY + 2))
 					return x + 1;
-				
-					
 			}
 			return -1;
 		}

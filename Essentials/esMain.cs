@@ -13,42 +13,18 @@ namespace Essentials
 	[ApiVersion(1, 14)]
 	public class Essentials : TerrariaPlugin
 	{
-		public Dictionary<string, int[]> Disabled { get; set; }
-		public esPlayer[] esPlayers { get; set; }
-		public DateTime LastCheck { get; set; }
+		public override string Name { get { return "Essentials"; } }
+		public override string Author { get { return "Scavenger"; } }
+		public override string Description { get { return "Some Essential commands for TShock!"; } }
+		public override Version Version { get { return Assembly.GetExecutingAssembly().GetName().Version; } }
 
-		public static esConfig getConfig { get; set; }
-		internal static string PluginDirectory { get { return Path.Combine(TShock.SavePath, "Essentials"); } }
+		public Dictionary<string, int[]> Disabled = new Dictionary<string, int[]>();
+		public esPlayer[] esPlayers = new esPlayer[256];
+		public DateTime LastCheck = DateTime.UtcNow;
+		public static esConfig Config = new esConfig();
+		internal static string SavePath { get { return Path.Combine(TShock.SavePath, "Essentials"); } }
 
-		public Essentials(Main game)
-			: base(game)
-		{
-			this.Order = -1;
-			this.LastCheck = DateTime.UtcNow;
-			this.Disabled = new Dictionary<string, int[]>();
-			this.esPlayers = new esPlayer[256];
-			Essentials.getConfig = new esConfig();
-		}
-
-		public override string Name
-		{
-			get { return "Essentials"; }
-		}
-
-		public override string Author
-		{
-			get { return "by Scavenger"; }
-		}
-
-		public override string Description
-		{
-			get { return "Some Essential commands for TShock!"; }
-		}
-
-		public override Version Version
-		{
-			get { return Assembly.GetExecutingAssembly().GetName().Version; }
-		}
+		public Essentials(Main game) : base(game) { }
 
 		public override void Initialize()
 		{
@@ -61,9 +37,9 @@ namespace Essentials
 			ServerApi.Hooks.GameUpdate.Register(this, OnUpdate);
 		}
 
-		protected override void Dispose(bool disposing)
+		protected override void Dispose(bool Disposing)
 		{
-			if (disposing)
+			if (Disposing)
 			{
 				ServerApi.Hooks.GameInitialize.Deregister(this, OnInitialize);
 				ServerApi.Hooks.ServerJoin.Deregister(this, OnJoin);
@@ -73,7 +49,7 @@ namespace Essentials
 				ServerApi.Hooks.NetSendBytes.Deregister(this, OnSendBytes);
 				ServerApi.Hooks.GameUpdate.Deregister(this, OnUpdate);
 			}
-			base.Dispose(disposing);
+			base.Dispose(Disposing);
 		}
 
 		public void OnInitialize(EventArgs args)
@@ -125,14 +101,14 @@ namespace Essentials
 					grp.AddPermission("essentials.back.tp");
 			}
 
-			if (!Directory.Exists(PluginDirectory))
-				Directory.CreateDirectory(PluginDirectory);
+			if (!Directory.Exists(SavePath))
+				Directory.CreateDirectory(SavePath);
 
 			esSQL.SetupDB();
 			esConfig.LoadConfig();
 		}
 
-		#region esPlayer
+		#region esPlayer Join / Leave
 		public void OnJoin(JoinEventArgs args)
 		{
 			try
@@ -277,14 +253,14 @@ namespace Essentials
 				else if (ePly.HasNickName && !text.StartsWith("/") && !tPly.mute)
 				{
 					args.Handled = true;
-					string nick = getConfig.PrefixNicknamesWith + ePly.Nickname;
+					string nick = Config.PrefixNicknamesWith + ePly.Nickname;
 					TShock.Utils.Broadcast(String.Format(TShock.Config.ChatFormat, tPly.Group.Name, tPly.Group.Prefix, nick, tPly.Group.Suffix, text),
 									tPly.Group.R, tPly.Group.G, tPly.Group.B);
 				}
 				else if (ePly.HasNickName && text.StartsWith("/me ") && !tPly.mute)
 				{
 					args.Handled = true;
-					string nick = getConfig.PrefixNicknamesWith + ePly.Nickname;
+					string nick = Config.PrefixNicknamesWith + ePly.Nickname;
 					TShock.Utils.Broadcast(string.Format("*{0} {1}", nick, text.Remove(0, 4)), 205, 133, 63);
 				}
 			}
@@ -297,7 +273,7 @@ namespace Essentials
 		{
 			try
 			{
-				if (e.MsgID != PacketTypes.PlayerTeam || !(getConfig.LockRedTeam || getConfig.LockGreenTeam || getConfig.LockBlueTeam || getConfig.LockYellowTeam)) return;
+				if (e.MsgID != PacketTypes.PlayerTeam || !(Config.LockRedTeam || Config.LockGreenTeam || Config.LockBlueTeam || Config.LockYellowTeam)) return;
 
 				var who = e.Msg.readBuffer[e.Index];
 				var team = e.Msg.readBuffer[e.Index + 1];
@@ -309,11 +285,11 @@ namespace Essentials
 				{
 					#region Red
 					case 1:
-						if (getConfig.LockRedTeam && !tPly.Group.HasPermission(getConfig.RedTeamPermission) && (ePly.RedPassword != getConfig.RedTeamPassword || ePly.RedPassword == ""))
+						if (Config.LockRedTeam && !tPly.Group.HasPermission(Config.RedTeamPermission) && (ePly.RedPassword != Config.RedTeamPassword || ePly.RedPassword == ""))
 						{
 							e.Handled = true;
 							tPly.SetTeam(tPly.Team);
-							if (getConfig.RedTeamPassword == "")
+							if (Config.RedTeamPassword == "")
 								tPly.SendMessage("You do not have permission to join that team!", Color.Red);
 							else
 								tPly.SendMessage("That team is locked, use \'/teamunlock red <password>\' to access it.", Color.Red);
@@ -324,11 +300,11 @@ namespace Essentials
 
 					#region Green
 					case 2:
-						if (getConfig.LockGreenTeam && !tPly.Group.HasPermission(getConfig.GreenTeamPermission) && (ePly.GreenPassword != getConfig.GreenTeamPassword || ePly.GreenPassword == ""))
+						if (Config.LockGreenTeam && !tPly.Group.HasPermission(Config.GreenTeamPermission) && (ePly.GreenPassword != Config.GreenTeamPassword || ePly.GreenPassword == ""))
 						{
 							e.Handled = true;
 							tPly.SetTeam(tPly.Team);
-							if (getConfig.GreenTeamPassword == "")
+							if (Config.GreenTeamPassword == "")
 								tPly.SendMessage("You do not have permission to join that team!", Color.Red);
 							else
 								tPly.SendMessage("That team is locked, use \'/teamunlock green <password>\' to access it.", Color.Red);
@@ -339,11 +315,11 @@ namespace Essentials
 
 					#region Blue
 					case 3:
-						if (getConfig.LockBlueTeam && !tPly.Group.HasPermission(getConfig.BlueTeamPermission) && (ePly.BluePassword != getConfig.BlueTeamPassword || ePly.BluePassword == ""))
+						if (Config.LockBlueTeam && !tPly.Group.HasPermission(Config.BlueTeamPermission) && (ePly.BluePassword != Config.BlueTeamPassword || ePly.BluePassword == ""))
 						{
 							e.Handled = true;
 							tPly.SetTeam(tPly.Team);
-							if (getConfig.BlueTeamPassword == "")
+							if (Config.BlueTeamPassword == "")
 								tPly.SendMessage("You do not have permission to join that team!", Color.Red);
 							else
 								tPly.SendMessage("That team is locked, use \'/teamunlock blue <password>\' to access it.", Color.Red);
@@ -354,11 +330,11 @@ namespace Essentials
 
 					#region Yellow
 					case 4:
-						if (getConfig.LockYellowTeam && !tPly.Group.HasPermission(getConfig.YellowTeamPermission) && (ePly.YellowPassword != getConfig.YellowTeamPassword || ePly.YellowPassword == ""))
+						if (Config.LockYellowTeam && !tPly.Group.HasPermission(Config.YellowTeamPermission) && (ePly.YellowPassword != Config.YellowTeamPassword || ePly.YellowPassword == ""))
 						{
 							e.Handled = true;
 							tPly.SetTeam(tPly.Team);
-							if (getConfig.YellowTeamPassword == "")
+							if (Config.YellowTeamPassword == "")
 								tPly.SendMessage("You do not have permission to join that team!", Color.Red);
 							else
 								tPly.SendMessage("That team is locked, use \'/teamunlock yellow <password>\' to access it.", Color.Red);
@@ -376,7 +352,7 @@ namespace Essentials
 		}
 		#endregion
 
-		#region Send Bytes - ptime
+		#region Send Bytes
 		void OnSendBytes(SendBytesEventArgs args)
 		{
 			try
@@ -420,7 +396,7 @@ namespace Essentials
 									ePly.LastBackY = ePly.TSPlayer.TileY;
 									ePly.LastBackAction = BackAction.Death;
 									ePly.SavedBackAction = true;
-									if (getConfig.ShowBackMessageOnDeath)
+									if (Config.ShowBackMessageOnDeath)
 										ePly.TSPlayer.SendMessage("Type \"/b\" to return to your position before you died", Color.MediumSeaGreen);
 								}
 							}
@@ -1117,7 +1093,7 @@ namespace Essentials
 			/* Make sure the player isn't in a SetHome Disabled region */
 			if (!args.Player.Group.HasPermission("essentials.home.bypassdisabled"))
 			{
-				foreach (string r in getConfig.DisableSetHomeInRegions)
+				foreach (string r in Config.DisableSetHomeInRegions)
 				{
 					var region = TShock.Regions.GetRegionByName(r);
 					if (region == null) continue;
@@ -1429,7 +1405,7 @@ namespace Essentials
 		#region Team Unlock
 		private void CMDteamunlock(CommandArgs args)
 		{
-			if (!getConfig.LockRedTeam && !getConfig.LockGreenTeam && !getConfig.LockBlueTeam && !getConfig.LockYellowTeam)
+			if (!Config.LockRedTeam && !Config.LockGreenTeam && !Config.LockBlueTeam && !Config.LockYellowTeam)
 			{
 				args.Player.SendMessage("Teams are not locked!", Color.OrangeRed);
 				return;
@@ -1452,9 +1428,9 @@ namespace Essentials
 			{
 				case "red":
 					{
-						if (getConfig.LockRedTeam)
+						if (Config.LockRedTeam)
 						{
-							if (Password == getConfig.RedTeamPassword && getConfig.RedTeamPassword != "")
+							if (Password == Config.RedTeamPassword && Config.RedTeamPassword != "")
 							{
 								args.Player.SendMessage("You can now join red team!", Color.MediumSeaGreen);
 								ePly.RedPassword = Password;
@@ -1468,9 +1444,9 @@ namespace Essentials
 					break;
 				case "green":
 					{
-						if (getConfig.LockGreenTeam)
+						if (Config.LockGreenTeam)
 						{
-							if (Password == getConfig.GreenTeamPassword && getConfig.GreenTeamPassword != "")
+							if (Password == Config.GreenTeamPassword && Config.GreenTeamPassword != "")
 							{
 								args.Player.SendMessage("You can now join green team!", Color.MediumSeaGreen);
 								ePly.GreenPassword = Password;
@@ -1484,9 +1460,9 @@ namespace Essentials
 					break;
 				case "blue":
 					{
-						if (getConfig.LockBlueTeam)
+						if (Config.LockBlueTeam)
 						{
-							if (Password == getConfig.BlueTeamPassword && getConfig.BlueTeamPassword != "")
+							if (Password == Config.BlueTeamPassword && Config.BlueTeamPassword != "")
 							{
 								args.Player.SendMessage("You can now join blue team!", Color.MediumSeaGreen);
 								ePly.BluePassword = Password;
@@ -1500,9 +1476,9 @@ namespace Essentials
 					break;
 				case "yellow":
 					{
-						if (getConfig.LockYellowTeam)
+						if (Config.LockYellowTeam)
 						{
-							if (Password == getConfig.YellowTeamPassword && getConfig.YellowTeamPassword != "")
+							if (Password == Config.YellowTeamPassword && Config.YellowTeamPassword != "")
 							{
 								args.Player.SendMessage("You can now join yellow team!", Color.MediumSeaGreen);
 								ePly.YellowPassword = Password;
@@ -2139,7 +2115,7 @@ namespace Essentials
 				foreach (var player in esPlayers)
 				{
 					if (player == null || !player.HasNickName) continue;
-					Nicks.Add(string.Concat(getConfig.PrefixNicknamesWith, player.Nickname, "(", player.OriginalName, ")"));
+					Nicks.Add(string.Concat(Config.PrefixNicknamesWith, player.Nickname, "(", player.OriginalName, ")"));
 				}
 
 				if (Nicks.Count < 1)
@@ -2148,8 +2124,8 @@ namespace Essentials
 					args.Player.SendMessage(string.Join(", ", Nicks), Color.MediumSeaGreen);
 				return;
 			}
-			if (search.StartsWith(getConfig.PrefixNicknamesWith))
-				search = search.Remove(0, getConfig.PrefixNicknamesWith.Length);
+			if (search.StartsWith(Config.PrefixNicknamesWith))
+				search = search.Remove(0, Config.PrefixNicknamesWith.Length);
 
 			List<esPlayer> PlayersFound = new List<esPlayer>();
 			foreach (var player in esPlayers)

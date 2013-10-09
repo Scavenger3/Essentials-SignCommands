@@ -43,7 +43,7 @@ namespace SignCommands
 		#region ExecuteCommand
 		public void ExecuteCommand(scPlayer sPly)
 		{
-			switch(command)
+			switch (command)
 			{
 				case "time":
 					CMDtime(sPly, args);
@@ -272,7 +272,7 @@ namespace SignCommands
 
 			string WarpName = args[0];
 
-			var Warp  = TShock.Warps.FindWarp(WarpName);
+			var Warp = TShock.Warps.FindWarp(WarpName);
 
 			if (Warp != null && Warp.WarpName != "" && Warp.WarpPos.X > 0 && Warp.WarpPos.Y > 0 && Warp.WorldWarpID != "")
 				sPly.TSPlayer.Teleport((int)Warp.WarpPos.X, (int)Warp.WarpPos.Y);

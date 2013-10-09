@@ -12,47 +12,24 @@ namespace SignCommands
 	[ApiVersion(1, 14)]
 	public class SignCommands : TerrariaPlugin
 	{
-		public static scConfig getConfig { get; set; }
-		public static scPlayer[] scPlayers { get; set; }
-		public static Dictionary<string, DateTime> GlobalCooldowns { get; set; }
-		public static Dictionary<string, Dictionary<string, DateTime>> OfflineCooldowns { get; set; }
+		public override string Name { get { return "Sign Commands"; } }
+		public override string Author { get { return "by Scavenger"; } }
+		public override string Description { get { return "Put commands on signs!"; } }
+		public override Version Version { get { return Assembly.GetExecutingAssembly().GetName().Version; } }
+
+		public static scConfig Config = new scConfig();
+		public static scPlayer[] scPlayers = new scPlayer[256];
+		public static Dictionary<string, DateTime> GlobalCooldowns = new Dictionary<string, DateTime>();
+		public static Dictionary<string, Dictionary<string, DateTime>> OfflineCooldowns = new Dictionary<string, Dictionary<string, DateTime>>();
 		public static bool UsingInfiniteSigns { get; set; }
 		public static bool UsingVault { get; set; }
-
-		DateTime lastCooldown { get; set; }
-		DateTime lastPurge { get; set; }
+		DateTime LastCooldown = DateTime.UtcNow;
+		DateTime LastPurge = DateTime.UtcNow;
 
 		public SignCommands(Main game) : base(game)
 		{
-			getConfig = new scConfig();
-			scPlayers = new scPlayer[256];
-			GlobalCooldowns = new Dictionary<string, DateTime>();
-			OfflineCooldowns = new Dictionary<string, Dictionary<string, DateTime>>();
 			UsingInfiniteSigns = File.Exists(Path.Combine("ServerPlugins", "InfiniteSigns.dll"));
 			UsingVault = File.Exists(Path.Combine("ServerPlugins", "Vault.dll"));
-			this.lastCooldown = DateTime.UtcNow;
-			this.lastPurge = DateTime.UtcNow;
-			Order = -1;
-		}
-
-		public override string Name
-		{
-			get { return "Sign Commands"; }
-		}
-
-		public override string Author
-		{
-			get { return "by Scavenger"; }
-		}
-
-		public override string Description
-		{
-			get { return "Put commands on signs!"; }
-		}
-
-		public override Version Version
-		{
-			get { return Assembly.GetExecutingAssembly().GetName().Version; }
 		}
 
 		public override void Initialize()
@@ -104,17 +81,13 @@ namespace SignCommands
 		}
 		#endregion
 
-		#region Initialize
 		public void OnInitialize(EventArgs args)
 		{
-			/* Add Commands */
 			Commands.ChatCommands.Add(new Command("essentials.signs.break", CMDdestsign, "destsign"));
 			Commands.ChatCommands.Add(new Command("essentials.signs.reload", CMDscreload, "screload"));
 
-			/* Load Config */
 			scConfig.LoadConfig();
 		}
-		#endregion
 
 		#region Commands
 		private void CMDdestsign(CommandArgs args)
@@ -162,9 +135,9 @@ namespace SignCommands
 		#region Timer
 		private void OnUpdate(EventArgs args)
 		{
-			if ((DateTime.UtcNow - lastCooldown).TotalMilliseconds >= 1000)
+			if ((DateTime.UtcNow - LastCooldown).TotalMilliseconds >= 1000)
 			{
-				lastCooldown = DateTime.UtcNow;
+				LastCooldown = DateTime.UtcNow;
 				try
 				{
 					foreach (var sPly in scPlayers)
@@ -178,9 +151,9 @@ namespace SignCommands
 							sPly.AlertDestroyCooldown--;
 					}
 
-					if ((DateTime.UtcNow - lastPurge).TotalMinutes >= 5)
+					if ((DateTime.UtcNow - LastPurge).TotalMinutes >= 5)
 					{
-						lastPurge = DateTime.UtcNow;
+						LastPurge = DateTime.UtcNow;
 
 						List<string> CooldownGroups = new List<string>(GlobalCooldowns.Keys);
 						foreach (string g in CooldownGroups)
@@ -232,7 +205,7 @@ namespace SignCommands
 		}
 		private bool OnSignEdit(int X, int Y, string text, int who)
 		{
-			if (!text.ToLower().StartsWith(getConfig.DefineSignCommands.ToLower())) return false;
+			if (!text.ToLower().StartsWith(Config.DefineSignCommands.ToLower())) return false;
 
 			TSPlayer tPly = TShock.Players[who];
 			scSign sign = new scSign(text, new Point(X, Y));
@@ -243,7 +216,7 @@ namespace SignCommands
 			return true;
 		}
 		#endregion
-		
+
 		#region OnSignHit
 		private void OnSignHit(InfiniteSigns.SignEventArgs args)
 		{
@@ -256,7 +229,7 @@ namespace SignCommands
 		}
 		private bool OnSignHit(int X, int Y, string text, int who)
 		{
-			if (!text.ToLower().StartsWith(getConfig.DefineSignCommands.ToLower())) return false;
+			if (!text.ToLower().StartsWith(Config.DefineSignCommands.ToLower())) return false;
 			TSPlayer tPly = TShock.Players[who];
 			scPlayer sPly = scPlayers[who];
 			scSign sign = new scSign(text, new Point(X, Y));
@@ -264,7 +237,7 @@ namespace SignCommands
 			bool CanBreak = scUtils.CanBreak(tPly, sign);
 			if (sPly.DestroyMode && CanBreak) return false;
 
-			if (getConfig.ShowDestroyMessage && CanBreak && sPly.AlertDestroyCooldown == 0)
+			if (Config.ShowDestroyMessage && CanBreak && sPly.AlertDestroyCooldown == 0)
 			{
 				tPly.SendMessage("To destroy this sign, Type \"/destsign\"", Color.Orange);
 				sPly.AlertDestroyCooldown = 10;
@@ -288,7 +261,7 @@ namespace SignCommands
 		}
 		private bool OnSignKill(int X, int Y, string text, int who)
 		{
-			if (!text.ToLower().StartsWith(getConfig.DefineSignCommands.ToLower())) return false;
+			if (!text.ToLower().StartsWith(Config.DefineSignCommands.ToLower())) return false;
 
 			var sPly = scPlayers[who];
 			scSign sign = new scSign(text, new Point(X, Y));

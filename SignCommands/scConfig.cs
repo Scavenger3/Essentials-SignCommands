@@ -91,8 +91,8 @@ namespace SignCommands
 			if (!File.Exists(ConfigPath))
 				scConfig.CreateExample();
 
-			SignCommands.getConfig = scConfig.Read();
-			SignCommands.getConfig.Write();
+			SignCommands.Config = scConfig.Read();
+			SignCommands.Config.Write();
 		}
 
 		public static void CreateExample()

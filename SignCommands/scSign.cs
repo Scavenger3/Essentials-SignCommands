@@ -29,8 +29,8 @@ namespace SignCommands
 			text = string.Join(" ", text.Split(LF));
 
 			char split = '>';
-			if (SignCommands.getConfig.CommandsStartWith.Length == 1)
-				split = SignCommands.getConfig.CommandsStartWith[0];
+			if (SignCommands.Config.CommandsStartWith.Length == 1)
+				split = SignCommands.Config.CommandsStartWith[0];
 
 			List<string> commands = new List<string> { text };
 			if (text.Contains(split))
@@ -61,8 +61,8 @@ namespace SignCommands
 					if (!int.TryParse(cmd.args[0], out seconds))
 					{
 						this.CooldownGroup = cmd.args[0].ToLower();
-						if (SignCommands.getConfig.CooldownGroups.ContainsKey(this.CooldownGroup))
-							this.Cooldown = SignCommands.getConfig.CooldownGroups[this.CooldownGroup];
+						if (SignCommands.Config.CooldownGroups.ContainsKey(this.CooldownGroup))
+							this.Cooldown = SignCommands.Config.CooldownGroups[this.CooldownGroup];
 						else
 							this.CooldownGroup = string.Empty;
 					}
