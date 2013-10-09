@@ -28,6 +28,7 @@ namespace Essentials
 		public string OriginalName { get; set; }
 		public double ptTime { get; set; }
 		public bool ptDay { get; set; }
+		public PlayerData InvSee { get; set; }
 
 		public esPlayer(int index)
 		{
@@ -52,6 +53,7 @@ namespace Essentials
 			this.OriginalName = string.Empty;
 			this.ptTime = -1.0;
 			this.ptDay = true;
+			this.InvSee = null;
 		}
 
 		public void Disable()

@@ -96,6 +96,7 @@ namespace Essentials
 			Commands.ChatCommands.Add(new Command("essentials.realname", CMDrealname, "realname"));
 			Commands.ChatCommands.Add(new Command("essentials.exacttime", CMDetime, "etime", "exacttime"));
 			Commands.ChatCommands.Add(new Command("essentials.forcelogin", CMDforcelogin, "forcelogin"));
+			Commands.ChatCommands.Add(new Command("essentials.inventory.see", CMDinvsee, "invsee"));
 			#endregion
 
 			SavePath = Path.Combine(TShock.SavePath, "Essentials");
@@ -1915,6 +1916,51 @@ namespace Essentials
 			if (Player != args.Player)
 				args.Player.SendSuccessMessage(string.Format("Logged {0} in as {1}", Player.Name, user.Name));
 			Log.ConsoleInfo(string.Format("{0} forced logged in {1}as user: {2}.", args.Player.Name, args.Player != Player ? Player.Name + " " : string.Empty, user.Name));
+		}
+		#endregion
+		
+		#region Invsee
+		private void CMDinvsee(CommandArgs args)
+		{
+			if (!TShock.Config.ServerSideCharacter)
+			{
+				args.Player.SendWarningMessage("Server Side Character must be enabled!");
+				return;
+			}
+			if (args.Parameters.Count < 1)
+			{
+				args.Player.SendWarningMessage("Usage: /invsee [player name] -- See another player's inventory");
+				args.Player.SendWarningMessage("Usage: /invsee -restore -- Restores your inventory");
+			}
+			var ePly = esPlayers[args.Player.Index];
+			if (args.Parameters.Count == 1 && args.Parameters[0].ToLower() == "-restore")
+			{
+				if (ePly.InvSee == null)
+				{
+					args.Player.SendWarningMessage("You are not viewing another player's inventory!");
+					return;
+				}
+				ePly.InvSee.RestoreCharacter(args.Player);
+				ePly.InvSee = null;
+				args.Player.SendSuccessMessage("Restored your inventory!");
+				return;
+			}
+			var PlayersFound = TShock.Utils.FindPlayer(string.Join(" ", args.Parameters));
+			if (PlayersFound.Count != 1)
+			{
+				args.Player.SendWarningMessage(PlayersFound.Count < 1 ? "No Players matched!" : "More than one player matched!");
+				return;
+			}
+
+			var PlayerChar = new PlayerData(args.Player);
+			PlayerChar.CopyCharacter(args.Player);
+			ePly.InvSee = PlayerChar;
+
+			var CopyChar = new PlayerData(PlayersFound[0]);
+			CopyChar.CopyCharacter(PlayersFound[0]);
+			CopyChar.RestoreCharacter(args.Player);
+
+			args.Player.SendSuccessMessage("Copied {0}'s inventory", PlayersFound[0].Name);
 		}
 		#endregion
 	}
