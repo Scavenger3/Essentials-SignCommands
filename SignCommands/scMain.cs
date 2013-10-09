@@ -22,14 +22,14 @@ namespace SignCommands
 		public static Dictionary<string, DateTime> GlobalCooldowns = new Dictionary<string, DateTime>();
 		public static Dictionary<string, Dictionary<string, DateTime>> OfflineCooldowns = new Dictionary<string, Dictionary<string, DateTime>>();
 		public static bool UsingInfiniteSigns { get; set; }
-		public static bool UsingVault { get; set; }
+		public static bool UsingSEConomy { get; set; }
 		DateTime LastCooldown = DateTime.UtcNow;
 		DateTime LastPurge = DateTime.UtcNow;
 
 		public SignCommands(Main game) : base(game)
 		{
 			UsingInfiniteSigns = File.Exists(Path.Combine("ServerPlugins", "InfiniteSigns.dll"));
-			UsingVault = File.Exists(Path.Combine("ServerPlugins", "Vault.dll"));
+			UsingSEConomy = File.Exists(Path.Combine("ServerPlugins", "Wolfje.Plugins.SEconomy.dll"));
 		}
 
 		public override void Initialize()

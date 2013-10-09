@@ -71,7 +71,7 @@ namespace SignCommands
 					this.Commands.Remove(cmd);
 				}
 				/* Parse Cost */
-				else if (SignCommands.UsingVault && cmd.command == "cost" && cmd.args.Count > 0)
+				else if (SignCommands.UsingSEConomy && cmd.command == "cost" && cmd.args.Count > 0)
 				{
 					int amount;
 					if (int.TryParse(cmd.args[0], out amount))
@@ -145,7 +145,7 @@ namespace SignCommands
 			#endregion
 
 			#region Check Cost
-			if (SignCommands.UsingVault && this.Cost > 0 && !chargeSign(sPly))
+			if (SignCommands.UsingSEConomy && this.Cost > 0 && !chargeSign(sPly))
 				return;
 			#endregion
 
