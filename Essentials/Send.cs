@@ -11,9 +11,10 @@ namespace Essentials
 		}
 		public static void Error(TSPlayer to, string message)
 		{
-			if (to.Index < 0 || to.Index > 255)
+			if (to is TSServerPlayer)
 			{
 				to.SendErrorMessage(message);
+				return;
 			}
 			to.SendMessage(message, Color.OrangeRed);
 		}
@@ -24,9 +25,10 @@ namespace Essentials
 		}
 		public static void Success(TSPlayer to, string message)
 		{
-			if (to.Index < 0 || to.Index > 255)
+			if (to is TSServerPlayer)
 			{
 				to.SendSuccessMessage(message);
+				return;
 			}
 			to.SendMessage(message, Color.MediumSeaGreen);
 		}
@@ -37,11 +39,12 @@ namespace Essentials
 		}
 		public static void Info(TSPlayer to, string message)
 		{
-			if (to.Index < 0 || to.Index > 255)
+			if (to is TSServerPlayer)
 			{
 				to.SendInfoMessage(message);
-				to.SendMessage(message, Color.Yellow);
+				return;
 			}
+			to.SendMessage(message, Color.Yellow);
 		}
 	}
 }
