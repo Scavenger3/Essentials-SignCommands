@@ -26,7 +26,8 @@ namespace SignCommands
 		DateTime LastCooldown = DateTime.UtcNow;
 		DateTime LastPurge = DateTime.UtcNow;
 
-		public SignCommands(Main game) : base(game)
+		public SignCommands(Main game)
+			: base(game)
 		{
 			UsingInfiniteSigns = File.Exists(Path.Combine("ServerPlugins", "InfiniteSigns.dll"));
 			UsingSEConomy = File.Exists(Path.Combine("ServerPlugins", "Wolfje.Plugins.SEconomy.dll"));

@@ -25,9 +25,10 @@ namespace Essentials
 		public static esConfig Config = new esConfig();
 		public static string SavePath = string.Empty;
 
-		public Essentials(Main game) : base(game)
+		public Essentials(Main game)
+			: base(game)
 		{
-			base.Order = 5; 
+			base.Order = 5;
 		}
 
 		public override void Initialize()
@@ -442,7 +443,7 @@ namespace Essentials
 			int X = 0, Y = 0;
 			if (!int.TryParse(args.Parameters[0], out X) || (args.Parameters.Count == 2 && !int.TryParse(args.Parameters[1], out Y)))
 			{
-				Send.Error(args.Player,"Usage: /tppos <X> [Y]");
+				Send.Error(args.Player, "Usage: /tppos <X> [Y]");
 				return;
 			}
 
@@ -773,7 +774,7 @@ namespace Essentials
 					{
 						/* They want to add a new home */
 						if (esSQL.AddHome(args.Player.UserID, args.Player.TileX, args.Player.TileY, name, Main.worldID))
-							Send.Success(args.Player,"Set home {0}.", name);
+							Send.Success(args.Player, "Set home {0}.", name);
 						else
 							Send.Error(args.Player, "An error occurred while setting your home.");
 					}
@@ -1064,7 +1065,7 @@ namespace Essentials
 						{
 							if (Password == Config.GreenTeamPassword && Config.GreenTeamPassword != "")
 							{
-								Send.Success(args.Player,"You can now join green team.");
+								Send.Success(args.Player, "You can now join green team.");
 								ePly.GreenPassword = Password;
 							}
 							else
@@ -1685,7 +1686,7 @@ namespace Essentials
 				esSQL.UpdateNickname(NickPly.Name, nickname);
 			else
 				esSQL.AddNickname(NickPly.Name, nickname);
-			
+
 			Send.Success(args.Player, "Set {0} nickname to '{1}'.", self ? "your" : string.Concat(eNickPly.OriginalName), nickname);
 			if (!self)
 				Send.Success(NickPly, "{0} set your nickname to '{1}'.", args.Player.Name, nickname);
@@ -1772,7 +1773,7 @@ namespace Essentials
 			}
 			if (Minutes < 0 || Minutes > 59)
 			{
-				Send.Error(args.Player ,"Minutes is out of range.");
+				Send.Error(args.Player, "Minutes is out of range.");
 				return;
 			}
 
@@ -1860,7 +1861,7 @@ namespace Essentials
 			Log.ConsoleInfo(string.Format("{0} forced logged in {1}as user: {2}.", args.Player.Name, args.Player != Player ? string.Concat(Player.Name, " ") : string.Empty, user.Name));
 		}
 		#endregion
-		
+
 		#region Invsee
 		private void CMDinvsee(CommandArgs args)
 		{

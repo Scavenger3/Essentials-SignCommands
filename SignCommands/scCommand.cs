@@ -334,7 +334,7 @@ namespace SignCommands
 			}
 		}
 		#endregion
-		
+
 		#region CMDcommand
 		public static void CMDcommand(scPlayer sPly, List<string> args)
 		{
