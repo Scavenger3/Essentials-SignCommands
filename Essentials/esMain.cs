@@ -349,6 +349,9 @@ namespace Essentials
 					else if (ePly.SavedBackAction && !ePly.TSPlayer.Dead)
 						ePly.SavedBackAction = false;
 
+					if (ePly.BackCooldown > 0)
+						ePly.BackCooldown--;
+
 					if (ePly.ptTime > -1.0)
 					{
 						ePly.ptTime += 60.0;
@@ -608,18 +611,36 @@ namespace Essentials
 		private void CMDback(CommandArgs args)
 		{
 			var ePly = esPlayers[args.Player.Index];
+			if (ePly.TSPlayer.Dead)
+			{
+				Send.Error(args.Player, "Please wait till you respawn.");
+				return;
+			}
+			if (ePly.BackCooldown > 0)
+			{
+				Send.Error(args.Player, "You must wait another {0} seconds before you can use /b again.", ePly.BackCooldown);
+				return;
+			}
 
 			if (ePly.LastBackAction == BackAction.None)
 				Send.Error(args.Player, "You do not have a /b position stored.");
 			else if (ePly.LastBackAction == BackAction.TP)
 			{
+				if (Config.BackCooldown > 0 && !args.Player.Group.HasPermission("essentials.back.nocooldown"))
+				{
+					ePly.BackCooldown = Config.BackCooldown;
+				}
 				args.Player.Teleport(ePly.LastBackX * 16F, ePly.LastBackY * 16F);
-				Send.Success(args.Player, "Moved you to your position before your last teleport.");
+				Send.Success(args.Player, "Moved you to your position before you last teleported.");
 			}
 			else if (ePly.LastBackAction == BackAction.Death && args.Player.Group.HasPermission("essentials.back.death"))
 			{
+				if (Config.BackCooldown > 0 && !args.Player.Group.HasPermission("essentials.back.nocooldown"))
+				{
+					ePly.BackCooldown = Config.BackCooldown;
+				}
 				args.Player.Teleport(ePly.LastBackX * 16F, ePly.LastBackY * 16F);
-				Send.Success(args.Player, "Moved you to your position before your last death.");
+				Send.Success(args.Player, "Moved you to your position before you last died.");
 			}
 			else
 				Send.Error(args.Player, "You do not have permission to /b after death.");

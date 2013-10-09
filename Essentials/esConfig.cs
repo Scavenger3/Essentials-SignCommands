@@ -23,6 +23,7 @@ namespace Essentials
 		public string YellowTeamPassword = "";
 		public string YellowTeamPermission = "essentials.team.yellow";
 		public List<string> DisableSetHomeInRegions = new List<string>();
+		public int BackCooldown = 0;
 
 		public static string ConfigPath = string.Empty;
 		public esConfig Write(string path)
@@ -57,7 +58,8 @@ namespace Essentials
   ""YellowTeamPermission"": ""essentials.team.yellow"",
   ""DisableSetHomeInRegions"": [
     ""example""
-  ]
+  ],
+  ""BackCooldown"": 0
 }");
 		}
 

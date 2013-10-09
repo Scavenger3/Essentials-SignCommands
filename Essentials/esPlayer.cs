@@ -12,6 +12,7 @@ namespace Essentials
 		public int LastBackY { get; set; }
 		public BackAction LastBackAction { get; set; }
 		public bool SavedBackAction { get; set; }
+		public int BackCooldown { get; set; }
 		public List<object> LastSearchResults { get; set; }
 		public string RedPassword { get; set; }
 		public string GreenPassword { get; set; }
@@ -37,6 +38,7 @@ namespace Essentials
 			this.LastBackY = -1;
 			this.LastBackAction = BackAction.None;
 			this.SavedBackAction = false;
+			this.BackCooldown = 0;
 			this.LastSearchResults = new List<object>();
 			this.RedPassword = string.Empty;
 			this.GreenPassword = string.Empty;
