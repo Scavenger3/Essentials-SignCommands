@@ -187,10 +187,9 @@ namespace Essentials
 				return;
 			}
 
-			var ePly = esPlayers[e.Player.Index];
-			if (e.CommandName != "=")
+			if (e.Player.Index >= 0 && e.Player.Index <= 255 && e.CommandName != "=")
 			{
-				ePly.LastCMD = string.Concat("/", e.CommandText);
+				esPlayers[e.Player.Index].LastCMD = string.Concat("/", e.CommandText);
 			}
 
 			if ((e.CommandName == "tp" && e.Player.Group.HasPermission(Permissions.tp)) ||
@@ -198,6 +197,7 @@ namespace Essentials
 				(e.CommandName == "spawn" && e.Player.Group.HasPermission(Permissions.spawn)) ||
 				(e.CommandName == "warp" && e.Player.Group.HasPermission(Permissions.warp)))
 			{
+				var ePly = esPlayers[e.Player.Index];
 				ePly.LastBackX = e.Player.TileX;
 				ePly.LastBackY = e.Player.TileY;
 				ePly.LastBackAction = BackAction.TP;
@@ -211,7 +211,7 @@ namespace Essentials
 				}
 				foreach (var player in esPlayers)
 				{
-					if (player == null || !player.SocialSpy || player.Index == ePly.Index)
+					if (player == null || !player.SocialSpy || player.Index == e.Player.Index)
 					{
 						continue;
 					}
@@ -482,7 +482,7 @@ namespace Essentials
 				ePly.LastBackAction = BackAction.TP;
 			}
 
-			if (args.Player.Teleport(X * 16F, Y * 16F + 48F))
+			if (args.Player.Teleport(X * 16F, Y * 16F))
 				args.Player.SendMessage(string.Format("Teleported you to X: {0} - Y: {1}", X, Y), Color.MediumSeaGreen);
 			else
 				args.Player.SendMessage("Teleport Failed!", Color.OrangeRed);
@@ -1286,7 +1286,7 @@ namespace Essentials
 				ePly.LastBackY = args.Player.TileY;
 				ePly.LastBackAction = BackAction.TP;
 			}
-			if (args.Player.Teleport(args.Player.TileX * 16F, Y * 16F + 48F))
+			if (args.Player.Teleport(args.Player.TileX * 16F, Y * 16F))
 				args.Player.SendMessage("Teleported to top!", Color.MediumSeaGreen);
 			else
 				args.Player.SendMessage("Teleport Failed!", Color.OrangeRed);
@@ -1326,7 +1326,7 @@ namespace Essentials
 				ePly.LastBackY = args.Player.TileY;
 				ePly.LastBackAction = BackAction.TP;
 			}
-			if (args.Player.Teleport(args.Player.TileX * 16F, Y * 16F + 48F))
+			if (args.Player.Teleport(args.Player.TileX * 16F, Y * 16F))
 				args.Player.SendMessage(string.Format("Teleported you up {0} level(s)!{1}", levels, limit ? " You cant go up any further!" : string.Empty), Color.MediumSeaGreen);
 			else
 				args.Player.SendMessage("Teleport Failed!", Color.OrangeRed);
@@ -1366,7 +1366,7 @@ namespace Essentials
 				ePly.LastBackY = args.Player.TileY;
 				ePly.LastBackAction = BackAction.TP;
 			}
-			if (args.Player.Teleport(args.Player.TileX * 16F, Y * 16F + 48F))
+			if (args.Player.Teleport(args.Player.TileX * 16F, Y * 16F))
 				args.Player.SendMessage(string.Format("Teleported you down {0} level(s)!{1}", levels, limit ? " You can't go down any further!" : string.Empty), Color.MediumSeaGreen);
 			else
 				args.Player.SendMessage("Teleport Failed!", Color.OrangeRed);
@@ -1410,7 +1410,7 @@ namespace Essentials
 				ePly.LastBackAction = BackAction.TP;
 			}
 			if (args.Player.Teleport(X * 16F, args.Player.TileY * 16F))
-				args.Player.SendMessage(string.Concat("Teleported you to the left", levels != 1 ? " " + levels.ToString() + "times!" : "!", limit ? " You can't go any further!" : string.Empty), Color.MediumSeaGreen);
+				args.Player.SendMessage(string.Concat("Teleported you to the left", levels != 1 ? " " + levels.ToString() + " times!" : "!", limit ? " You can't go any further!" : string.Empty), Color.MediumSeaGreen);
 			else
 				args.Player.SendMessage("Teleport Failed!", Color.OrangeRed);
 		}
@@ -1450,7 +1450,7 @@ namespace Essentials
 				ePly.LastBackAction = BackAction.TP;
 			}
 			if (args.Player.Teleport(X * 16F, args.Player.TileY * 16F))
-				args.Player.SendMessage(string.Concat("Teleported you to the right", levels != 1 ? " " + levels.ToString() + "times!" : "!", limit ? " You can't go any further!" : string.Empty), Color.MediumSeaGreen);
+				args.Player.SendMessage(string.Concat("Teleported you to the right", levels != 1 ? " " + levels.ToString() + " times!" : "!", limit ? " You can't go any further!" : string.Empty), Color.MediumSeaGreen);
 			else
 				args.Player.SendMessage("Teleport Failed!", Color.OrangeRed);
 		}
