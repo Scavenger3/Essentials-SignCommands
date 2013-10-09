@@ -169,7 +169,7 @@ namespace SignCommands
 		}
 		#endregion
 
-		#region Vault
+		#region Economy
 		bool chargeSign(scPlayer sPly)
 		{
 			try
