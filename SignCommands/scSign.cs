@@ -174,26 +174,19 @@ namespace SignCommands
 		{
 			try
 			{
-				int NewBalance = Vault.Vault.GetBalance(sPly.TSPlayer.Name) - this.Cost;
-				if (NewBalance < 0)
+				var account = Wolfje.Plugins.SEconomy.SEconomyPlugin.GetEconomyPlayerSafe(sPly.Index).BankAccount;
+				var CostString = new Wolfje.Plugins.SEconomy.Money((long)this.Cost).ToString();
+				if (account.Balance < this.Cost)
 				{
 					if (sPly.AlertCooldownCooldown == 0)
 					{
-						sPly.TSPlayer.SendMessage(string.Format("You must have at least {0} to execute this sign!", Vault.Vault.MoneyToString(this.Cost)), Color.OrangeRed);
+						sPly.TSPlayer.SendMessage(string.Format("You must have at least {0} to execute this sign!", CostString), Color.OrangeRed);
 						sPly.AlertCooldownCooldown = 3;
 					}
 					return false;
 				}
-				if (!Vault.Vault.SetBalance(sPly.TSPlayer.Name, NewBalance, false))
-				{
-					if (sPly.AlertCooldownCooldown == 0)
-					{
-						sPly.TSPlayer.SendMessage("Changing your balance failed!", Color.OrangeRed);
-						sPly.AlertCooldownCooldown = 3;
-					}
-					return false;
-				}
-				sPly.TSPlayer.SendMessage(string.Format("Charged {0}, Your balance is now {1}!", Vault.Vault.MoneyToString(this.Cost), Vault.Vault.MoneyToString(NewBalance)), Color.OrangeRed);
+				account.Balance -= this.Cost;
+				sPly.TSPlayer.SendMessage(string.Format("Charged {0}, Your balance is now {1}!", CostString, account.Balance.ToString()), Color.OrangeRed);
 				return true;
 			}
 			catch { return true; }
