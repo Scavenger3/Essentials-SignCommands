@@ -271,7 +271,7 @@ namespace SignCommands
 			var Warp = TShock.Warps.FindWarp(WarpName);
 
 			if (Warp != null && Warp.WarpName != "" && Warp.WarpPos.X > 0 && Warp.WarpPos.Y > 0 && Warp.WorldWarpID != "")
-				sPly.TSPlayer.Teleport((int)Warp.WarpPos.X, (int)Warp.WarpPos.Y);
+				sPly.TSPlayer.Teleport(Warp.WarpPos.X * 16F, Warp.WarpPos.Y * 16F);
 		}
 		#endregion
 
