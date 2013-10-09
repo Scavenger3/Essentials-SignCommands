@@ -86,28 +86,20 @@ namespace SignCommands
 		#region scPlayers
 		public void OnJoin(JoinEventArgs args)
 		{
-			try
-			{
-				scPlayers[args.Who] = new scPlayer(args.Who);
+			scPlayers[args.Who] = new scPlayer(args.Who);
 
-				if (OfflineCooldowns.ContainsKey(TShock.Players[args.Who].Name))
-				{
-					scPlayers[args.Who].Cooldowns = OfflineCooldowns[TShock.Players[args.Who].Name];
-					OfflineCooldowns.Remove(TShock.Players[args.Who].Name);
-				}
+			if (OfflineCooldowns.ContainsKey(TShock.Players[args.Who].Name))
+			{
+				scPlayers[args.Who].Cooldowns = OfflineCooldowns[TShock.Players[args.Who].Name];
+				OfflineCooldowns.Remove(TShock.Players[args.Who].Name);
 			}
-			catch { }
 		}
 
 		public void OnLeave(LeaveEventArgs args)
 		{
-			try
-			{
-				if (scPlayers[args.Who] != null && scPlayers[args.Who].Cooldowns.Count > 0)
-					OfflineCooldowns.Add(TShock.Players[args.Who].Name, scPlayers[args.Who].Cooldowns);
-				scPlayers[args.Who] = null;
-			}
-			catch { }
+			if (scPlayers[args.Who] != null && scPlayers[args.Who].Cooldowns.Count > 0)
+				OfflineCooldowns.Add(TShock.Players[args.Who].Name, scPlayers[args.Who].Cooldowns);
+			scPlayers[args.Who] = null;
 		}
 		#endregion
 
@@ -117,57 +109,52 @@ namespace SignCommands
 			if ((DateTime.UtcNow - LastCooldown).TotalMilliseconds >= 1000)
 			{
 				LastCooldown = DateTime.UtcNow;
-				try
+				foreach (var sPly in scPlayers)
 				{
+					if (sPly == null) continue;
+					if (sPly.AlertCooldownCooldown > 0)
+						sPly.AlertCooldownCooldown--;
+					if (sPly.AlertPermissionCooldown > 0)
+						sPly.AlertPermissionCooldown--;
+					if (sPly.AlertDestroyCooldown > 0)
+						sPly.AlertDestroyCooldown--;
+				}
+
+				if ((DateTime.UtcNow - LastPurge).TotalMinutes >= 5)
+				{
+					LastPurge = DateTime.UtcNow;
+
+					List<string> CooldownGroups = new List<string>(GlobalCooldowns.Keys);
+					foreach (string g in CooldownGroups)
+					{
+						if (DateTime.UtcNow > GlobalCooldowns[g])
+							GlobalCooldowns.Remove(g);
+					}
+
+					List<string> OfflinePlayers = new List<string>(OfflineCooldowns.Keys);
+					foreach (string p in OfflinePlayers)
+					{
+						List<string> OfflinePlayerCooldowns = new List<string>(OfflineCooldowns[p].Keys);
+						foreach (string g in OfflinePlayerCooldowns)
+						{
+							if (DateTime.UtcNow > OfflineCooldowns[p][g])
+								OfflineCooldowns[p].Remove(g);
+						}
+						if (OfflineCooldowns[p].Count == 0)
+							OfflineCooldowns.Remove(p);
+					}
+
 					foreach (var sPly in scPlayers)
 					{
 						if (sPly == null) continue;
-						if (sPly.AlertCooldownCooldown > 0)
-							sPly.AlertCooldownCooldown--;
-						if (sPly.AlertPermissionCooldown > 0)
-							sPly.AlertPermissionCooldown--;
-						if (sPly.AlertDestroyCooldown > 0)
-							sPly.AlertDestroyCooldown--;
-					}
-
-					if ((DateTime.UtcNow - LastPurge).TotalMinutes >= 5)
-					{
-						LastPurge = DateTime.UtcNow;
-
-						List<string> CooldownGroups = new List<string>(GlobalCooldowns.Keys);
-						foreach (string g in CooldownGroups)
+						List<string> CooldownIds = new List<string>(sPly.Cooldowns.Keys);
+						foreach (string id in CooldownIds)
 						{
-							if (DateTime.UtcNow > GlobalCooldowns[g])
-								GlobalCooldowns.Remove(g);
-						}
-
-						List<string> OfflinePlayers = new List<string>(OfflineCooldowns.Keys);
-						foreach (string p in OfflinePlayers)
-						{
-							List<string> OfflinePlayerCooldowns = new List<string>(OfflineCooldowns[p].Keys);
-							foreach (string g in OfflinePlayerCooldowns)
-							{
-								if (DateTime.UtcNow > OfflineCooldowns[p][g])
-									OfflineCooldowns[p].Remove(g);
-							}
-							if (OfflineCooldowns[p].Count == 0)
-								OfflineCooldowns.Remove(p);
-						}
-
-						foreach (var sPly in scPlayers)
-						{
-							if (sPly == null) continue;
-							List<string> CooldownIds = new List<string>(sPly.Cooldowns.Keys);
-							foreach (string id in CooldownIds)
-							{
-								if (DateTime.UtcNow > sPly.Cooldowns[id])
-									sPly.Cooldowns.Remove(id);
-							}
+							if (DateTime.UtcNow > sPly.Cooldowns[id])
+								sPly.Cooldowns.Remove(id);
 						}
 					}
-
 				}
-				catch { }
 			}
 		}
 		#endregion
@@ -244,67 +231,60 @@ namespace SignCommands
 		#region OnGetData
 		public void OnGetData(GetDataEventArgs e)
 		{
-			try
+			if (e.Handled)
 			{
-				if (e.Handled)
-				{
-					return;
-				}
-				switch (e.MsgID)
-				{
-					#region Sign Edit
-					case PacketTypes.SignNew:
-						{
-							int X = BitConverter.ToInt32(e.Msg.readBuffer, e.Index + 2);
-							int Y = BitConverter.ToInt32(e.Msg.readBuffer, e.Index + 6);
-							string text = Encoding.UTF8.GetString(e.Msg.readBuffer, e.Index + 10, e.Length - 11);
-
-							int id = Terraria.Sign.ReadSign(X, Y);
-							if (id < 0 || Main.sign[id] == null) return;
-							X = Main.sign[id].x;
-							Y = Main.sign[id].y;
-							if (OnSignEdit(X, Y, text, e.Msg.whoAmI))
-							{
-								e.Handled = true;
-								TShock.Players[e.Msg.whoAmI].SendData(PacketTypes.SignNew, "", id);
-							}
-						}
-						break;
-					#endregion
-
-					#region Tile Modify
-					case PacketTypes.Tile:
-						{
-							int X = BitConverter.ToInt32(e.Msg.readBuffer, e.Index + 1);
-							int Y = BitConverter.ToInt32(e.Msg.readBuffer, e.Index + 5);
-
-							if (Main.tile[X, Y].type != 55) return;
-
-							int id = Terraria.Sign.ReadSign(X, Y);
-							if (id < 0 || Main.sign[id] == null) return;
-							X = Main.sign[id].x;
-							Y = Main.sign[id].y;
-							string text = Main.sign[id].text;
-
-							bool handle = false;
-							if (e.Msg.readBuffer[e.Index] == 0 && e.Msg.readBuffer[e.Index + 9] == 0)
-								handle = OnSignKill(X, Y, text, e.Msg.whoAmI);
-							else
-								handle = OnSignHit(X, Y, text, e.Msg.whoAmI);
-
-							if (handle)
-							{
-								e.Handled = true;
-								TShock.Players[e.Msg.whoAmI].SendTileSquare(X, Y);
-							}
-						}
-						break;
-					#endregion
-				}
+				return;
 			}
-			catch (Exception ex)
+			switch (e.MsgID)
 			{
-				Log.Error(string.Concat("[Sign Commands] Get Data Exception:\n", ex.ToString()));
+				#region Sign Edit
+				case PacketTypes.SignNew:
+					{
+						int X = BitConverter.ToInt32(e.Msg.readBuffer, e.Index + 2);
+						int Y = BitConverter.ToInt32(e.Msg.readBuffer, e.Index + 6);
+						string text = Encoding.UTF8.GetString(e.Msg.readBuffer, e.Index + 10, e.Length - 11);
+
+						int id = Terraria.Sign.ReadSign(X, Y);
+						if (id < 0 || Main.sign[id] == null) return;
+						X = Main.sign[id].x;
+						Y = Main.sign[id].y;
+						if (OnSignEdit(X, Y, text, e.Msg.whoAmI))
+						{
+							e.Handled = true;
+							TShock.Players[e.Msg.whoAmI].SendData(PacketTypes.SignNew, "", id);
+						}
+					}
+					break;
+				#endregion
+
+				#region Tile Modify
+				case PacketTypes.Tile:
+					{
+						int X = BitConverter.ToInt32(e.Msg.readBuffer, e.Index + 1);
+						int Y = BitConverter.ToInt32(e.Msg.readBuffer, e.Index + 5);
+
+						if (Main.tile[X, Y].type != 55) return;
+
+						int id = Terraria.Sign.ReadSign(X, Y);
+						if (id < 0 || Main.sign[id] == null) return;
+						X = Main.sign[id].x;
+						Y = Main.sign[id].y;
+						string text = Main.sign[id].text;
+
+						bool handle = false;
+						if (e.Msg.readBuffer[e.Index] == 0 && e.Msg.readBuffer[e.Index + 9] == 0)
+							handle = OnSignKill(X, Y, text, e.Msg.whoAmI);
+						else
+							handle = OnSignHit(X, Y, text, e.Msg.whoAmI);
+
+						if (handle)
+						{
+							e.Handled = true;
+							TShock.Players[e.Msg.whoAmI].SendTileSquare(X, Y);
+						}
+					}
+					break;
+				#endregion
 			}
 		}
 		#endregion

@@ -112,41 +112,33 @@ namespace Essentials
 		#region esPlayer Join / Leave
 		public void OnJoin(JoinEventArgs args)
 		{
-			try
+			esPlayers[args.Who] = new esPlayer(args.Who);
+
+			if (Disabled.ContainsKey(TShock.Players[args.Who].Name))
 			{
-				esPlayers[args.Who] = new esPlayer(args.Who);
-
-				if (Disabled.ContainsKey(TShock.Players[args.Who].Name))
-				{
-					var ePly = esPlayers[args.Who];
-					ePly.DisabledX = Disabled[TShock.Players[args.Who].Name][0];
-					ePly.DisabledY = Disabled[TShock.Players[args.Who].Name][1];
-					ePly.TSPlayer.Teleport(ePly.DisabledX * 16F, ePly.DisabledY * 16F);
-					ePly.Disabled = true;
-					ePly.TSPlayer.Disable();
-					ePly.LastDisabledCheck = DateTime.UtcNow;
-					ePly.TSPlayer.SendWarningMessage("You are still disabled!");
-				}
-
-				string nickname;
-				if (esSQL.GetNickname(TShock.Players[args.Who].Name, out nickname))
-				{
-					var ePly = esPlayers[args.Who];
-					ePly.HasNickName = true;
-					ePly.OriginalName = ePly.TSPlayer.Name;
-					ePly.Nickname = nickname;
-				}
+				var ePly = esPlayers[args.Who];
+				ePly.DisabledX = Disabled[TShock.Players[args.Who].Name][0];
+				ePly.DisabledY = Disabled[TShock.Players[args.Who].Name][1];
+				ePly.TSPlayer.Teleport(ePly.DisabledX * 16F, ePly.DisabledY * 16F);
+				ePly.Disabled = true;
+				ePly.TSPlayer.Disable();
+				ePly.LastDisabledCheck = DateTime.UtcNow;
+				ePly.TSPlayer.SendWarningMessage("You are still disabled!");
 			}
-			catch { }
+
+			string nickname;
+			if (esSQL.GetNickname(TShock.Players[args.Who].Name, out nickname))
+			{
+				var ePly = esPlayers[args.Who];
+				ePly.HasNickName = true;
+				ePly.OriginalName = ePly.TSPlayer.Name;
+				ePly.Nickname = nickname;
+			}
 		}
 
 		public void OnLeave(LeaveEventArgs args)
 		{
-			try
-			{
-				esPlayers[args.Who] = null;
-			}
-			catch { }
+			esPlayers[args.Who] = null;
 		}
 		#endregion
 
@@ -231,83 +223,78 @@ namespace Essentials
 		#region Get Data
 		public void OnGetData(GetDataEventArgs e)
 		{
-			try
+			if (e.MsgID != PacketTypes.PlayerTeam || !(Config.LockRedTeam || Config.LockGreenTeam || Config.LockBlueTeam || Config.LockYellowTeam))
 			{
-				if (e.MsgID != PacketTypes.PlayerTeam || !(Config.LockRedTeam || Config.LockGreenTeam || Config.LockBlueTeam || Config.LockYellowTeam)) return;
-
-				var who = e.Msg.readBuffer[e.Index];
-				var team = e.Msg.readBuffer[e.Index + 1];
-
-				var ePly = esPlayers[who];
-				var tPly = TShock.Players[who];
-				if (ePly == null || tPly == null) return;
-				switch (team)
-				{
-					#region Red
-					case 1:
-						if (Config.LockRedTeam && !tPly.Group.HasPermission(Config.RedTeamPermission) && (ePly.RedPassword != Config.RedTeamPassword || ePly.RedPassword == ""))
-						{
-							e.Handled = true;
-							tPly.SetTeam(tPly.Team);
-							if (Config.RedTeamPassword == "")
-								tPly.SendMessage("You do not have permission to join that team!", Color.Red);
-							else
-								tPly.SendMessage("That team is locked, use \'/teamunlock red <password>\' to access it.", Color.Red);
-
-						}
-						break;
-					#endregion
-
-					#region Green
-					case 2:
-						if (Config.LockGreenTeam && !tPly.Group.HasPermission(Config.GreenTeamPermission) && (ePly.GreenPassword != Config.GreenTeamPassword || ePly.GreenPassword == ""))
-						{
-							e.Handled = true;
-							tPly.SetTeam(tPly.Team);
-							if (Config.GreenTeamPassword == "")
-								tPly.SendMessage("You do not have permission to join that team!", Color.Red);
-							else
-								tPly.SendMessage("That team is locked, use \'/teamunlock green <password>\' to access it.", Color.Red);
-
-						}
-						break;
-					#endregion
-
-					#region Blue
-					case 3:
-						if (Config.LockBlueTeam && !tPly.Group.HasPermission(Config.BlueTeamPermission) && (ePly.BluePassword != Config.BlueTeamPassword || ePly.BluePassword == ""))
-						{
-							e.Handled = true;
-							tPly.SetTeam(tPly.Team);
-							if (Config.BlueTeamPassword == "")
-								tPly.SendMessage("You do not have permission to join that team!", Color.Red);
-							else
-								tPly.SendMessage("That team is locked, use \'/teamunlock blue <password>\' to access it.", Color.Red);
-
-						}
-						break;
-					#endregion
-
-					#region Yellow
-					case 4:
-						if (Config.LockYellowTeam && !tPly.Group.HasPermission(Config.YellowTeamPermission) && (ePly.YellowPassword != Config.YellowTeamPassword || ePly.YellowPassword == ""))
-						{
-							e.Handled = true;
-							tPly.SetTeam(tPly.Team);
-							if (Config.YellowTeamPassword == "")
-								tPly.SendMessage("You do not have permission to join that team!", Color.Red);
-							else
-								tPly.SendMessage("That team is locked, use \'/teamunlock yellow <password>\' to access it.", Color.Red);
-
-						}
-						break;
-					#endregion
-				}
+				return;
 			}
-			catch (Exception ex)
+
+			var who = e.Msg.readBuffer[e.Index];
+			var team = e.Msg.readBuffer[e.Index + 1];
+
+			var ePly = esPlayers[who];
+			var tPly = TShock.Players[who];
+			if (ePly == null || tPly == null) return;
+			switch (team)
 			{
-				Log.Error("[Essentials] Team Lock Exception:");
-				Log.Error(ex.ToString());
+				#region Red
+				case 1:
+					if (Config.LockRedTeam && !tPly.Group.HasPermission(Config.RedTeamPermission) && (ePly.RedPassword != Config.RedTeamPassword || ePly.RedPassword == ""))
+					{
+						e.Handled = true;
+						tPly.SetTeam(tPly.Team);
+						if (Config.RedTeamPassword == "")
+							tPly.SendMessage("You do not have permission to join that team!", Color.Red);
+						else
+							tPly.SendMessage("That team is locked, use \'/teamunlock red <password>\' to access it.", Color.Red);
+
+					}
+					break;
+				#endregion
+
+				#region Green
+				case 2:
+					if (Config.LockGreenTeam && !tPly.Group.HasPermission(Config.GreenTeamPermission) && (ePly.GreenPassword != Config.GreenTeamPassword || ePly.GreenPassword == ""))
+					{
+						e.Handled = true;
+						tPly.SetTeam(tPly.Team);
+						if (Config.GreenTeamPassword == "")
+							tPly.SendMessage("You do not have permission to join that team!", Color.Red);
+						else
+							tPly.SendMessage("That team is locked, use \'/teamunlock green <password>\' to access it.", Color.Red);
+
+					}
+					break;
+				#endregion
+
+				#region Blue
+				case 3:
+					if (Config.LockBlueTeam && !tPly.Group.HasPermission(Config.BlueTeamPermission) && (ePly.BluePassword != Config.BlueTeamPassword || ePly.BluePassword == ""))
+					{
+						e.Handled = true;
+						tPly.SetTeam(tPly.Team);
+						if (Config.BlueTeamPassword == "")
+							tPly.SendMessage("You do not have permission to join that team!", Color.Red);
+						else
+							tPly.SendMessage("That team is locked, use \'/teamunlock blue <password>\' to access it.", Color.Red);
+
+					}
+					break;
+				#endregion
+
+				#region Yellow
+				case 4:
+					if (Config.LockYellowTeam && !tPly.Group.HasPermission(Config.YellowTeamPermission) && (ePly.YellowPassword != Config.YellowTeamPassword || ePly.YellowPassword == ""))
+					{
+						e.Handled = true;
+						tPly.SetTeam(tPly.Team);
+						if (Config.YellowTeamPassword == "")
+							tPly.SendMessage("You do not have permission to join that team!", Color.Red);
+						else
+							tPly.SendMessage("That team is locked, use \'/teamunlock yellow <password>\' to access it.", Color.Red);
+
+					}
+					break;
+				#endregion
 			}
 		}
 		#endregion
@@ -315,22 +302,21 @@ namespace Essentials
 		#region Send Bytes
 		void OnSendBytes(SendBytesEventArgs args)
 		{
-			try
+			if ((args.Buffer[4] != 7 && args.Buffer[4] != 18) || args.Socket.whoAmI < 0 || args.Socket.whoAmI > 255 || esPlayers[args.Socket.whoAmI].ptTime < 0.0)
 			{
-				if (esPlayers[args.Socket.whoAmI].ptTime < 0.0) return;
-				switch (args.Buffer[4])
-				{
-					case 7:
-						Buffer.BlockCopy(BitConverter.GetBytes((int)esPlayers[args.Socket.whoAmI].ptTime), 0, args.Buffer, 5, 4);
-						args.Buffer[9] = (byte)(esPlayers[args.Socket.whoAmI].ptDay ? 1 : 0);
-						break;
-					case 18:
-						args.Buffer[5] = (byte)(esPlayers[args.Socket.whoAmI].ptDay ? 1 : 0);
-						Buffer.BlockCopy(BitConverter.GetBytes((int)esPlayers[args.Socket.whoAmI].ptTime), 0, args.Buffer, 6, 4);
-						break;
-				}
+				return;
 			}
-			catch { }
+			switch (args.Buffer[4])
+			{
+				case 7:
+					Buffer.BlockCopy(BitConverter.GetBytes((int)esPlayers[args.Socket.whoAmI].ptTime), 0, args.Buffer, 5, 4);
+					args.Buffer[9] = (byte)(esPlayers[args.Socket.whoAmI].ptDay ? 1 : 0);
+					break;
+				case 18:
+					args.Buffer[5] = (byte)(esPlayers[args.Socket.whoAmI].ptDay ? 1 : 0);
+					Buffer.BlockCopy(BitConverter.GetBytes((int)esPlayers[args.Socket.whoAmI].ptTime), 0, args.Buffer, 6, 4);
+					break;
+			}
 		}
 		#endregion
 
@@ -340,55 +326,51 @@ namespace Essentials
 			if ((DateTime.UtcNow - LastCheck).TotalMilliseconds >= 1000)
 			{
 				LastCheck = DateTime.UtcNow;
-				try
+				foreach (var ePly in esPlayers)
 				{
-					lock (esPlayers)
+					if (ePly == null)
 					{
-						foreach (var ePly in esPlayers)
+						continue;
+					}
+
+					if (!ePly.SavedBackAction && ePly.TSPlayer.Dead)
+					{
+						if (ePly.TSPlayer.Group.HasPermission("essentials.back.death"))
 						{
-							if (ePly == null) continue;
+							ePly.LastBackX = ePly.TSPlayer.TileX;
+							ePly.LastBackY = ePly.TSPlayer.TileY;
+							ePly.LastBackAction = BackAction.Death;
+							ePly.SavedBackAction = true;
+							if (Config.ShowBackMessageOnDeath)
+								ePly.TSPlayer.SendMessage("Type \"/b\" to return to your position before you died", Color.MediumSeaGreen);
+						}
+					}
+					else if (ePly.SavedBackAction && !ePly.TSPlayer.Dead)
+						ePly.SavedBackAction = false;
 
-							if (!ePly.SavedBackAction && ePly.TSPlayer.Dead)
-							{
-								if (ePly.TSPlayer.Group.HasPermission("essentials.back.death"))
-								{
-									ePly.LastBackX = ePly.TSPlayer.TileX;
-									ePly.LastBackY = ePly.TSPlayer.TileY;
-									ePly.LastBackAction = BackAction.Death;
-									ePly.SavedBackAction = true;
-									if (Config.ShowBackMessageOnDeath)
-										ePly.TSPlayer.SendMessage("Type \"/b\" to return to your position before you died", Color.MediumSeaGreen);
-								}
-							}
-							else if (ePly.SavedBackAction && !ePly.TSPlayer.Dead)
-								ePly.SavedBackAction = false;
+					if (ePly.ptTime > -1.0)
+					{
+						ePly.ptTime += 60.0;
+						if (!ePly.ptDay && ePly.ptTime > 32400.0)
+						{
+							ePly.ptDay = true; ePly.ptTime = 0.0;
+						}
+						else if (ePly.ptDay && ePly.ptTime > 54000.0)
+						{
+							ePly.ptDay = false; ePly.ptTime = 0.0;
+						}
+					}
 
-							if (ePly.ptTime > -1.0)
-							{
-								ePly.ptTime += 60.0;
-								if (!ePly.ptDay && ePly.ptTime > 32400.0)
-								{
-									ePly.ptDay = true; ePly.ptTime = 0.0;
-								}
-								else if (ePly.ptDay && ePly.ptTime > 54000.0)
-								{
-									ePly.ptDay = false; ePly.ptTime = 0.0;
-								}
-							}
-
-							if (ePly.Disabled && ((DateTime.UtcNow - ePly.LastDisabledCheck).TotalMilliseconds) > 3000)
-							{
-								ePly.LastDisabledCheck = DateTime.UtcNow;
-								ePly.TSPlayer.Disable();
-								if ((ePly.TSPlayer.TileX > ePly.DisabledX + 5 || ePly.TSPlayer.TileX < ePly.DisabledX - 5) || (ePly.TSPlayer.TileY > ePly.DisabledY + 5 || ePly.TSPlayer.TileY < ePly.DisabledY - 5))
-								{
-									ePly.TSPlayer.Teleport(ePly.DisabledX * 16F, ePly.DisabledY * 16F);
-								}
-							}
+					if (ePly.Disabled && ((DateTime.UtcNow - ePly.LastDisabledCheck).TotalMilliseconds) > 3000)
+					{
+						ePly.LastDisabledCheck = DateTime.UtcNow;
+						ePly.TSPlayer.Disable();
+						if ((ePly.TSPlayer.TileX > ePly.DisabledX + 5 || ePly.TSPlayer.TileX < ePly.DisabledX - 5) || (ePly.TSPlayer.TileY > ePly.DisabledY + 5 || ePly.TSPlayer.TileY < ePly.DisabledY - 5))
+						{
+							ePly.TSPlayer.Teleport(ePly.DisabledX * 16F, ePly.DisabledY * 16F);
 						}
 					}
 				}
-				catch { }
 			}
 		}
 		#endregion
