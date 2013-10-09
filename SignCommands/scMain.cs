@@ -36,50 +36,29 @@ namespace SignCommands
 		{
 			ServerApi.Hooks.GameInitialize.Register(this, OnInitialize);
 			if (!UsingInfiniteSigns)
-				ServerApi.Hooks.NetGetData.Register(this, OnGetData);
-			else
 			{
-				try { LoadDelegates(); }
-				catch { }
+				ServerApi.Hooks.NetGetData.Register(this, OnGetData);
 			}
 			ServerApi.Hooks.ServerJoin.Register(this, OnJoin);
 			ServerApi.Hooks.ServerLeave.Register(this, OnLeave);
 			ServerApi.Hooks.GameUpdate.Register(this, OnUpdate);
 		}
 
-		protected override void Dispose(bool disposing)
+		protected override void Dispose(bool Disposing)
 		{
-			if (disposing)
+			if (Disposing)
 			{
 				ServerApi.Hooks.GameInitialize.Deregister(this, OnInitialize);
 				if (!UsingInfiniteSigns)
-					ServerApi.Hooks.NetGetData.Deregister(this, OnGetData);
-				else
 				{
-					try { UnloadDelegates(); }
-					catch { }
+					ServerApi.Hooks.NetGetData.Deregister(this, OnGetData);
 				}
 				ServerApi.Hooks.ServerJoin.Deregister(this, OnJoin);
 				ServerApi.Hooks.ServerLeave.Deregister(this, OnLeave);
 				ServerApi.Hooks.GameUpdate.Deregister(this, OnUpdate);
 			}
-			base.Dispose(disposing);
+			base.Dispose(Disposing);
 		}
-
-		#region Load / Unload Delegates
-		private void LoadDelegates()
-		{
-			InfiniteSigns.InfiniteSigns.SignEdit += OnSignEdit;
-			InfiniteSigns.InfiniteSigns.SignHit += OnSignHit;
-			InfiniteSigns.InfiniteSigns.SignKill += OnSignKill;
-		}
-		private void UnloadDelegates()
-		{
-			InfiniteSigns.InfiniteSigns.SignEdit -= OnSignEdit;
-			InfiniteSigns.InfiniteSigns.SignHit -= OnSignHit;
-			InfiniteSigns.InfiniteSigns.SignKill -= OnSignKill;
-		}
-		#endregion
 
 		public void OnInitialize(EventArgs args)
 		{
@@ -194,15 +173,6 @@ namespace SignCommands
 		#endregion
 
 		#region OnSignEdit
-		private void OnSignEdit(InfiniteSigns.SignEventArgs args)
-		{
-			try
-			{
-				if (args.Handled) return;
-				args.Handled = OnSignEdit(args.X, args.Y, args.text, args.Who);
-			}
-			catch { }
-		}
 		private bool OnSignEdit(int X, int Y, string text, int who)
 		{
 			if (!text.ToLower().StartsWith(Config.DefineSignCommands.ToLower())) return false;
@@ -218,15 +188,6 @@ namespace SignCommands
 		#endregion
 
 		#region OnSignHit
-		private void OnSignHit(InfiniteSigns.SignEventArgs args)
-		{
-			try
-			{
-				if (args.Handled) return;
-				args.Handled = OnSignHit(args.X, args.Y, args.text, args.Who);
-			}
-			catch { }
-		}
 		private bool OnSignHit(int X, int Y, string text, int who)
 		{
 			if (!text.ToLower().StartsWith(Config.DefineSignCommands.ToLower())) return false;
@@ -250,15 +211,6 @@ namespace SignCommands
 		#endregion
 
 		#region OnSignKill
-		private void OnSignKill(InfiniteSigns.SignEventArgs args)
-		{
-			try
-			{
-				if (args.Handled) return;
-				args.Handled = OnSignKill(args.X, args.Y, args.text, args.Who);
-			}
-			catch { }
-		}
 		private bool OnSignKill(int X, int Y, string text, int who)
 		{
 			if (!text.ToLower().StartsWith(Config.DefineSignCommands.ToLower())) return false;
@@ -294,7 +246,10 @@ namespace SignCommands
 		{
 			try
 			{
-				if (e.Handled || UsingInfiniteSigns) return;
+				if (e.Handled)
+				{
+					return;
+				}
 				switch (e.MsgID)
 				{
 					#region Sign Edit
@@ -349,8 +304,7 @@ namespace SignCommands
 			}
 			catch (Exception ex)
 			{
-				Log.Error("[Sign Commands] Exception:");
-				Log.Error(ex.ToString());
+				Log.Error(string.Concat("[Sign Commands] Get Data Exception:\n", ex.ToString()));
 			}
 		}
 		#endregion
