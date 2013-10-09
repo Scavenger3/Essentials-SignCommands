@@ -54,7 +54,7 @@ namespace SignCommands
 			try
 			{
 				SavePath = Path.Combine(TShock.SavePath, "Essentials");
-				ConfigPath = Path.Combine(ConfigPath, "SignCommandsConfig.json");
+				ConfigPath = Path.Combine(SavePath, "SignCommandsConfig.json");
 				if (!Directory.Exists(SavePath))
 				{
 					Directory.CreateDirectory(SavePath);

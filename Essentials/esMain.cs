@@ -588,7 +588,7 @@ namespace Essentials
 
 			foreach (var ePly in esPlayers)
 			{
-				if (ePly == null || !ePly.TSPlayer.Group.HasPermission("essentials.kickall.immune")) continue;
+				if (ePly == null || ePly.TSPlayer.Group.HasPermission("essentials.kickall.immune")) continue;
 				ePly.TSPlayer.Disconnect(string.Format("Everyone has been kicked{0}", Reason));
 			}
 			TShock.Utils.Broadcast("Everyone has been kicked from the server!", Color.MediumSeaGreen);
@@ -1958,6 +1958,12 @@ namespace Essentials
 
 			var CopyChar = new PlayerData(PlayersFound[0]);
 			CopyChar.CopyCharacter(PlayersFound[0]);
+			CopyChar.health = PlayerChar.health;
+			CopyChar.maxHealth = PlayerChar.maxHealth;
+			CopyChar.mana = PlayerChar.mana;
+			CopyChar.maxMana = PlayerChar.maxMana;
+			CopyChar.spawnX = PlayerChar.spawnX;
+			CopyChar.spawnY = PlayerChar.spawnY;
 			CopyChar.RestoreCharacter(args.Player);
 
 			args.Player.SendSuccessMessage("Copied {0}'s inventory", PlayersFound[0].Name);

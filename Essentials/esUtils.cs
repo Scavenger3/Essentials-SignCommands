@@ -15,7 +15,7 @@ namespace Essentials
 			try
 			{
 				var found = new List<object>();
-				for (int i = -24; i < Main.maxItemTypes; i++)
+				for (int i = -48; i < Main.maxItemTypes; i++)
 				{
 					Item item = new Item();
 					item.netDefaults(i);
@@ -31,7 +31,7 @@ namespace Essentials
 			try
 			{
 				var found = new List<object>();
-				for (int i = -17; i < Main.maxNPCTypes; i++)
+				for (int i = -65; i < Main.maxNPCTypes; i++)
 				{
 					NPC npc = new NPC();
 					npc.netDefaults(i);
