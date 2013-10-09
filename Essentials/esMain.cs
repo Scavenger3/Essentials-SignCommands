@@ -95,12 +95,6 @@ namespace Essentials
 			Commands.ChatCommands.Add(new Command("essentials.killprojectiles", CMDkillproj, "killproj"));
 			#endregion
 
-			foreach (Group grp in TShock.Groups.groups)
-			{
-				if (grp.Name != "superadmin" && grp.HasPermission("essentials.back.death") && !grp.HasPermission("essentials.back.tp"))
-					grp.AddPermission("essentials.back.tp");
-			}
-
 			SavePath = Path.Combine(TShock.SavePath, "Essentials");
 			if (!Directory.Exists(SavePath))
 			{
