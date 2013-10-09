@@ -91,7 +91,6 @@ namespace Essentials
 			Commands.ChatCommands.Add(new Command("essentials.realname", CMDrealname, "realname"));
 			Commands.ChatCommands.Add(new Command("essentials.exacttime", CMDetime, "etime", "exacttime"));
 			Commands.ChatCommands.Add(new Command("essentials.forcelogin", CMDforcelogin, "forcelogin"));
-			Commands.ChatCommands.Add(new Command("essentials.killprojectiles", CMDkillproj, "killproj"));
 			#endregion
 
 			SavePath = Path.Combine(TShock.SavePath, "Essentials");
@@ -719,7 +718,7 @@ namespace Essentials
 				args.Player.SendMessage("You do not have permission to /b after death", Color.MediumSeaGreen);
 		}
 		#endregion
-		
+
 		#region Seach IDs
 		private void CMDspage(CommandArgs args)
 		{
@@ -1979,23 +1978,6 @@ namespace Essentials
 			if (Player != args.Player)
 				args.Player.SendSuccessMessage(string.Format("Logged {0} in as {1}", Player.Name, user.Name));
 			Log.ConsoleInfo(string.Format("{0} forced logged in {1}as user: {2}.", args.Player.Name, args.Player != Player ? Player.Name + " " : string.Empty, user.Name));
-		}
-		#endregion
-
-		#region Kill Projectiles
-		private void CMDkillproj(CommandArgs args)
-		{
-			int removed = 0;
-			for (int i = 0; i < Main.projectile.Length; i++)
-			{
-				if (Main.projectile[i] != null && Main.projectile[i].active)
-				{
-					Main.projectile[i].Kill();
-					NetMessage.SendData(29, -1, -1, "", Main.projectile[i].whoAmI, Main.projectile[i].owner);
-					removed++;
-				}
-			}
-			args.Player.SendSuccessMessage("Removed {0} projectiles!".SFormat(removed));
 		}
 		#endregion
 	}
