@@ -13,7 +13,7 @@ namespace SignCommands
 	public class SignCommands : TerrariaPlugin
 	{
 		public override string Name { get { return "Sign Commands"; } }
-		public override string Author { get { return "by Scavenger"; } }
+		public override string Author { get { return "Scavenger"; } }
 		public override string Description { get { return "Put commands on signs!"; } }
 		public override Version Version { get { return Assembly.GetExecutingAssembly().GetName().Version; } }
 
