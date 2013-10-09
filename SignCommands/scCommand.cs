@@ -31,7 +31,6 @@ namespace SignCommands
 				case "warp":
 				case "item":
 				case "buff":
-				case "kit":
 				case "command":
 					return true;
 				default:
@@ -71,9 +70,6 @@ namespace SignCommands
 					break;
 				case "buff":
 					CMDbuff(sPly, args);
-					break;
-				case "kit":
-					CMDkit(sPly, args);
 					break;
 				case "command":
 					CMDcommand(sPly, args);
@@ -338,35 +334,7 @@ namespace SignCommands
 			}
 		}
 		#endregion
-
-		#region CMDkit
-		public static void CMDkit(scPlayer sPly, List<string> args)
-		{
-			if (args.Count < 1) return;
-			string kitname = args[0];
-
-			try { HandleKits(sPly, kitname); }
-			catch { }
-		}
-		#endregion
-
-		#region Handle Kits
-		public static void HandleKits(scPlayer sPly, string KitName)
-		{
-			try
-			{
-				Kits.Kit k = Kits.Kits.FindKit(KitName.ToLower());
-
-				if (k != null && sPly.TSPlayer.Group.HasPermission(k.getPerm()))
-				{
-					k.giveItems(sPly.TSPlayer);
-
-				}
-			}
-			catch { }
-		}
-		#endregion
-
+		
 		#region CMDcommand
 		public static void CMDcommand(scPlayer sPly, List<string> args)
 		{
