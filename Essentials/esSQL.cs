@@ -6,7 +6,6 @@ using Mono.Data.Sqlite;
 using MySql.Data.MySqlClient;
 using TShockAPI;
 using TShockAPI.DB;
-using Terraria;
 
 namespace Essentials
 {

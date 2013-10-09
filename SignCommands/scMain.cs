@@ -1,18 +1,11 @@
 ﻿using System;
-using System.ComponentModel;
 using System.Collections.Generic;
-using System.Threading;
 using System.IO;
-using Newtonsoft.Json;
-using Terraria;
-using TShockAPI;
-using TerrariaApi.Server;
-using System.Text;
-using System.Data;
-using MySql.Data.MySqlClient;
-using Mono.Data.Sqlite;
-using TShockAPI.DB;
 using System.Reflection;
+using System.Text;
+using Terraria;
+using TerrariaApi.Server;
+using TShockAPI;
 
 namespace SignCommands
 {

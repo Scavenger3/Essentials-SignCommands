@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using TShockAPI;
 
 namespace SignCommands
 {
@@ -194,7 +193,7 @@ namespace SignCommands
 					}
 					return false;
 				}
-				sPly.TSPlayer.SendMessage("Charged {0}, Your balance is now {1}!".SFormat(Vault.Vault.MoneyToString(this.Cost), Vault.Vault.MoneyToString(NewBalance)), Color.OrangeRed);
+				sPly.TSPlayer.SendMessage(string.Format("Charged {0}, Your balance is now {1}!", Vault.Vault.MoneyToString(this.Cost), Vault.Vault.MoneyToString(NewBalance)), Color.OrangeRed);
 				return true;
 			}
 			catch { return true; }

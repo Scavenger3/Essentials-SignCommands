@@ -1,15 +1,12 @@
 ﻿using System;
-using System.ComponentModel;
 using System.Collections.Generic;
-using System.Threading;
-using System.Text;
 using System.IO;
 using System.Linq;
-using MySql.Data.MySqlClient;
-using Terraria;
-using TShockAPI;
-using TerrariaApi.Server;
 using System.Reflection;
+using System.Text;
+using Terraria;
+using TerrariaApi.Server;
+using TShockAPI;
 
 namespace Essentials
 {
