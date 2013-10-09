@@ -62,7 +62,6 @@ namespace Essentials
 			Commands.ChatCommands.Add(new Command("essentials.helpop.ask", CMDhelpop, "helpop"));
 			Commands.ChatCommands.Add(new Command("essentials.suicide", CMDsuicide, "suicide", "die"));
 			Commands.ChatCommands.Add(new Command("essentials.pvp.burn", CMDburn, "burn"));
-			Commands.ChatCommands.Add(new Command("essentials.killnpc", CMDkillnpc, "killnpc"));
 			Commands.ChatCommands.Add(new Command("essentials.kickall.kick", CMDkickall, "kickall"));
 			Commands.ChatCommands.Add(new Command("essentials.moon", CMDmoon, "moon"));
 			Commands.ChatCommands.Add(new Command(new List<string> { "essentials.back.tp", "essentials.back.death" }, CMDback, "b"));
@@ -611,33 +610,6 @@ namespace Essentials
 				player[0].SetBuff(24, duration);
 				args.Player.SendMessage(player[0].Name + " Has been set on fire! for " + (duration / 60) + " seconds", Color.MediumSeaGreen);
 			}
-		}
-		#endregion
-
-		#region KillNPC
-		private void CMDkillnpc(CommandArgs args)
-		{
-			string Name = string.Empty;
-			if (args.Parameters.Count > 0)
-			{
-				var NPCsFound = TShock.Utils.GetNPCByIdOrName(args.Parameters[0]);
-				if (NPCsFound.Count != 1)
-				{
-					args.Player.SendWarningMessage(NPCsFound.Count < 1 ? "No NPCs matched!" : "More than one NPC matched!");
-					return;
-				}
-				Name = NPCsFound[0].name;
-			}
-			int Killed = 0;
-			foreach (var npc in Main.npc)
-			{
-				if (npc.active && npc.type > 0 && (Name == string.Empty ? !npc.townNPC && !npc.friendly : npc.name == Name))
-				{
-					TSPlayer.Server.StrikeNPC(npc.whoAmI, short.MaxValue, 0F, 0);
-					Killed++;
-				}
-			}
-			args.Player.SendMessage(string.Format("Killed {0} {1}!", Killed, (Name == string.Empty ? "NPCs" : Name)), Color.MediumSeaGreen);
 		}
 		#endregion
 
