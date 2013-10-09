@@ -22,7 +22,7 @@ namespace Essentials
 		public esPlayer[] esPlayers = new esPlayer[256];
 		public DateTime LastCheck = DateTime.UtcNow;
 		public static esConfig Config = new esConfig();
-		internal static string SavePath { get { return Path.Combine(TShock.SavePath, "Essentials"); } }
+		public static string SavePath = string.Empty;
 
 		public Essentials(Main game) : base(game) { }
 
@@ -101,8 +101,11 @@ namespace Essentials
 					grp.AddPermission("essentials.back.tp");
 			}
 
+			SavePath = Path.Combine(TShock.SavePath, "Essentials");
 			if (!Directory.Exists(SavePath))
+			{
 				Directory.CreateDirectory(SavePath);
+			}
 
 			esSQL.SetupDB();
 			esConfig.LoadConfig();

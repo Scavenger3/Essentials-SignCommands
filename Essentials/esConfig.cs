@@ -24,52 +24,49 @@ namespace Essentials
 		public string YellowTeamPermission = "essentials.team.yellow";
 		public List<string> DisableSetHomeInRegions = new List<string>();
 
-		internal static string ConfigPath { get { return Path.Combine(TShock.SavePath, "Essentials", "EssentialsConfig.json"); } }
-		public static esConfig Read()
+		public static string ConfigPath = string.Empty;
+		public esConfig Write(string path)
 		{
-			if (!File.Exists(ConfigPath))
-				return new esConfig();
-			using (var fs = new FileStream(ConfigPath, FileMode.Open, FileAccess.Read, FileShare.Read))
-			{
-				return Read(fs);
-			}
+			File.WriteAllText(path, JsonConvert.SerializeObject(this, Formatting.Indented));
+			return this;
 		}
-
-		public static esConfig Read(Stream stream)
+		public static esConfig Read(string path)
 		{
-			using (var sr = new StreamReader(stream))
+			if (!File.Exists(path))
 			{
-				var cf = JsonConvert.DeserializeObject<esConfig>(sr.ReadToEnd());
-				if (ConfigRead != null)
-					ConfigRead(cf);
-				return cf;
+				WriteExample(path);
 			}
+			return JsonConvert.DeserializeObject<esConfig>(File.ReadAllText(path));
 		}
-
-		public void Write()
+		public static void WriteExample(string path)
 		{
-			using (var fs = new FileStream(ConfigPath, FileMode.Create, FileAccess.Write, FileShare.Write))
-			{
-				Write(fs);
-			}
+			File.WriteAllText(path, @"{
+  ""ShowBackMessageOnDeath"": true,
+  ""PrefixNicknamesWith"": ""~"",
+  ""LockRedTeam"": false,
+  ""RedTeamPassword"": "",
+  ""RedTeamPermission"": ""essentials.team.red"",
+  ""LockGreenTeam"": true,
+  ""GreenTeamPassword"": "",
+  ""GreenTeamPermission"": ""essentials.team.green"",
+  ""LockBlueTeam"": true,
+  ""BlueTeamPassword"": "",
+  ""BlueTeamPermission"": ""essentials.team.blue"",
+  ""LockYellowTeam"": false,
+  ""YellowTeamPassword"": "",
+  ""YellowTeamPermission"": ""essentials.team.yellow"",
+  ""DisableSetHomeInRegions"": [
+    ""example""
+  ]
+}");
 		}
-
-		public void Write(Stream stream)
-		{
-			var str = JsonConvert.SerializeObject(this, Formatting.Indented);
-			using (var sw = new StreamWriter(stream))
-			{
-				sw.Write(str);
-			}
-		}
-
-		public static Action<esConfig> ConfigRead;
 
 		public static void LoadConfig()
 		{
 			try
 			{
-				DoLoad();
+				ConfigPath = Path.Combine(Essentials.SavePath, "EssentialsConfig.json");
+				Essentials.Config = esConfig.Read(ConfigPath).Write(ConfigPath);
 			}
 			catch (Exception ex)
 			{
@@ -77,56 +74,22 @@ namespace Essentials
 				Log.Error(ex.ToString());
 			}
 		}
-
 		public static void ReloadConfig(CommandArgs args)
 		{
 			try
 			{
 				if (!Directory.Exists(Essentials.SavePath))
+				{
 					Directory.CreateDirectory(Essentials.SavePath);
-
-				DoLoad();
-				args.Player.SendMessage("[Essentials] Config reloaded successfully!", Color.MediumSeaGreen);
+				}
+				Essentials.Config = esConfig.Read(ConfigPath).Write(ConfigPath);
+				args.Player.SendSuccessMessage("[Essentials] Config reloaded successfully!");
 			}
 			catch (Exception ex)
 			{
 				args.Player.SendWarningMessage("[Essnetials] Reload failed! Check logs for more details.");
-				Log.Error("[Essentials] Config Exception:");
-				Log.Error(ex.ToString());
+				Log.Error(string.Concat("[Essentials] Config Exception:\n", ex.ToString()));
 			}
-		}
-
-		public static void DoLoad()
-		{
-			if (!File.Exists(ConfigPath))
-				CreateExample();
-
-			Essentials.Config = esConfig.Read();
-			Essentials.Config.Write();
-		}
-
-		public static void CreateExample()
-		{
-			File.WriteAllText(ConfigPath,
-				"{" + Environment.NewLine +
-				"  \"ShowBackMessageOnDeath\": true," + Environment.NewLine +
-				"  \"PrefixNicknamesWith\": \"~\"," + Environment.NewLine +
-				"  \"LockRedTeam\": false," + Environment.NewLine +
-				"  \"RedTeamPassword\": \"\"," + Environment.NewLine +
-				"  \"RedTeamPermission\": \"essentials.team.red\"," + Environment.NewLine +
-				"  \"LockGreenTeam\": true," + Environment.NewLine +
-				"  \"GreenTeamPassword\": \"\"," + Environment.NewLine +
-				"  \"GreenTeamPermission\": \"essentials.team.green\"," + Environment.NewLine +
-				"  \"LockBlueTeam\": true," + Environment.NewLine +
-				"  \"BlueTeamPassword\": \"\"," + Environment.NewLine +
-				"  \"BlueTeamPermission\": \"essentials.team.blue\"," + Environment.NewLine +
-				"  \"LockYellowTeam\": false," + Environment.NewLine +
-				"  \"YellowTeamPassword\": \"\"," + Environment.NewLine +
-				"  \"YellowTeamPermission\": \"essentials.team.yellow\"," + Environment.NewLine +
-				"  \"DisableSetHomeInRegions\": [" + Environment.NewLine +
-				"    \"example\"" + Environment.NewLine +
-				"  ]" + Environment.NewLine +
-				"}");
 		}
 	}
 }

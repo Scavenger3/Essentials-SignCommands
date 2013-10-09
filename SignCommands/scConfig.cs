@@ -13,53 +13,53 @@ namespace SignCommands
 		public Dictionary<string, int> CooldownGroups = new Dictionary<string, int>();
 		public bool ShowDestroyMessage = true;
 
-		internal static string ConfigDirectory { get { return Path.Combine(TShock.SavePath, "PluginConfigs"); } }
-		internal static string ConfigPath { get { return Path.Combine(TShock.SavePath, "PluginConfigs", "SignCommandsConfig.json"); } }
-		public static scConfig Read()
+		public static string SavePath = string.Empty;
+		public static string ConfigPath = string.Empty;
+		public scConfig Write(string path)
 		{
-			if (!File.Exists(ConfigPath))
-				return new scConfig();
-			using (var fs = new FileStream(ConfigPath, FileMode.Open, FileAccess.Read, FileShare.Read))
-			{
-				return Read(fs);
-			}
+			File.WriteAllText(path, JsonConvert.SerializeObject(this, Formatting.Indented));
+			return this;
 		}
-
-		public static scConfig Read(Stream stream)
+		public static scConfig Read(string path)
 		{
-			using (var sr = new StreamReader(stream))
+			if (!File.Exists(path))
 			{
-				var cf = JsonConvert.DeserializeObject<scConfig>(sr.ReadToEnd());
-				if (ConfigRead != null)
-					ConfigRead(cf);
-				return cf;
+				WriteExample(path);
 			}
+			return JsonConvert.DeserializeObject<scConfig>(File.ReadAllText(path));
 		}
-
-		public void Write()
+		public static void WriteExample(string path)
 		{
-			using (var fs = new FileStream(ConfigPath, FileMode.Create, FileAccess.Write, FileShare.Write))
-			{
-				Write(fs);
-			}
+			File.WriteAllText(ConfigPath, @"{
+  ""DefineSignCommands"": ""[Sign Command]"",
+  ""CommandsStartWith"": "">"",
+  ""CooldownGroups"": {
+    ""global-time"": 300,
+    ""heal"": 60,
+    ""message"": 10,
+    ""damage"": 10,
+    ""boss"": 300,
+    ""item"": 300,
+    ""buff"": 300,
+    ""spawnmob"": 300,
+    ""kit"": 300,
+    ""command"": 300
+  },
+  ""ShowDestroyMessage"": true,
+}");
 		}
-
-		public void Write(Stream stream)
-		{
-			var str = JsonConvert.SerializeObject(this, Formatting.Indented);
-			using (var sw = new StreamWriter(stream))
-			{
-				sw.Write(str);
-			}
-		}
-
-		public static Action<scConfig> ConfigRead;
 
 		public static void LoadConfig()
 		{
 			try
 			{
-				DoLoad();
+				SavePath = Path.Combine(TShock.SavePath, "Essentials");
+				ConfigPath = Path.Combine(ConfigPath, "SignCommandsConfig.json");
+				if (!Directory.Exists(SavePath))
+				{
+					Directory.CreateDirectory(SavePath);
+				}
+				SignCommands.Config = scConfig.Read(ConfigPath).Write(ConfigPath);
 			}
 			catch (Exception ex)
 			{
@@ -67,54 +67,22 @@ namespace SignCommands
 				Log.Error(ex.ToString());
 			}
 		}
-
 		public static void ReloadConfig(CommandArgs args)
 		{
 			try
 			{
-				DoLoad();
-				args.Player.SendMessage("[Sign Commands] Config reloaded successfully!", Color.MediumSeaGreen);
+				if (!Directory.Exists(SavePath))
+				{
+					Directory.CreateDirectory(SavePath);
+				}
+				SignCommands.Config = scConfig.Read(ConfigPath).Write(ConfigPath);
+				args.Player.SendSuccessMessage("[Sign Commands] Config reloaded successfully!");
 			}
 			catch (Exception ex)
 			{
 				args.Player.SendWarningMessage("[Sign Commands] Reload failed! Check logs for more details.");
-				Log.Error("[Sign Commands] Config Exception:");
-				Log.Error(ex.ToString());
+				Log.Error(string.Concat("[Sign Commands] Config Exception:\n", ex.ToString()));
 			}
-		}
-
-		public static void DoLoad()
-		{
-			if (!Directory.Exists(ConfigDirectory))
-				Directory.CreateDirectory(ConfigDirectory);
-
-			if (!File.Exists(ConfigPath))
-				scConfig.CreateExample();
-
-			SignCommands.Config = scConfig.Read();
-			SignCommands.Config.Write();
-		}
-
-		public static void CreateExample()
-		{
-			File.WriteAllText(ConfigPath,
-				"{" + Environment.NewLine +
-				"  \"DefineSignCommands\": \"[Sign Command]\"," + Environment.NewLine +
-				"  \"CommandsStartWith\": \">\"," + Environment.NewLine +
-				"  \"CooldownGroups\": {" + Environment.NewLine +
-				"    \"global-time\": 300," + Environment.NewLine +
-				"    \"heal\": 60," + Environment.NewLine +
-				"    \"message\": 10," + Environment.NewLine +
-				"    \"damage\": 10," + Environment.NewLine +
-				"    \"boss\": 300," + Environment.NewLine +
-				"    \"item\": 300," + Environment.NewLine +
-				"    \"buff\": 300," + Environment.NewLine +
-				"    \"spawnmob\": 300," + Environment.NewLine +
-				"    \"kit\": 300," + Environment.NewLine +
-				"    \"command\": 300" + Environment.NewLine +
-				"  }," + Environment.NewLine +
-				"  \"ShowDestroyMessage\": true," + Environment.NewLine +
-				"}");
 		}
 	}
 }
