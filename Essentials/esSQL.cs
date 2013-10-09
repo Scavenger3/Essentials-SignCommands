@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
-using Hooks;
 using Mono.Data.Sqlite;
 using MySql.Data.MySqlClient;
 using TShockAPI;

@@ -6,7 +6,7 @@ using System.IO;
 using Newtonsoft.Json;
 using Terraria;
 using TShockAPI;
-using Hooks;
+using TerrariaApi.Server;
 using System.Text;
 using System.Data;
 using MySql.Data.MySqlClient;
@@ -16,7 +16,7 @@ using System.Reflection;
 
 namespace SignCommands
 {
-	[APIVersion(1, 12)]
+	[ApiVersion(1, 14)]
 	public class SignCommands : TerrariaPlugin
 	{
 		public static scConfig getConfig { get; set; }
@@ -64,34 +64,34 @@ namespace SignCommands
 
 		public override void Initialize()
 		{
-			GameHooks.Initialize += OnInitialize;
+			ServerApi.Hooks.GameInitialize.Register(this, OnInitialize);
 			if (!UsingInfiniteSigns)
-				NetHooks.GetData += GetData;
+				ServerApi.Hooks.NetGetData.Register(this, OnGetData);
 			else
 			{
 				try { LoadDelegates(); }
 				catch { }
 			}
-			NetHooks.GreetPlayer += OnGreetPlayer;
-			ServerHooks.Leave += OnLeave;
-			GameHooks.Update += OnUpdate;
+			ServerApi.Hooks.ServerJoin.Register(this, OnJoin);
+			ServerApi.Hooks.ServerLeave.Register(this, OnLeave);
+			ServerApi.Hooks.GameUpdate.Register(this, OnUpdate);
 		}
 
 		protected override void Dispose(bool disposing)
 		{
 			if (disposing)
 			{
-				GameHooks.Initialize -= OnInitialize;
+				ServerApi.Hooks.GameInitialize.Deregister(this, OnInitialize);
 				if (!UsingInfiniteSigns)
-					NetHooks.GetData -= GetData;
+					ServerApi.Hooks.NetGetData.Deregister(this, OnGetData);
 				else
 				{
 					try { UnloadDelegates(); }
 					catch { }
 				}
-				NetHooks.GreetPlayer -= OnGreetPlayer;
-				ServerHooks.Leave -= OnLeave;
-				GameHooks.Update -= OnUpdate;
+				ServerApi.Hooks.ServerJoin.Deregister(this, OnJoin);
+				ServerApi.Hooks.ServerLeave.Deregister(this, OnLeave);
+				ServerApi.Hooks.GameUpdate.Deregister(this, OnUpdate);
 			}
 			base.Dispose(disposing);
 		}
@@ -112,7 +112,7 @@ namespace SignCommands
 		#endregion
 
 		#region Initialize
-		public void OnInitialize()
+		public void OnInitialize(EventArgs args)
 		{
 			/* Add Commands */
 			Commands.ChatCommands.Add(new Command("essentials.signs.break", CMDdestsign, "destsign"));
@@ -139,35 +139,35 @@ namespace SignCommands
 		#endregion
 
 		#region scPlayers
-		public void OnGreetPlayer(int who, HandledEventArgs e)
+		public void OnJoin(JoinEventArgs args)
 		{
 			try
 			{
-				scPlayers[who] = new scPlayer(who);
+				scPlayers[args.Who] = new scPlayer(args.Who);
 
-				if (OfflineCooldowns.ContainsKey(TShock.Players[who].Name))
+				if (OfflineCooldowns.ContainsKey(TShock.Players[args.Who].Name))
 				{
-					scPlayers[who].Cooldowns = OfflineCooldowns[TShock.Players[who].Name];
-					OfflineCooldowns.Remove(TShock.Players[who].Name);
+					scPlayers[args.Who].Cooldowns = OfflineCooldowns[TShock.Players[args.Who].Name];
+					OfflineCooldowns.Remove(TShock.Players[args.Who].Name);
 				}
 			}
 			catch { }
 		}
 
-		public void OnLeave(int who)
+		public void OnLeave(LeaveEventArgs args)
 		{
 			try
 			{
-				if (scPlayers[who] != null && scPlayers[who].Cooldowns.Count > 0)
-					OfflineCooldowns.Add(TShock.Players[who].Name, scPlayers[who].Cooldowns);
-				scPlayers[who] = null;
+				if (scPlayers[args.Who] != null && scPlayers[args.Who].Cooldowns.Count > 0)
+					OfflineCooldowns.Add(TShock.Players[args.Who].Name, scPlayers[args.Who].Cooldowns);
+				scPlayers[args.Who] = null;
 			}
 			catch { }
 		}
 		#endregion
 
 		#region Timer
-		private void OnUpdate()
+		private void OnUpdate(EventArgs args)
 		{
 			if ((DateTime.UtcNow - lastCooldown).TotalMilliseconds >= 1000)
 			{
@@ -323,8 +323,8 @@ namespace SignCommands
 		}
 		#endregion
 
-		#region GetData
-		public void GetData(GetDataEventArgs e)
+		#region OnGetData
+		public void OnGetData(GetDataEventArgs e)
 		{
 			try
 			{

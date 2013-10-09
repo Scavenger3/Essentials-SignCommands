@@ -8,12 +8,12 @@ using System.Linq;
 using MySql.Data.MySqlClient;
 using Terraria;
 using TShockAPI;
-using Hooks;
+using TerrariaApi.Server;
 using System.Reflection;
 
 namespace Essentials
 {
-	[APIVersion(1, 12)]
+	[ApiVersion(1, 14)]
 	public class Essentials : TerrariaPlugin
 	{
 		public Dictionary<string, int[]> Disabled { get; set; }
@@ -55,31 +55,31 @@ namespace Essentials
 
 		public override void Initialize()
 		{
-			GameHooks.Initialize += OnInitialize;
-			NetHooks.GreetPlayer += OnGreetPlayer;
-			ServerHooks.Leave += OnLeave;
-			ServerHooks.Chat += OnChat;
-			NetHooks.GetData += GetData;
-			NetHooks.SendBytes += SendBytes;
-			GameHooks.Update += OnUpdate;
+			ServerApi.Hooks.GameInitialize.Register(this, OnInitialize);
+			ServerApi.Hooks.ServerJoin.Register(this, OnJoin);
+			ServerApi.Hooks.ServerLeave.Register(this, OnLeave);
+			ServerApi.Hooks.ServerChat.Register(this, OnChat);
+			ServerApi.Hooks.NetGetData.Register(this, OnGetData);
+			ServerApi.Hooks.NetSendBytes.Register(this, OnSendBytes);
+			ServerApi.Hooks.GameUpdate.Register(this, OnUpdate);
 		}
 
 		protected override void Dispose(bool disposing)
 		{
 			if (disposing)
 			{
-				GameHooks.Initialize -= OnInitialize;
-				NetHooks.GreetPlayer -= OnGreetPlayer;
-				ServerHooks.Leave -= OnLeave;
-				ServerHooks.Chat -= OnChat;
-				NetHooks.GetData -= GetData;
-				NetHooks.SendBytes -= SendBytes;
-				GameHooks.Update -= OnUpdate;
+				ServerApi.Hooks.GameInitialize.Deregister(this, OnInitialize);
+				ServerApi.Hooks.ServerJoin.Deregister(this, OnJoin);
+				ServerApi.Hooks.ServerLeave.Deregister(this, OnLeave);
+				ServerApi.Hooks.ServerChat.Deregister(this, OnChat);
+				ServerApi.Hooks.NetGetData.Deregister(this, OnGetData);
+				ServerApi.Hooks.NetSendBytes.Deregister(this, OnSendBytes);
+				ServerApi.Hooks.GameUpdate.Deregister(this, OnUpdate);
 			}
 			base.Dispose(disposing);
 		}
 
-		public void OnInitialize()
+		public void OnInitialize(EventArgs args)
 		{
 			#region Add Commands
 			Commands.ChatCommands.Add(new Command("essentials.more", CMDmore, "more"));
@@ -136,17 +136,17 @@ namespace Essentials
 		}
 
 		#region esPlayer
-		public void OnGreetPlayer(int who, HandledEventArgs e)
+		public void OnJoin(JoinEventArgs args)
 		{
 			try
 			{
-				esPlayers[who] = new esPlayer(who);
+				esPlayers[args.Who] = new esPlayer(args.Who);
 
-				if (Disabled.ContainsKey(TShock.Players[who].Name))
+				if (Disabled.ContainsKey(TShock.Players[args.Who].Name))
 				{
-					var ePly = esPlayers[who];
-					ePly.DisabledX = Disabled[TShock.Players[who].Name][0];
-					ePly.DisabledY = Disabled[TShock.Players[who].Name][1];
+					var ePly = esPlayers[args.Who];
+					ePly.DisabledX = Disabled[TShock.Players[args.Who].Name][0];
+					ePly.DisabledY = Disabled[TShock.Players[args.Who].Name][1];
 					ePly.TSPlayer.Teleport(ePly.DisabledX, ePly.DisabledY + 3);
 					ePly.Disabled = true;
 					ePly.TSPlayer.Disable();
@@ -155,9 +155,9 @@ namespace Essentials
 				}
 
 				string nickname;
-				if (esSQL.GetNickname(TShock.Players[who].Name, out nickname))
+				if (esSQL.GetNickname(TShock.Players[args.Who].Name, out nickname))
 				{
-					var ePly = esPlayers[who];
+					var ePly = esPlayers[args.Who];
 					ePly.HasNickName = true;
 					ePly.OriginalName = ePly.TSPlayer.Name;
 					ePly.Nickname = nickname;
@@ -166,32 +166,33 @@ namespace Essentials
 			catch { }
 		}
 
-		public void OnLeave(int who)
+		public void OnLeave(LeaveEventArgs args)
 		{
 			try
 			{
-				esPlayers[who] = null;
+				esPlayers[args.Who] = null;
 			}
 			catch { }
 		}
 		#endregion
 
 		#region Chat
-		public void OnChat(messageBuffer msg, int who, string text, HandledEventArgs e)
+		public void OnChat(ServerChatEventArgs args)//messageBuffer msg, int who, string text, HandledEventArgs e)
 		{
 			try
 			{
-				if (e.Handled)
+				if (args.Handled)
 					return;
+				var text = args.Text;
 				if (text == "/")
 				{
 					//TShock.Players[who].SendMessage("Yes, that is how you execute commands! type /help for a list of them!", Color.LightSeaGreen);
-					e.Handled = true;
+					args.Handled = true;
 					return;
 				}
 
-				var ePly = esPlayers[who];
-				var tPly = TShock.Players[who];
+				var ePly = esPlayers[args.Who];
+				var tPly = TShock.Players[args.Who];
 
 				if (text.StartsWith("/") && text != "/=" && !text.StartsWith("/= ") && !text.StartsWith("/ "))
 				{
@@ -278,14 +279,14 @@ namespace Essentials
 				}
 				else if (ePly.HasNickName && !text.StartsWith("/") && !tPly.mute)
 				{
-					e.Handled = true;
+					args.Handled = true;
 					string nick = getConfig.PrefixNicknamesWith + ePly.Nickname;
 					TShock.Utils.Broadcast(String.Format(TShock.Config.ChatFormat, tPly.Group.Name, tPly.Group.Prefix, nick, tPly.Group.Suffix, text),
 									tPly.Group.R, tPly.Group.G, tPly.Group.B);
 				}
 				else if (ePly.HasNickName && text.StartsWith("/me ") && !tPly.mute)
 				{
-					e.Handled = true;
+					args.Handled = true;
 					string nick = getConfig.PrefixNicknamesWith + ePly.Nickname;
 					TShock.Utils.Broadcast(string.Format("*{0} {1}", nick, text.Remove(0, 4)), 205, 133, 63);
 				}
@@ -295,7 +296,7 @@ namespace Essentials
 		#endregion
 
 		#region Get Data
-		public void GetData(GetDataEventArgs e)
+		public void OnGetData(GetDataEventArgs e)
 		{
 			try
 			{
@@ -379,20 +380,20 @@ namespace Essentials
 		#endregion
 
 		#region Send Bytes - ptime
-		void SendBytes(ServerSock socket, byte[] buffer, int offset, int count, HandledEventArgs e)
+		void OnSendBytes(SendBytesEventArgs args)
 		{
 			try
 			{
-				if (esPlayers[socket.whoAmI].ptTime < 0.0) return;
-				switch (buffer[4])
+				if (esPlayers[args.Socket.whoAmI].ptTime < 0.0) return;
+				switch (args.Buffer[4])
 				{
 					case 7:
-						Buffer.BlockCopy(BitConverter.GetBytes((int)esPlayers[socket.whoAmI].ptTime), 0, buffer, 5, 4);
-						buffer[9] = (byte)(esPlayers[socket.whoAmI].ptDay ? 1 : 0);
+						Buffer.BlockCopy(BitConverter.GetBytes((int)esPlayers[args.Socket.whoAmI].ptTime), 0, args.Buffer, 5, 4);
+						args.Buffer[9] = (byte)(esPlayers[args.Socket.whoAmI].ptDay ? 1 : 0);
 						break;
 					case 18:
-						buffer[5] = (byte)(esPlayers[socket.whoAmI].ptDay ? 1 : 0);
-						Buffer.BlockCopy(BitConverter.GetBytes((int)esPlayers[socket.whoAmI].ptTime), 0, buffer, 6, 4);
+						args.Buffer[5] = (byte)(esPlayers[args.Socket.whoAmI].ptDay ? 1 : 0);
+						Buffer.BlockCopy(BitConverter.GetBytes((int)esPlayers[args.Socket.whoAmI].ptTime), 0, args.Buffer, 6, 4);
 						break;
 				}
 			}
@@ -401,7 +402,7 @@ namespace Essentials
 		#endregion
 
 		#region Timer
-		public void OnUpdate()
+		public void OnUpdate(EventArgs args)
 		{
 			if ((DateTime.UtcNow - LastCheck).TotalMilliseconds >= 1000)
 			{
@@ -2257,9 +2258,6 @@ namespace Essentials
 		#region Force Login
 		private void CMDforcelogin(CommandArgs args)
 		{
-			if (TShock.Config.ServerSideInventory)
-				args.Player.SendWarningMessage("Warning: Using this command with SSI enabled will overwrite the account's Inventory!");
-
 			if (args.Parameters.Count < 1 || args.Parameters.Count > 2)
 			{
 				args.Player.SendWarningMessage("Usage: /forcelogin <account> [player]");
