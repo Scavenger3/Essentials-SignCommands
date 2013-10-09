@@ -8,8 +8,8 @@ namespace Essentials
 	{
 		public int Index { get; set; }
 		public TSPlayer TSPlayer { get { return TShock.Players[Index]; } }
-		public int LastBackX { get; set; }
-		public int LastBackY { get; set; }
+		public float LastBackX { get; set; }
+		public float LastBackY { get; set; }
 		public BackAction LastBackAction { get; set; }
 		public bool SavedBackAction { get; set; }
 		public List<object> LastSearchResults { get; set; }

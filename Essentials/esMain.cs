@@ -7,6 +7,7 @@ using System.Text;
 using Terraria;
 using TerrariaApi.Server;
 using TShockAPI;
+using TShockAPI.Hooks;
 
 namespace Essentials
 {
@@ -24,7 +25,10 @@ namespace Essentials
 		public static esConfig Config = new esConfig();
 		public static string SavePath = string.Empty;
 
-		public Essentials(Main game) : base(game) { }
+		public Essentials(Main game) : base(game)
+		{
+			base.Order = 5; 
+		}
 
 		public override void Initialize()
 		{
@@ -32,6 +36,7 @@ namespace Essentials
 			ServerApi.Hooks.ServerJoin.Register(this, OnJoin);
 			ServerApi.Hooks.ServerLeave.Register(this, OnLeave);
 			ServerApi.Hooks.ServerChat.Register(this, OnChat);
+			PlayerHooks.PlayerCommand += OnPlayerCommand;
 			ServerApi.Hooks.NetGetData.Register(this, OnGetData);
 			ServerApi.Hooks.NetSendBytes.Register(this, OnSendBytes);
 			ServerApi.Hooks.GameUpdate.Register(this, OnUpdate);
@@ -45,6 +50,7 @@ namespace Essentials
 				ServerApi.Hooks.ServerJoin.Deregister(this, OnJoin);
 				ServerApi.Hooks.ServerLeave.Deregister(this, OnLeave);
 				ServerApi.Hooks.ServerChat.Deregister(this, OnChat);
+				PlayerHooks.PlayerCommand -= OnPlayerCommand;
 				ServerApi.Hooks.NetGetData.Deregister(this, OnGetData);
 				ServerApi.Hooks.NetSendBytes.Deregister(this, OnSendBytes);
 				ServerApi.Hooks.GameUpdate.Deregister(this, OnUpdate);
@@ -143,122 +149,81 @@ namespace Essentials
 		}
 		#endregion
 
-		#region Chat
-		public void OnChat(ServerChatEventArgs args)//messageBuffer msg, int who, string text, HandledEventArgs e)
+		#region Chat / Command
+		public void OnChat(ServerChatEventArgs e)
 		{
-			try
+			if (e.Handled)
 			{
-				if (args.Handled)
+				return;
+			}
+			if (e.Text == "/")
+			{
+				e.Handled = true;
+				return;
+			}
+
+			var ePly = esPlayers[e.Who];
+			var tPly = TShock.Players[e.Who];
+
+			if (ePly.HasNickName && !e.Text.StartsWith("/") && !tPly.mute)
+			{
+				e.Handled = true;
+				string nick = Config.PrefixNicknamesWith + ePly.Nickname;
+				TShock.Utils.Broadcast(String.Format(TShock.Config.ChatFormat, tPly.Group.Name, tPly.Group.Prefix, nick, tPly.Group.Suffix, e.Text),
+								tPly.Group.R, tPly.Group.G, tPly.Group.B);
+			}
+			else if (ePly.HasNickName && e.Text.StartsWith("/me ") && !tPly.mute)
+			{
+				e.Handled = true;
+				string nick = Config.PrefixNicknamesWith + ePly.Nickname;
+				TShock.Utils.Broadcast(string.Format("*{0} {1}", nick, e.Text.Remove(0, 4)), 205, 133, 63);
+			}
+		}
+		public void OnPlayerCommand(PlayerCommandEventArgs e)
+		{
+			if (e.Handled)
+			{
+				return;
+			}
+
+			var ePly = esPlayers[e.Player.Index];
+			if (e.CommandName != "=")
+			{
+				ePly.LastCMD = string.Concat("/", e.CommandText);
+			}
+
+			if ((e.CommandName == "tp" && e.Player.Group.HasPermission(Permissions.tp)) ||
+				(e.CommandName == "home" && e.Player.Group.HasPermission(Permissions.home)) ||
+				(e.CommandName == "spawn" && e.Player.Group.HasPermission(Permissions.spawn)) ||
+				(e.CommandName == "warp" && e.Player.Group.HasPermission(Permissions.warp)))
+			{
+				ePly.LastBackX = e.Player.X;
+				ePly.LastBackY = e.Player.Y;
+				ePly.LastBackAction = BackAction.TP;
+			}
+			else if (e.CommandName == "whisper" || e.CommandName == "w" || e.CommandName == "tell" ||
+				e.CommandName == "reply" || e.CommandName == "r")
+			{
+				if (!e.Player.Group.HasPermission(Permissions.whisper))
+				{
 					return;
-				var text = args.Text;
-				if (text == "/")
-				{
-					//TShock.Players[who].SendMessage("Yes, that is how you execute commands! type /help for a list of them!", Color.LightSeaGreen);
-					args.Handled = true;
-					return;
 				}
-
-				var ePly = esPlayers[args.Who];
-				var tPly = TShock.Players[args.Who];
-
-				if (text.StartsWith("/") && text != "/=" && !text.StartsWith("/= ") && !text.StartsWith("/ "))
+				foreach (var player in esPlayers)
 				{
-					ePly.LastCMD = text;
-				}
-
-				if (text.StartsWith("/tp "))
-				{
-					#region /tp
-					if (tPly.Group.HasPermission("tp") && tPly.RealPlayer)
+					if (player == null || !player.SocialSpy || player.Index == ePly.Index)
 					{
-						/* Make sure the tp is valid */
-						List<string> Params = esUtils.ParseParameters(text);
-						Params.RemoveAt(0);
-
-						string plStr = String.Join(" ", Params);
-						var players = TShock.Utils.FindPlayer(plStr);
-
-						if (Params.Count > 0 && players.Count == 1 && players[0].TPAllow && tPly.Group.HasPermission(Permissions.tpall))
-						{
-							ePly.LastBackX = tPly.TileX;
-							ePly.LastBackY = tPly.TileY;
-							ePly.LastBackAction = BackAction.TP;
-						}
+						continue;
 					}
-					#endregion
-				}
-				else if (text == "/home" || text.StartsWith("/home "))
-				{
-					#region /home
-					if (tPly.Group.HasPermission("home") && tPly.RealPlayer)
+					if ((e.CommandName == "reply" || e.CommandName == "r") && e.Player.LastWhisper != null)
 					{
-						ePly.LastBackX = tPly.TileX;
-						ePly.LastBackY = tPly.TileY;
-						ePly.LastBackAction = BackAction.TP;
+						player.TSPlayer.SendMessage(string.Format("[SocialSpy] from {0} to {1}: /{2}", e.Player.Name, e.Player.LastWhisper.Name ?? "?", e.CommandText), Color.Gray);
 					}
-					#endregion
-				}
-				else if (text == "/spawn" || text.StartsWith("/spawn "))
-				{
-					#region /spawn
-					if (tPly.Group.HasPermission("spawn") && tPly.RealPlayer)
+					else
 					{
-						ePly.LastBackX = tPly.TileX;
-						ePly.LastBackY = tPly.TileY;
-						ePly.LastBackAction = BackAction.TP;
+						player.TSPlayer.SendMessage(string.Format("[SocialSpy] {0}: /{1}", e.Player.Name, e.CommandText), Color.Gray);
 					}
-					#endregion
-				}
-				else if (text.StartsWith("/warp "))
-				{
-					#region /warp
-					if (tPly.Group.HasPermission("warp") && tPly.RealPlayer)
-					{
-						/* Make sure the warp is valid */
-						List<string> Params = esUtils.ParseParameters(text);
-						Params.RemoveAt(0);
-
-						if (Params.Count > 0 && !Params[0].Equals("list"))
-						{
-							string warpName = String.Join(" ", Params);
-							var warp = TShock.Warps.FindWarp(warpName);
-							if (warp != null && warp.WarpPos != Vector2.Zero)
-							{
-								ePly.LastBackX = tPly.TileX;
-								ePly.LastBackY = tPly.TileY;
-								ePly.LastBackAction = BackAction.TP;
-							}
-						}
-					}
-					#endregion
-				}
-				else if (text.StartsWith("/whisper ") || text.StartsWith("/w ") || text.StartsWith("/tell ") || text.StartsWith("/reply ") || text.StartsWith("/r ") || text.StartsWith("/p "))
-				{
-					if (!tPly.Group.HasPermission("whisper")) return;
-					foreach (var player in esPlayers)
-					{
-						if (player == null || !player.SocialSpy || player == ePly) continue;
-						if ((text.StartsWith("/reply ") || text.StartsWith("/r ")) && tPly.LastWhisper != null)
-							player.TSPlayer.SendMessage(string.Format("[SocialSpy] from {0} to {1}: {2}", tPly.Name, tPly.LastWhisper.Name ?? "?", text), Color.Gray);
-						else
-							player.TSPlayer.SendMessage(string.Format("[SocialSpy] {0}: {1}", tPly.Name, text), Color.Gray);
-					}
-				}
-				else if (ePly.HasNickName && !text.StartsWith("/") && !tPly.mute)
-				{
-					args.Handled = true;
-					string nick = Config.PrefixNicknamesWith + ePly.Nickname;
-					TShock.Utils.Broadcast(String.Format(TShock.Config.ChatFormat, tPly.Group.Name, tPly.Group.Prefix, nick, tPly.Group.Suffix, text),
-									tPly.Group.R, tPly.Group.G, tPly.Group.B);
-				}
-				else if (ePly.HasNickName && text.StartsWith("/me ") && !tPly.mute)
-				{
-					args.Handled = true;
-					string nick = Config.PrefixNicknamesWith + ePly.Nickname;
-					TShock.Utils.Broadcast(string.Format("*{0} {1}", nick, text.Remove(0, 4)), 205, 133, 63);
 				}
 			}
-			catch { }
 		}
 		#endregion
 
