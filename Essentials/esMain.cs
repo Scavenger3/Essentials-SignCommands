@@ -1918,7 +1918,10 @@ namespace Essentials
 
 			var PlayerChar = new PlayerData(args.Player);
 			PlayerChar.CopyCharacter(args.Player);
-			ePly.InvSee = PlayerChar;
+			if (ePly.InvSee == null)
+			{
+				ePly.InvSee = PlayerChar;
+			}
 
 			var CopyChar = new PlayerData(PlayersFound[0]);
 			CopyChar.CopyCharacter(PlayersFound[0]);
