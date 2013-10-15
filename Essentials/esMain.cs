@@ -124,7 +124,7 @@ namespace Essentials
 				ePly.Disabled = true;
 				ePly.TSPlayer.Disable();
 				ePly.LastDisabledCheck = DateTime.UtcNow;
-				Send.Error(ePly.TSPlayer, "You are still disabled.");
+				ePly.TSPlayer.SendErrorMessage("You are still disabled.");
 			}
 
 			string nickname;
@@ -244,9 +244,9 @@ namespace Essentials
 						e.Handled = true;
 						tPly.SetTeam(tPly.Team);
 						if (Config.RedTeamPassword == "")
-							Send.Error(tPly, "You do not have permission to join that team.");
+							tPly.SendErrorMessage("You do not have permission to join that team.");
 						else
-							Send.Error(tPly, "That team is locked, use \'/teamunlock red <password>\' to access it.");
+							tPly.SendErrorMessage("That team is locked, use \'/teamunlock red <password>\' to access it.");
 
 					}
 					break;
@@ -259,9 +259,9 @@ namespace Essentials
 						e.Handled = true;
 						tPly.SetTeam(tPly.Team);
 						if (Config.GreenTeamPassword == "")
-							Send.Error(tPly, "You do not have permission to join that team.");
+							tPly.SendErrorMessage("You do not have permission to join that team.");
 						else
-							Send.Error(tPly, "That team is locked, use \'/teamunlock green <password>\' to access it.");
+							tPly.SendErrorMessage("That team is locked, use \'/teamunlock green <password>\' to access it.");
 
 					}
 					break;
@@ -274,9 +274,9 @@ namespace Essentials
 						e.Handled = true;
 						tPly.SetTeam(tPly.Team);
 						if (Config.BlueTeamPassword == "")
-							Send.Error(tPly, "You do not have permission to join that team.");
+							tPly.SendErrorMessage("You do not have permission to join that team.");
 						else
-							Send.Error(tPly, "That team is locked, use \'/teamunlock blue <password>\' to access it.");
+							tPly.SendErrorMessage("That team is locked, use \'/teamunlock blue <password>\' to access it.");
 
 					}
 					break;
@@ -289,9 +289,9 @@ namespace Essentials
 						e.Handled = true;
 						tPly.SetTeam(tPly.Team);
 						if (Config.YellowTeamPassword == "")
-							Send.Error(tPly, "You do not have permission to join that team.");
+							tPly.SendErrorMessage("You do not have permission to join that team.");
 						else
-							Send.Error(tPly, "That team is locked, use \'/teamunlock yellow <password>\' to access it.");
+							tPly.SendErrorMessage("That team is locked, use \'/teamunlock yellow <password>\' to access it.");
 
 					}
 					break;
@@ -343,7 +343,7 @@ namespace Essentials
 							ePly.LastBackAction = BackAction.Death;
 							ePly.SavedBackAction = true;
 							if (Config.ShowBackMessageOnDeath)
-								Send.Success(ePly.TSPlayer, "Type \"/b\" to return to your position before you died.");
+								ePly.TSPlayer.SendSuccessMessage("Type \"/b\" to return to your position before you died.");
 						}
 					}
 					else if (ePly.SavedBackAction && !ePly.TSPlayer.Dead)
@@ -400,9 +400,9 @@ namespace Essentials
 					i++;
 				}
 				if (!full)
-					Send.Success(args.Player, "Filled all your items.");
+					args.Player.SendSuccessMessage("Filled all your items.");
 				else
-					Send.Error(args.Player, "Your inventory is already full.");
+					args.Player.SendErrorMessage("Your inventory is already full.");
 			}
 			else
 			{
@@ -411,9 +411,9 @@ namespace Essentials
 				if (holding.stack > 0 && amtToAdd > 0)
 					args.Player.GiveItem(holding.type, holding.name, holding.width, holding.height, amtToAdd);
 				if (amtToAdd == 0)
-					Send.Error(args.Player, "Your {0} is already full.", holding.name);
+					args.Player.SendErrorMessage("Your {0} is already full.", holding.name);
 				else
-					Send.Success(args.Player, "Filled up your {0}.", holding.name);
+					args.Player.SendSuccessMessage("Filled up your {0}.", holding.name);
 			}
 		}
 		#endregion
@@ -426,27 +426,27 @@ namespace Essentials
 				var PlayersFound = TShock.Utils.FindPlayer(string.Join(" ", args.Parameters));
 				if (PlayersFound.Count != 1)
 				{
-					Send.Error(args.Player, PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
+					args.Player.SendErrorMessage(PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
 					return;
 				}
-				Send.Success(args.Player, "Position for {0}: X Tile: {1} - Y Tile: {2}", PlayersFound[0].Name, PlayersFound[0].TileX, PlayersFound[0].TileY);
+				args.Player.SendSuccessMessage("Position for {0}: X Tile: {1} - Y Tile: {2}", PlayersFound[0].Name, PlayersFound[0].TileX, PlayersFound[0].TileY);
 				return;
 			}
-			Send.Success(args.Player, "X Tile: {0} - Y Tile: {1}", args.Player.TileX, args.Player.TileY);
+			args.Player.SendSuccessMessage("X Tile: {0} - Y Tile: {1}", args.Player.TileX, args.Player.TileY);
 		}
 
 		private void CMDtppos(CommandArgs args)
 		{
 			if (args.Parameters.Count < 1 || args.Parameters.Count > 2)
 			{
-				Send.Error(args.Player, "Usage: /tppos <X> [Y]");
+				args.Player.SendErrorMessage("Usage: /tppos <X> [Y]");
 				return;
 			}
 
 			int X = 0, Y = 0;
 			if (!int.TryParse(args.Parameters[0], out X) || (args.Parameters.Count == 2 && !int.TryParse(args.Parameters[1], out Y)))
 			{
-				Send.Error(args.Player, "Usage: /tppos <X> [Y]");
+				args.Player.SendErrorMessage("Usage: /tppos <X> [Y]");
 				return;
 			}
 
@@ -462,7 +462,7 @@ namespace Essentials
 			}
 
 			args.Player.Teleport(X * 16F, Y * 16F);
-			Send.Success(args.Player, "Teleported you to X: {0} - Y: {1}", X, Y);
+			args.Player.SendSuccessMessage("Teleported you to X: {0} - Y: {1}", X, Y);
 		}
 
 		private void CMDruler(CommandArgs args)
@@ -473,18 +473,18 @@ namespace Essentials
 				int.TryParse(args.Parameters[0], out choice) &&
 				choice >= 1 && choice <= 2)
 			{
-				Send.Info(args.Player, "Hit a block to Set Point {0}.", choice);
+				args.Player.SendInfoMessage("Hit a block to Set Point {0}.", choice);
 				args.Player.AwaitingTempPoint = choice;
 			}
 			else
 			{
 				if (args.Player.TempPoints[0] == Point.Zero || args.Player.TempPoints[1] == Point.Zero)
-					Send.Error(args.Player, "Invalid Points. To set points use: /ruler [1/2]");
+					args.Player.SendErrorMessage("Invalid Points. To set points use: /ruler [1/2]");
 				else
 				{
 					var width = Math.Abs(args.Player.TempPoints[0].X - args.Player.TempPoints[1].X);
 					var height = Math.Abs(args.Player.TempPoints[0].Y - args.Player.TempPoints[1].Y);
-					Send.Success(args.Player, "Area Height: {0} Width: {1}", height, width);
+					args.Player.SendSuccessMessage("Area Height: {0} Width: {1}", height, width);
 					args.Player.TempPoints[0] = Point.Zero; args.Player.TempPoints[1] = Point.Zero;
 				}
 			}
@@ -496,7 +496,7 @@ namespace Essentials
 		{
 			if (args.Parameters.Count < 1)
 			{
-				Send.Error(args.Player, "Usage: /helpop <message>");
+				args.Player.SendErrorMessage("Usage: /helpop <message>");
 				return;
 			}
 
@@ -534,7 +534,7 @@ namespace Essentials
 		{
 			if (args.Parameters.Count < 1 || args.Parameters.Count > 2)
 			{
-				Send.Error(args.Player, "Usage: /burn <player> [seconds]");
+				args.Player.SendErrorMessage("Usage: /burn <player> [seconds]");
 				return;
 			}
 
@@ -545,11 +545,11 @@ namespace Essentials
 			var PlayersFound = TShock.Utils.FindPlayer(args.Parameters[0]);
 			if (PlayersFound.Count != 1)
 			{
-				Send.Error(args.Player, PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
+				args.Player.SendErrorMessage(PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
 				return;
 			}
 			PlayersFound[0].SetBuff(24, duration);
-			Send.Success(args.Player, "{0} Has been set on fire for {1} second(s).", PlayersFound[0].Name, duration);
+			args.Player.SendSuccessMessage("{0} Has been set on fire for {1} second(s).", PlayersFound[0].Name, duration);
 		}
 		#endregion
 
@@ -574,7 +574,7 @@ namespace Essentials
 		{
 			if (args.Parameters.Count < 1)
 			{
-				Send.Error(args.Player, "Usage: /moon [ new | 1/4 | half | 3/4 | full ]");
+				args.Player.SendErrorMessage("Usage: /moon [ new | 1/4 | half | 3/4 | full ]");
 				return;
 			}
 
@@ -598,11 +598,11 @@ namespace Essentials
 					Main.moonPhase = 0;
 					break;
 				default:
-					Send.Error(args.Player, "Usage: /moon [ new | 1/4 | half | 3/4 | full ]");
+					args.Player.SendErrorMessage("Usage: /moon [ new | 1/4 | half | 3/4 | full ]");
 					break;
 			}
 			NetMessage.SendData(7);
-			Send.Success(args.Player, "Moon Phase set to {0} Moon.", subcmd);
+			args.Player.SendSuccessMessage("Moon Phase set to {0} Moon.", subcmd);
 		}
 		#endregion
 
@@ -612,17 +612,17 @@ namespace Essentials
 			var ePly = esPlayers[args.Player.Index];
 			if (ePly.TSPlayer.Dead)
 			{
-				Send.Error(args.Player, "Please wait till you respawn.");
+				args.Player.SendErrorMessage("Please wait till you respawn.");
 				return;
 			}
 			if (ePly.BackCooldown > 0)
 			{
-				Send.Error(args.Player, "You must wait another {0} seconds before you can use /b again.", ePly.BackCooldown);
+				args.Player.SendErrorMessage("You must wait another {0} seconds before you can use /b again.", ePly.BackCooldown);
 				return;
 			}
 
 			if (ePly.LastBackAction == BackAction.None)
-				Send.Error(args.Player, "You do not have a /b position stored.");
+				args.Player.SendErrorMessage("You do not have a /b position stored.");
 			else if (ePly.LastBackAction == BackAction.TP)
 			{
 				if (Config.BackCooldown > 0 && !args.Player.Group.HasPermission("essentials.back.nocooldown"))
@@ -630,7 +630,7 @@ namespace Essentials
 					ePly.BackCooldown = Config.BackCooldown;
 				}
 				args.Player.Teleport(ePly.LastBackX * 16F, ePly.LastBackY * 16F);
-				Send.Success(args.Player, "Moved you to your position before you last teleported.");
+				args.Player.SendSuccessMessage("Moved you to your position before you last teleported.");
 			}
 			else if (ePly.LastBackAction == BackAction.Death && args.Player.Group.HasPermission("essentials.back.death"))
 			{
@@ -639,10 +639,10 @@ namespace Essentials
 					ePly.BackCooldown = Config.BackCooldown;
 				}
 				args.Player.Teleport(ePly.LastBackX * 16F, ePly.LastBackY * 16F);
-				Send.Success(args.Player, "Moved you to your position before you last died.");
+				args.Player.SendSuccessMessage("Moved you to your position before you last died.");
 			}
 			else
-				Send.Error(args.Player, "You do not have permission to /b after death.");
+				args.Player.SendErrorMessage("You do not have permission to /b after death.");
 		}
 		#endregion
 
@@ -651,14 +651,14 @@ namespace Essentials
 		{
 			if (args.Parameters.Count != 1)
 			{
-				Send.Error(args.Player, "Usage: /spage <page>");
+				args.Player.SendErrorMessage("Usage: /spage <page>");
 				return;
 			}
 
 			int Page = 1;
 			if (!int.TryParse(args.Parameters[0], out Page))
 			{
-				Send.Error(args.Player, string.Format("Specified page ({0}) invalid.", args.Parameters[0]));
+				args.Player.SendErrorMessage(string.Format("Specified page ({0}) invalid.", args.Parameters[0]));
 				return;
 			}
 
@@ -671,7 +671,7 @@ namespace Essentials
 		{
 			if (args.Parameters.Count < 1)
 			{
-				Send.Error(args.Player, "Usage: /sitem <search term>");
+				args.Player.SendErrorMessage("Usage: /sitem <search term>");
 				return;
 			}
 
@@ -680,7 +680,7 @@ namespace Essentials
 
 			if (Results.Count < 1)
 			{
-				Send.Error(args.Player, "Could not find any matching Items.");
+				args.Player.SendErrorMessage("Could not find any matching Items.");
 				return;
 			}
 
@@ -694,7 +694,7 @@ namespace Essentials
 		{
 			if (args.Parameters.Count < 1)
 			{
-				Send.Error(args.Player, "Usage: /snpc <search term>");
+				args.Player.SendErrorMessage("Usage: /snpc <search term>");
 				return;
 			}
 
@@ -703,7 +703,7 @@ namespace Essentials
 
 			if (Results.Count < 1)
 			{
-				Send.Error(args.Player, "Could not find any matching NPCs.");
+				args.Player.SendErrorMessage("Could not find any matching NPCs.");
 				return;
 			}
 
@@ -720,13 +720,13 @@ namespace Essentials
 			/* Chek if the player is a real player */
 			if (!args.Player.RealPlayer)
 			{
-				Send.Error(args.Player, "You must be a real player.");
+				args.Player.SendErrorMessage("You must be a real player.");
 				return;
 			}
 			/* Make sure the player is logged in */
 			if (!args.Player.IsLoggedIn)
 			{
-				Send.Error(args.Player, "You must be logged in to do that.");
+				args.Player.SendErrorMessage("You must be logged in to do that.");
 				return;
 			}
 			/* Make sure the player isn't in a SetHome Disabled region */
@@ -738,7 +738,7 @@ namespace Essentials
 					if (region == null) continue;
 					if (region.InArea(args.Player.TileX, args.Player.TileY))
 					{
-						Send.Error(args.Player, "You cannot set your home in this region.");
+						args.Player.SendErrorMessage("You cannot set your home in this region.");
 						return;
 					}
 				}
@@ -756,23 +756,23 @@ namespace Essentials
 				{
 					/* they dont specify a name OR they specify a name but they only have permission to set 1, use a default name */
 					if (esSQL.AddHome(args.Player.UserID, args.Player.TileX, args.Player.TileY, "1", Main.worldID))
-						Send.Success(args.Player, "Set home.");
+						args.Player.SendSuccessMessage("Set home.");
 					else
-						Send.Error(args.Player, "An error occurred while setting your home.");
+						args.Player.SendErrorMessage("An error occurred while setting your home.");
 				}
 				else if (args.Parameters.Count == 1 && !args.Parameters[0].Contains(" ") && (CanSet == -1 || CanSet > 1))
 				{
 					/* they specify a name And have permission to specify more than 1 */
 					string name = args.Parameters[0].ToLower();
 					if (esSQL.AddHome(args.Player.UserID, args.Player.TileX, args.Player.TileY, name, Main.worldID))
-						Send.Success(args.Player, "Set home {0}.", name);
+						args.Player.SendSuccessMessage("Set home {0}.", name);
 					else
-						Send.Error(args.Player, "An error occurred while setting your home.");
+						args.Player.SendErrorMessage("An error occurred while setting your home.");
 				}
 				else
 				{
 					/* homes cant have more than 1 word */
-					Send.Error(args.Player, "Error: Homes cannot contain spaces.");
+					args.Player.SendErrorMessage("Error: Homes cannot contain spaces.");
 				}
 			}
 			else if (homes.Count == 1)
@@ -786,39 +786,39 @@ namespace Essentials
 					{
 						/* They want to update a home */
 						if (esSQL.UpdateHome(args.Player.TileX, args.Player.TileY, args.Player.UserID, name, Main.worldID))
-							Send.Success(args.Player, "Updated home {0}.", name);
+							args.Player.SendSuccessMessage("Updated home {0}.", name);
 						else
-							Send.Error(args.Player, "An error occurred while updating your home.");
+							args.Player.SendErrorMessage("An error occurred while updating your home.");
 					}
 					else
 					{
 						/* They want to add a new home */
 						if (esSQL.AddHome(args.Player.UserID, args.Player.TileX, args.Player.TileY, name, Main.worldID))
-							Send.Success(args.Player, "Set home {0}.", name);
+							args.Player.SendSuccessMessage("Set home {0}.", name);
 						else
-							Send.Error(args.Player, "An error occurred while setting your home.");
+							args.Player.SendErrorMessage("An error occurred while setting your home.");
 					}
 				}
 				else if (args.Parameters.Count < 1 && (1 < CanSet || CanSet == -1))
 				{
 					/* if they dont specify a name & can set more than 1  - add a new home*/
 					if (esSQL.AddHome(args.Player.UserID, args.Player.TileX, args.Player.TileY, esUtils.NextHome(homes), Main.worldID))
-						Send.Success(args.Player, "Set home.");
+						args.Player.SendSuccessMessage("Set home.");
 					else
-						Send.Error(args.Player, "An error occurred while setting your home.");
+						args.Player.SendErrorMessage("An error occurred while setting your home.");
 				}
 				else if (args.Parameters.Count > 0 && CanSet == 1)
 				{
 					/* They specify a name but can only set 1 home, update their current home */
 					if (esSQL.UpdateHome(args.Player.TileX, args.Player.TileY, args.Player.UserID, homes[0], Main.worldID))
-						Send.Success(args.Player, "Updated home.");
+						args.Player.SendSuccessMessage("Updated home.");
 					else
-						Send.Error(args.Player, "An error occurred while updating your home.");
+						args.Player.SendErrorMessage("An error occurred while updating your home.");
 				}
 				else
 				{
 					/* homes cant have more than 1 word */
-					Send.Error(args.Player, "Error: Homes cannot contain spaces.");
+					args.Player.SendErrorMessage("Error: Homes cannot contain spaces.");
 				}
 			}
 			else
@@ -831,15 +831,15 @@ namespace Essentials
 					{
 						/* They can set more homes */
 						if (esSQL.AddHome(args.Player.UserID, args.Player.TileX, args.Player.TileY, esUtils.NextHome(homes), Main.worldID))
-							Send.Success(args.Player, "Set home.");
+							args.Player.SendSuccessMessage("Set home.");
 						else
-							Send.Error(args.Player, "An error occurred while setting your home.");
+							args.Player.SendErrorMessage("An error occurred while setting your home.");
 					}
 					else
 					{
 						/* they cant set any more homes */
-						Send.Error(args.Player, "You are only allowed to set {0} homes.", CanSet.ToString());
-						Send.Error(args.Player, "Homes: {0}", string.Join(", ", homes));
+						args.Player.SendErrorMessage("You are only allowed to set {0} homes.", CanSet.ToString());
+						args.Player.SendErrorMessage("Homes: {0}", string.Join(", ", homes));
 					}
 				}
 				else if (args.Parameters.Count == 1 && !args.Parameters[0].Contains(" "))
@@ -850,9 +850,9 @@ namespace Essentials
 					{
 						/* they want to update a home */
 						if (esSQL.UpdateHome(args.Player.TileX, args.Player.TileY, args.Player.UserID, name, Main.worldID))
-							Send.Success(args.Player, "Updated home.");
+							args.Player.SendSuccessMessage("Updated home.");
 						else
-							Send.Error(args.Player, "An error occurred while updating your home.");
+							args.Player.SendErrorMessage("An error occurred while updating your home.");
 					}
 					else
 					{
@@ -861,22 +861,22 @@ namespace Essentials
 						{
 							/* they can set more homes */
 							if (esSQL.AddHome(args.Player.UserID, args.Player.TileX, args.Player.TileY, name, Main.worldID))
-								Send.Success(args.Player, "Set home {0}.", name);
+								args.Player.SendSuccessMessage("Set home {0}.", name);
 							else
-								Send.Error(args.Player, "An error occurred while setting your home.");
+								args.Player.SendErrorMessage("An error occurred while setting your home.");
 						}
 						else
 						{
 							/* they cant set any more homes */
-							Send.Error(args.Player, "You are only allowed to set {0} homes.", CanSet.ToString());
-							Send.Error(args.Player, "Homes: {0}", string.Join(", ", homes));
+							args.Player.SendErrorMessage("You are only allowed to set {0} homes.", CanSet.ToString());
+							args.Player.SendErrorMessage("Homes: {0}", string.Join(", ", homes));
 						}
 					}
 				}
 				else
 				{
 					/* homes cant have more than 1 word */
-					Send.Error(args.Player, "Error: Homes cannot contain spaces.");
+					args.Player.SendErrorMessage("Error: Homes cannot contain spaces.");
 				}
 			}
 		}
@@ -886,13 +886,13 @@ namespace Essentials
 			/* Chek if the player is a real player */
 			if (!args.Player.RealPlayer)
 			{
-				Send.Error(args.Player, "You must be a real player.");
+				args.Player.SendErrorMessage("You must be a real player.");
 				return;
 			}
 			/* Make sure the player is logged in */
 			if (!args.Player.IsLoggedIn)
 			{
-				Send.Error(args.Player, "You must be logged in to do that.");
+				args.Player.SendErrorMessage("You must be logged in to do that.");
 				return;
 			}
 
@@ -904,7 +904,7 @@ namespace Essentials
 			if (homes.Count < 1)
 			{
 				/* they do not have a home */
-				Send.Error(args.Player, "You have not set a home. type /sethome to set one.");
+				args.Player.SendErrorMessage("You have not set a home. type /sethome to set one.");
 				return;
 			}
 			else if (homes.Count == 1)
@@ -918,8 +918,8 @@ namespace Essentials
 				if (args.Parameters.Count < 1)
 				{
 					/* they didnt specify the name */
-					Send.Error(args.Player, "Usage: /myhome <home>");
-					Send.Error(args.Player, "Homes: {0}", string.Join(", ", homes));
+					args.Player.SendErrorMessage("Usage: /myhome <home>");
+					args.Player.SendErrorMessage("Homes: {0}", string.Join(", ", homes));
 					return;
 				}
 				else if (args.Parameters.Count == 1 && !args.Parameters[0].Contains(" "))
@@ -932,16 +932,16 @@ namespace Essentials
 					else
 					{
 						/* could not find the name */
-						Send.Error(args.Player, "Usage: /myhome <home>");
-						Send.Error(args.Player, "Homes: {0}", string.Join(", ", homes));
+						args.Player.SendErrorMessage("Usage: /myhome <home>");
+						args.Player.SendErrorMessage("Homes: {0}", string.Join(", ", homes));
 						return;
 					}
 				}
 				else
 				{
 					/* could not find the name */
-					Send.Error(args.Player, "Usage: /myhome <home>");
-					Send.Error(args.Player, "Homes: {0}", string.Join(", ", homes));
+					args.Player.SendErrorMessage("Usage: /myhome <home>");
+					args.Player.SendErrorMessage("Homes: {0}", string.Join(", ", homes));
 					return;
 				}
 			}
@@ -949,7 +949,7 @@ namespace Essentials
 			/* teleport home */
 			if (homePos == Point.Zero)
 			{
-				Send.Error(args.Player, "There is an error with your home.");
+				args.Player.SendErrorMessage("There is an error with your home.");
 				return;
 			}
 
@@ -962,7 +962,7 @@ namespace Essentials
 			}
 
 			args.Player.Teleport(homePos.X * 16F, homePos.Y * 16F);
-			Send.Success(args.Player, "Teleported home.");
+			args.Player.SendSuccessMessage("Teleported home.");
 		}
 
 		private void CMDdelhome(CommandArgs args)
@@ -970,13 +970,13 @@ namespace Essentials
 			/* Chek if the player is a real player */
 			if (!args.Player.RealPlayer)
 			{
-				Send.Error(args.Player, "You must be a real player.");
+				args.Player.SendErrorMessage("You must be a real player.");
 				return;
 			}
 			/* Make sure the player is logged in */
 			if (!args.Player.IsLoggedIn)
 			{
-				Send.Error(args.Player, "You must be logged in to do that.");
+				args.Player.SendErrorMessage("You must be logged in to do that.");
 				return;
 			}
 
@@ -986,15 +986,15 @@ namespace Essentials
 			if (homes.Count < 1)
 			{
 				/* they do not have a home */
-				Send.Error(args.Player, "You have not set a home. type /sethome to set one.");
+				args.Player.SendErrorMessage("You have not set a home. type /sethome to set one.");
 			}
 			else if (homes.Count == 1)
 			{
 				/* they have 1 home */
 				if (esSQL.RemoveHome(args.Player.UserID, homes[0], Main.worldID))
-					Send.Success(args.Player, "Removed home.");
+					args.Player.SendSuccessMessage("Removed home.");
 				else
-					Send.Error(args.Player, "An error occurred while removing your home.");
+					args.Player.SendErrorMessage("An error occurred while removing your home.");
 			}
 			else if (homes.Count > 1)
 			{
@@ -1002,8 +1002,8 @@ namespace Essentials
 				if (args.Parameters.Count < 1)
 				{
 					/* they didnt specify the name */
-					Send.Error(args.Player, "Usage: /delhome <home>");
-					Send.Error(args.Player, "Homes: {0}", string.Join(", ", homes));
+					args.Player.SendErrorMessage("Usage: /delhome <home>");
+					args.Player.SendErrorMessage("Homes: {0}", string.Join(", ", homes));
 				}
 				else if (args.Parameters.Count == 1 && !args.Parameters[0].Contains(" "))
 				{
@@ -1011,22 +1011,22 @@ namespace Essentials
 					if (homes.Contains(name))
 					{
 						if (esSQL.RemoveHome(args.Player.UserID, name, Main.worldID))
-							Send.Success(args.Player, "Removed home {0}.", name);
+							args.Player.SendSuccessMessage("Removed home {0}.", name);
 						else
-							Send.Error(args.Player, "An error occurred while removing your home.");
+							args.Player.SendErrorMessage("An error occurred while removing your home.");
 					}
 					else
 					{
 						/* could not find the name */
-						Send.Error(args.Player, "Usage: /delhome <home>");
-						Send.Error(args.Player, "Homes: {0}", string.Join(", ", homes));
+						args.Player.SendErrorMessage("Usage: /delhome <home>");
+						args.Player.SendErrorMessage("Homes: {0}", string.Join(", ", homes));
 					}
 				}
 				else
 				{
 					/* could not find the name */
-					Send.Error(args.Player, "Usage: /delhome <home>");
-					Send.Error(args.Player, "Homes: {0}", string.Join(", ", homes));
+					args.Player.SendErrorMessage("Usage: /delhome <home>");
+					args.Player.SendErrorMessage("Homes: {0}", string.Join(", ", homes));
 				}
 			}
 		}
@@ -1044,13 +1044,13 @@ namespace Essentials
 		{
 			if (!Config.LockRedTeam && !Config.LockGreenTeam && !Config.LockBlueTeam && !Config.LockYellowTeam)
 			{
-				Send.Error(args.Player, "Teams are not locked.");
+				args.Player.SendErrorMessage("Teams are not locked.");
 				return;
 			}
 
 			if (args.Parameters.Count < 2)
 			{
-				Send.Error(args.Player, "Usage: /teamunlock <color> <password>");
+				args.Player.SendErrorMessage("Usage: /teamunlock <color> <password>");
 				return;
 			}
 
@@ -1069,14 +1069,14 @@ namespace Essentials
 						{
 							if (Password == Config.RedTeamPassword && Config.RedTeamPassword != "")
 							{
-								Send.Success(args.Player, "You can now join red team.");
+								args.Player.SendSuccessMessage("You can now join red team.");
 								ePly.RedPassword = Password;
 							}
 							else
-								Send.Error(args.Player, "Incorrect Password.");
+								args.Player.SendErrorMessage("Incorrect Password.");
 						}
 						else
-							Send.Error(args.Player, "The red team isn't locked.");
+							args.Player.SendErrorMessage("The red team isn't locked.");
 					}
 					break;
 				case "green":
@@ -1085,14 +1085,14 @@ namespace Essentials
 						{
 							if (Password == Config.GreenTeamPassword && Config.GreenTeamPassword != "")
 							{
-								Send.Success(args.Player, "You can now join green team.");
+								args.Player.SendSuccessMessage("You can now join green team.");
 								ePly.GreenPassword = Password;
 							}
 							else
-								Send.Error(args.Player, "Incorrect Password.");
+								args.Player.SendErrorMessage("Incorrect Password.");
 						}
 						else
-							Send.Error(args.Player, "The green team isn't locked.");
+							args.Player.SendErrorMessage("The green team isn't locked.");
 					}
 					break;
 				case "blue":
@@ -1101,14 +1101,14 @@ namespace Essentials
 						{
 							if (Password == Config.BlueTeamPassword && Config.BlueTeamPassword != "")
 							{
-								Send.Success(args.Player, "You can now join blue team.");
+								args.Player.SendSuccessMessage("You can now join blue team.");
 								ePly.BluePassword = Password;
 							}
 							else
-								Send.Error(args.Player, "Incorrect Password.");
+								args.Player.SendErrorMessage("Incorrect Password.");
 						}
 						else
-							Send.Error(args.Player, "The blue team isn't lock.");
+							args.Player.SendErrorMessage("The blue team isn't lock.");
 					}
 					break;
 				case "yellow":
@@ -1117,18 +1117,18 @@ namespace Essentials
 						{
 							if (Password == Config.YellowTeamPassword && Config.YellowTeamPassword != "")
 							{
-								Send.Success(args.Player, "You can now join yellow team.");
+								args.Player.SendSuccessMessage("You can now join yellow team.");
 								ePly.YellowPassword = Password;
 							}
 							else
-								Send.Error(args.Player, "Incorrect Password.");
+								args.Player.SendErrorMessage("Incorrect Password.");
 						}
 						else
-							Send.Error(args.Player, "The yellow team isn't locked.");
+							args.Player.SendErrorMessage("The yellow team isn't locked.");
 					}
 					break;
 				default:
-					Send.Error(args.Player, "Usage: /teamunlock <red/green/blue/yellow> <password>");
+					args.Player.SendErrorMessage("Usage: /teamunlock <red/green/blue/yellow> <password>");
 					break;
 			}
 		}
@@ -1141,12 +1141,12 @@ namespace Essentials
 
 			if (ePly.LastCMD == "/=" || ePly.LastCMD.StartsWith("/= "))
 			{
-				Send.Error(args.Player, "Error with last command.");
+				args.Player.SendErrorMessage("Error with last command.");
 				return;
 			}
 
 			if (ePly.LastCMD == string.Empty)
-				Send.Error(args.Player, "You have not entered a command yet.");
+				args.Player.SendErrorMessage("You have not entered a command yet.");
 			else
 				TShockAPI.Commands.HandleCommand(args.Player, ePly.LastCMD);
 		}
@@ -1157,14 +1157,14 @@ namespace Essentials
 		{
 			if (args.Parameters.Count < 1)
 			{
-				Send.Error(args.Player, "Usage: /killr <player> <reason>");
+				args.Player.SendErrorMessage("Usage: /killr <player> <reason>");
 				return;
 			}
 
 			var PlayersFound = TShock.Utils.FindPlayer(args.Parameters[0]);
 			if (PlayersFound.Count != 1)
 			{
-				Send.Error(args.Player, PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
+				args.Player.SendErrorMessage(PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
 				return;
 			}
 
@@ -1173,7 +1173,7 @@ namespace Essentials
 			string reason = " " + string.Join(" ", args.Parameters);
 
 			NetMessage.SendData(26, -1, -1, reason, Ply.Index, 0f, 15000);
-			Send.Success(args.Player, "You just killed {0}.", Ply.Name);
+			args.Player.SendSuccessMessage("You just killed {0}.", Ply.Name);
 		}
 		#endregion
 
@@ -1182,7 +1182,7 @@ namespace Essentials
 		{
 			if (args.Parameters.Count < 1)
 			{
-				Send.Error(args.Player, "Usage: /disable <player/-list> [reason]");
+				args.Player.SendErrorMessage("Usage: /disable <player/-list> [reason]");
 				return;
 			}
 
@@ -1190,9 +1190,9 @@ namespace Essentials
 			{
 				List<string> Names = new List<string>(Disabled.Keys);
 				if (Disabled.Count < 1)
-					Send.Success(args.Player, "There are currently no players disabled.", Color.MediumSeaGreen);
+					args.Player.SendSuccessMessage("There are currently no players disabled.", Color.MediumSeaGreen);
 				else
-					Send.Success(args.Player, "Disabled Players: {0}", string.Join(", ", Names));
+					args.Player.SendSuccessMessage("Disabled Players: {0}", string.Join(", ", Names));
 				return;
 			}
 
@@ -1204,15 +1204,15 @@ namespace Essentials
 					if (pair.Key.ToLower().Contains(args.Parameters[0].ToLower()))
 					{
 						Disabled.Remove(pair.Key);
-						Send.Success(args.Player, "{0} is no longer disabled (even though they aren't online).", pair.Key);
+						args.Player.SendSuccessMessage("{0} is no longer disabled (even though they aren't online).", pair.Key);
 						return;
 					}
 				}
-				Send.Error(args.Player, "No players matched.");
+				args.Player.SendErrorMessage("No players matched.");
 			}
 			else if (PlayersFound.Count > 1)
 			{
-				Send.Error(args.Player, "More than one player matched.");
+				args.Player.SendErrorMessage("More than one player matched.");
 				return;
 			}
 
@@ -1236,11 +1236,11 @@ namespace Essentials
 				pos[0] = ePly.DisabledX;
 				pos[1] = ePly.DisabledY;
 				Disabled.Add(tPly.Name, pos);
-				Send.Success(args.Player, "You disabled {0}, They can not be enabled until you type \"/disable {0}\".", tPly.Name);
+				args.Player.SendSuccessMessage("You disabled {0}, They can not be enabled until you type \"/disable {0}\".", tPly.Name);
 				if (Reason == string.Empty)
-					Send.Success(tPly, "You have been disabled by {0}.", args.Player.Name);
+					tPly.SendSuccessMessage("You have been disabled by {0}.", args.Player.Name);
 				else
-					Send.Success(tPly, "You have been disabled by {0} for {1}.", args.Player.Name, Reason);
+					tPly.SendSuccessMessage("You have been disabled by {0} for {1}.", args.Player.Name, Reason);
 			}
 			else
 			{
@@ -1250,8 +1250,8 @@ namespace Essentials
 
 				Disabled.Remove(tPly.Name);
 
-				Send.Success(args.Player, "{0} is no longer disabled.", tPly.Name);
-				Send.Success(tPly, "You are no longer disabled.");
+				args.Player.SendSuccessMessage("{0} is no longer disabled.", tPly.Name);
+				tPly.SendSuccessMessage("You are no longer disabled.");
 			}
 		}
 		#endregion
@@ -1262,7 +1262,7 @@ namespace Essentials
 			int Y = esUtils.GetTop(args.Player.TileX);
 			if (Y == -1)
 			{
-				Send.Error(args.Player, "You are already on the top.");
+				args.Player.SendErrorMessage("You are already on the top.");
 				return;
 			}
 			esPlayer ePly = esPlayers[args.Player.Index];
@@ -1273,21 +1273,21 @@ namespace Essentials
 				ePly.LastBackAction = BackAction.TP;
 			}
 			args.Player.Teleport(args.Player.TileX * 16F, Y * 16F);
-			Send.Success(args.Player, "Teleported you to the top.");
+			args.Player.SendSuccessMessage("Teleported you to the top.");
 		}
 		private void CMDup(CommandArgs args)
 		{
 			int levels = 1;
 			if (args.Parameters.Count > 0 && !int.TryParse(args.Parameters[0], out levels))
 			{
-				Send.Error(args.Player, "Usage: /up [No. levels]");
+				args.Player.SendErrorMessage("Usage: /up [No. levels]");
 				return;
 			}
 
 			int Y = esUtils.GetUp(args.Player.TileX, args.Player.TileY);
 			if (Y == -1)
 			{
-				Send.Error(args.Player, "You are already on the top.");
+				args.Player.SendErrorMessage("You are already on the top.");
 				return;
 			}
 			bool limit = false;
@@ -1311,21 +1311,21 @@ namespace Essentials
 				ePly.LastBackAction = BackAction.TP;
 			}
 			args.Player.Teleport(args.Player.TileX * 16F, Y * 16F);
-			Send.Success(args.Player, "Teleported you up {0} level(s).{1}", levels, limit ? " You cant go up any further." : string.Empty);
+			args.Player.SendSuccessMessage("Teleported you up {0} level(s).{1}", levels, limit ? " You cant go up any further." : string.Empty);
 		}
 		private void CMDdown(CommandArgs args)
 		{
 			int levels = 1;
 			if (args.Parameters.Count > 0 && !int.TryParse(args.Parameters[0], out levels))
 			{
-				Send.Error(args.Player, "Usage: /down [No. levels]");
+				args.Player.SendErrorMessage("Usage: /down [No. levels]");
 				return;
 			}
 
 			int Y = esUtils.GetDown(args.Player.TileX, args.Player.TileY);
 			if (Y == -1)
 			{
-				Send.Error(args.Player, "You are already on the bottom.");
+				args.Player.SendErrorMessage("You are already on the bottom.");
 				return;
 			}
 			bool limit = false;
@@ -1349,7 +1349,7 @@ namespace Essentials
 				ePly.LastBackAction = BackAction.TP;
 			}
 			args.Player.Teleport(args.Player.TileX * 16F, Y * 16F);
-			Send.Success(args.Player, "Teleported you down {0} level(s).{1}", levels, limit ? " You can't go down any further." : string.Empty);
+			args.Player.SendSuccessMessage("Teleported you down {0} level(s).{1}", levels, limit ? " You can't go down any further." : string.Empty);
 		}
 		#endregion
 
@@ -1359,14 +1359,14 @@ namespace Essentials
 			int levels = 1;
 			if (args.Parameters.Count > 0 && !int.TryParse(args.Parameters[0], out levels))
 			{
-				Send.Error(args.Player, "Usage: /left [No. times]");
+				args.Player.SendErrorMessage("Usage: /left [No. times]");
 				return;
 			}
 
 			int X = esUtils.GetLeft(args.Player.TileX, args.Player.TileY);
 			if (X == -1)
 			{
-				Send.Error(args.Player, "You cannot go any further left.");
+				args.Player.SendErrorMessage("You cannot go any further left.");
 				return;
 			}
 			bool limit = false;
@@ -1390,21 +1390,21 @@ namespace Essentials
 				ePly.LastBackAction = BackAction.TP;
 			}
 			args.Player.Teleport(X * 16F, args.Player.TileY * 16F);
-			Send.Success(args.Player, "Teleported you to the left {0} time(s).{1}", levels, limit ? " You can't go any further." : string.Empty);
+			args.Player.SendSuccessMessage("Teleported you to the left {0} time(s).{1}", levels, limit ? " You can't go any further." : string.Empty);
 		}
 		private void CMDright(CommandArgs args)
 		{
 			int levels = 1;
 			if (args.Parameters.Count > 0 && !int.TryParse(args.Parameters[0], out levels))
 			{
-				Send.Error(args.Player, "Usage: /right [No. times]");
+				args.Player.SendErrorMessage("Usage: /right [No. times]");
 				return;
 			}
 
 			int X = esUtils.GetRight(args.Player.TileX, args.Player.TileY);
 			if (X == -1)
 			{
-				Send.Error(args.Player, "You cannot go any further right.");
+				args.Player.SendErrorMessage("You cannot go any further right.");
 				return;
 			}
 			bool limit = false;
@@ -1428,7 +1428,7 @@ namespace Essentials
 				ePly.LastBackAction = BackAction.TP;
 			}
 			args.Player.Teleport(X * 16F, args.Player.TileY * 16F);
-			Send.Success(args.Player, "Teleported you to the right {0} time(s).{1}", levels, limit ? " You can't go any further." : string.Empty);
+			args.Player.SendSuccessMessage("Teleported you to the right {0} time(s).{1}", levels, limit ? " You can't go any further." : string.Empty);
 		}
 		#endregion
 
@@ -1437,12 +1437,12 @@ namespace Essentials
 		{
 			if (!args.Player.Group.HasPermission("essentials.playertime.setother") && args.Parameters.Count != 1)
 			{
-				Send.Error(args.Player, "Usage: /ptime <day/night/noon/midnight/reset>");
+				args.Player.SendErrorMessage("Usage: /ptime <day/night/noon/midnight/reset>");
 				return;
 			}
 			else if (args.Parameters.Count < 1 || args.Parameters.Count > 2)
 			{
-				Send.Error(args.Player, "Usage: /ptime <day/night/noon/midnight/reset> [player]");
+				args.Player.SendErrorMessage("Usage: /ptime <day/night/noon/midnight/reset> [player]");
 				return;
 			}
 
@@ -1452,7 +1452,7 @@ namespace Essentials
 				var PlayersFound = TShock.Utils.FindPlayer(args.Parameters[1]);
 				if (PlayersFound.Count != 1)
 				{
-					Send.Error(args.Player, PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
+					args.Player.SendErrorMessage(PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
 					return;
 				}
 				Ply = PlayersFound[0];
@@ -1494,18 +1494,18 @@ namespace Essentials
 					{
 						ePly.ptTime = -1.0;
 						Ply.SendData(PacketTypes.TimeSet, "", 0, Main.sunModY, Main.moonModY);
-						Send.Success(args.Player, "{0} time is the same as the server.", Ply == args.Player ? "Your" : string.Concat(Ply.Name, "'s"));
+						args.Player.SendSuccessMessage("{0} time is the same as the server.", Ply == args.Player ? "Your" : string.Concat(Ply.Name, "'s"));
 						if (Ply != args.Player)
-							Send.Success(Ply, "{0} Set your time to the server time.", args.Player.Name);
+							Ply.SendSuccessMessage("{0} Set your time to the server time.", args.Player.Name);
 					}
 					return;
 				default:
-					Send.Error(args.Player, "Usage: /ptime <day/night/dusk/noon/midnight/reset> [player]");
+					args.Player.SendErrorMessage("Usage: /ptime <day/night/dusk/noon/midnight/reset> [player]");
 					return;
 			}
-			Send.Success(args.Player, "Set {0} time to {1}.", args.Player == Ply ? "your" : string.Concat(Ply.Name, "'s"), Time);
+			args.Player.SendSuccessMessage("Set {0} time to {1}.", args.Player == Ply ? "your" : string.Concat(Ply.Name, "'s"), Time);
 			if (Ply != args.Player)
-				Send.Success(Ply, "{0} set your time to {1}.", args.Player.Name, Time);
+				Ply.SendSuccessMessage("{0} set your time to {1}.", args.Player.Name, Time);
 		}
 		#endregion
 
@@ -1521,21 +1521,21 @@ namespace Essentials
 		{
 			if (args.Parameters.Count < 2)
 			{
-				Send.Error(args.Player, "Usage: /sudo <player> <command>");
+				args.Player.SendErrorMessage("Usage: /sudo <player> <command>");
 				return;
 			}
 
 			var PlayersFound = TShock.Utils.FindPlayer(args.Parameters[0]);
 			if (PlayersFound.Count != 1)
 			{
-				Send.Error(args.Player, PlayersFound.Count < 1 ? "No Players matched." : "More than one player matched.");
+				args.Player.SendErrorMessage(PlayersFound.Count < 1 ? "No Players matched." : "More than one player matched.");
 				return;
 			}
 
 			var Ply = PlayersFound[0];
 			if (Ply.Group.HasPermission("essentials.sudo.immune"))
 			{
-				Send.Error(args.Player, "You cannot force {0} to do a command.", Ply.Name);
+				args.Player.SendErrorMessage("You cannot force {0} to do a command.", Ply.Name);
 				return;
 			}
 			Group OldGroup = null;
@@ -1551,7 +1551,7 @@ namespace Essentials
 				command = string.Concat("/", command);
 
 			Commands.HandleCommand(Ply, command);
-			Send.Success(args.Player, "Forced {0} to execute: {1}", Ply.Name, command);
+			args.Player.SendSuccessMessage("Forced {0} to execute: {1}", Ply.Name, command);
 
 			if (OldGroup != null)
 				Ply.Group = OldGroup;
@@ -1564,7 +1564,7 @@ namespace Essentials
 			esPlayer ePly = esPlayers[args.Player.Index];
 
 			ePly.SocialSpy = !ePly.SocialSpy;
-			Send.Success(args.Player, "Socialspy {0}abled.", ePly.SocialSpy ? "En" : "Dis");
+			args.Player.SendSuccessMessage("Socialspy {0}abled.", ePly.SocialSpy ? "En" : "Dis");
 		}
 		#endregion
 
@@ -1582,7 +1582,7 @@ namespace Essentials
 			}
 			if (Players.Count == 0)
 			{
-				Send.Success(args.Player, "No players found.");
+				args.Player.SendSuccessMessage("No players found.");
 				return;
 			}
 			List<string> Names = new List<string>();
@@ -1606,10 +1606,10 @@ namespace Essentials
 			}
 			if (Results.Count <= 6)
 			{
-				Send.Info(args.Player, "Nearby Players:");
+				args.Player.SendInfoMessage("Nearby Players:");
 				foreach (var Result in Results)
 				{
-					Send.Success(args.Player, Result);
+					args.Player.SendSuccessMessage(Result);
 				}
 			}
 			else
@@ -1623,13 +1623,13 @@ namespace Essentials
 				int pagecount = Results.Count / pagelimit;
 				if (page > pagecount)
 				{
-					Send.Error(args.Player, "Page number exceeds pages ({0}/{1}).", page + 1, pagecount + 1);
+					args.Player.SendErrorMessage("Page number exceeds pages ({0}/{1}).", page + 1, pagecount + 1);
 					return;
 				}
 
-				Send.Info(args.Player, "Nearby Players - Page {0} of {1} | /near [page]", page + 1, pagecount + 1);
+				args.Player.SendInfoMessage("Nearby Players - Page {0} of {1} | /near [page]", page + 1, pagecount + 1);
 				for (int i = (page * pagelimit); (i < ((page * pagelimit) + pagelimit)) && i < Results.Count; i++)
-					Send.Success(args.Player, Results[i]);
+					args.Player.SendSuccessMessage(Results[i]);
 			}
 		}
 		#endregion
@@ -1639,12 +1639,12 @@ namespace Essentials
 		{
 			if (args.Parameters.Count != 1 && !args.Player.Group.HasPermission("essentials.nick.setother"))
 			{
-				Send.Error(args.Player, "Usage: /nick <nickname / off>");
+				args.Player.SendErrorMessage("Usage: /nick <nickname / off>");
 				return;
 			}
 			else if ((args.Parameters.Count < 1 || args.Parameters.Count > 2) && args.Player.Group.HasPermission("essentials.nick.setother"))
 			{
-				Send.Error(args.Player, "Usage: /nick [player] <nickname / off>");
+				args.Player.SendErrorMessage("Usage: /nick [player] <nickname / off>");
 				return;
 			}
 
@@ -1654,7 +1654,7 @@ namespace Essentials
 				var PlayersFound = TShock.Utils.FindPlayer(args.Parameters[0]);
 				if (PlayersFound.Count != 1)
 				{
-					Send.Error(args.Player, PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
+					args.Player.SendErrorMessage(PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
 					return;
 				}
 				NickPly = PlayersFound[0];
@@ -1675,13 +1675,13 @@ namespace Essentials
 					eNickPly.HasNickName = false;
 					eNickPly.Nickname = string.Empty;
 
-					Send.Success(args.Player, "Removed {0} nickname.", self ? "your" : string.Concat(NickPly.Name, "'s"));
+					args.Player.SendSuccessMessage("Removed {0} nickname.", self ? "your" : string.Concat(NickPly.Name, "'s"));
 					if (!self)
-						Send.Success(NickPly, "Your nickname was removed by {0}.", args.Player.Name);
+						NickPly.SendSuccessMessage("Your nickname was removed by {0}.", args.Player.Name);
 				}
 				else
 				{
-					Send.Error(args.Player, "{0} not have a nickname to remove.", self ? "You do" : string.Concat(NickPly.Name, " does"));
+					args.Player.SendErrorMessage("{0} not have a nickname to remove.", self ? "You do" : string.Concat(NickPly.Name, " does"));
 				}
 				return;
 			}
@@ -1689,7 +1689,7 @@ namespace Essentials
 			/*System.Text.RegularExpressions.Regex alphanumeric = new System.Text.RegularExpressions.Regex("^[a-zA-Z0-9_ ]*$");
 			if (!alphanumeric.Match(nickname).Success)
 			{
-				Send.Error(args.Player, "Nicknames must be Alphanumeric.");
+				args.Player.SendErrorMessage("Nicknames must be Alphanumeric.");
 				return;
 			}*/
 
@@ -1707,9 +1707,9 @@ namespace Essentials
 			else
 				esSQL.AddNickname(NickPly.Name, nickname);
 
-			Send.Success(args.Player, "Set {0} nickname to '{1}'.", self ? "your" : string.Concat(eNickPly.OriginalName), nickname);
+			args.Player.SendSuccessMessage("Set {0} nickname to '{1}'.", self ? "your" : string.Concat(eNickPly.OriginalName), nickname);
 			if (!self)
-				Send.Success(NickPly, "{0} set your nickname to '{1}'.", args.Player.Name, nickname);
+				NickPly.SendSuccessMessage("{0} set your nickname to '{1}'.", args.Player.Name, nickname);
 		}
 		#endregion
 
@@ -1718,7 +1718,7 @@ namespace Essentials
 		{
 			if (args.Parameters.Count < 1)
 			{
-				Send.Error(args.Player, "Usage: /realname <player/-all>");
+				args.Player.SendErrorMessage("Usage: /realname <player/-all>");
 				return;
 			}
 			string search = args.Parameters[0].ToLower();
@@ -1732,9 +1732,9 @@ namespace Essentials
 				}
 
 				if (Nicks.Count < 1)
-					Send.Error(args.Player, "No players online have nicknames.");
+					args.Player.SendErrorMessage("No players online have nicknames.");
 				else
-					Send.Success(args.Player, string.Join(", ", Nicks));
+					args.Player.SendSuccessMessage(string.Join(", ", Nicks));
 				return;
 			}
 			if (search.StartsWith(Config.PrefixNicknamesWith))
@@ -1754,13 +1754,13 @@ namespace Essentials
 			}
 			if (PlayersFound.Count != 1)
 			{
-				Send.Error(args.Player, PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
+				args.Player.SendErrorMessage(PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
 				return;
 			}
 
 			esPlayer ply = PlayersFound[0];
 
-			Send.Success(args.Player, "The user '{0}' has the nickname '{1}'.", ply.OriginalName, ply.Nickname);
+			args.Player.SendSuccessMessage("The user '{0}' has the nickname '{1}'.", ply.OriginalName, ply.Nickname);
 
 		}
 		#endregion
@@ -1770,7 +1770,7 @@ namespace Essentials
 		{
 			if (args.Parameters.Count != 1 || !args.Parameters[0].Contains(':'))
 			{
-				Send.Error(args.Player, "Usage: /etime <hours>:<minutes>");
+				args.Player.SendErrorMessage("Usage: /etime <hours>:<minutes>");
 				return;
 			}
 
@@ -1783,17 +1783,17 @@ namespace Essentials
 			int Minutes = -1;
 			if (!int.TryParse(sHours, out Hours) || !int.TryParse(sMinutes, out Minutes))
 			{
-				Send.Error(args.Player, "Usage: /etime <hours>:<minutes>");
+				args.Player.SendErrorMessage("Usage: /etime <hours>:<minutes>");
 				return;
 			}
 			if (Hours < 0 || Hours > 24)
 			{
-				Send.Error(args.Player, "Hours is out of range.");
+				args.Player.SendErrorMessage("Hours is out of range.");
 				return;
 			}
 			if (Minutes < 0 || Minutes > 59)
 			{
-				Send.Error(args.Player, "Minutes is out of range.");
+				args.Player.SendErrorMessage("Minutes is out of range.");
 				return;
 			}
 
@@ -1837,7 +1837,7 @@ namespace Essentials
 			string min = Minutes.ToString();
 			if (Minutes < 10)
 				min = "0" + Minutes.ToString();
-			Send.Success(TSPlayer.All, "{0} set time to {1}:{2} {3}.", args.Player.Name, THour, min, PM ? "PM" : "AM");
+			TSPlayer.All.SendSuccessMessage("{0} set time to {1}:{2} {3}.", args.Player.Name, THour, min, PM ? "PM" : "AM");
 		}
 		#endregion
 
@@ -1846,13 +1846,13 @@ namespace Essentials
 		{
 			if (args.Parameters.Count < 1 || args.Parameters.Count > 2)
 			{
-				Send.Error(args.Player, "Usage: /forcelogin <account> [player]");
+				args.Player.SendErrorMessage("Usage: /forcelogin <account> [player]");
 				return;
 			}
 			var user = TShock.Users.GetUserByName(args.Parameters[0]);
 			if (user == null)
 			{
-				Send.Error(args.Player, "User {0} does not exist.", args.Parameters[0]);
+				args.Player.SendErrorMessage("User {0} does not exist.", args.Parameters[0]);
 				return;
 			}
 			var group = TShock.Utils.GetGroup(user.Group);
@@ -1863,7 +1863,7 @@ namespace Essentials
 				PlayersFound = TShock.Utils.FindPlayer(args.Parameters[1]);
 				if (PlayersFound.Count != 1)
 				{
-					Send.Error(args.Player, PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
+					args.Player.SendErrorMessage(PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
 					return;
 				}
 			}
@@ -1875,9 +1875,9 @@ namespace Essentials
 			Player.IsLoggedIn = true;
 			Player.IgnoreActionsForInventory = "none";
 
-			Send.Success(Player, "{0} in as {1}.", Player != args.Player ? string.Concat(args.Player.Name, " Logged you") : "Logged", user.Name);
+			Player.SendSuccessMessage("{0} in as {1}.", Player != args.Player ? string.Concat(args.Player.Name, " Logged you") : "Logged", user.Name);
 			if (Player != args.Player)
-				Send.Success(args.Player, "Logged {0} in as {1}.", Player.Name, user.Name);
+				args.Player.SendSuccessMessage("Logged {0} in as {1}.", Player.Name, user.Name);
 			Log.ConsoleInfo(string.Format("{0} forced logged in {1}as user: {2}.", args.Player.Name, args.Player != Player ? string.Concat(Player.Name, " ") : string.Empty, user.Name));
 		}
 		#endregion
@@ -1887,12 +1887,12 @@ namespace Essentials
 		{
 			if (!TShock.Config.ServerSideCharacter)
 			{
-				Send.Error(args.Player, "Server Side Character must be enabled.");
+				args.Player.SendErrorMessage("Server Side Character must be enabled.");
 				return;
 			}
 			if (args.Parameters.Count < 1)
 			{
-				Send.Error(args.Player, "Usage: /invsee <player name / -restore>");
+				args.Player.SendErrorMessage("Usage: /invsee <player name / -restore>");
 				return;
 			}
 			var ePly = esPlayers[args.Player.Index];
@@ -1900,18 +1900,18 @@ namespace Essentials
 			{
 				if (ePly.InvSee == null)
 				{
-					Send.Error(args.Player, "You are not viewing another player's inventory.");
+					args.Player.SendErrorMessage("You are not viewing another player's inventory.");
 					return;
 				}
 				ePly.InvSee.RestoreCharacter(args.Player);
 				ePly.InvSee = null;
-				Send.Success(args.Player, "Restored your inventory.");
+				args.Player.SendSuccessMessage("Restored your inventory.");
 				return;
 			}
 			var PlayersFound = TShock.Utils.FindPlayer(string.Join(" ", args.Parameters));
 			if (PlayersFound.Count != 1)
 			{
-				Send.Error(args.Player, PlayersFound.Count < 1 ? "No Players matched." : "More than one player matched.");
+				args.Player.SendErrorMessage(PlayersFound.Count < 1 ? "No Players matched." : "More than one player matched.");
 				return;
 			}
 
@@ -1932,7 +1932,7 @@ namespace Essentials
 			CopyChar.spawnY = PlayerChar.spawnY;
 			CopyChar.RestoreCharacter(args.Player);
 
-			Send.Success(args.Player, "Copied {0}'s inventory", PlayersFound[0].Name);
+			args.Player.SendSuccessMessage("Copied {0}'s inventory", PlayersFound[0].Name);
 		}
 		#endregion
 	}

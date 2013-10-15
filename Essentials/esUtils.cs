@@ -45,9 +45,9 @@ namespace Essentials
 		public static void DisplaySearchResults(TSPlayer Player, List<object> Results, int Page)
 		{
 			if (Results[0] is Item)
-				Send.Info(Player, "Item Search:");
+				Player.SendInfoMessage("Item Search:");
 			else if (Results[0] is NPC)
-				Send.Info(Player, "NPC Search:");
+				Player.SendInfoMessage("NPC Search:");
 			var sb = new StringBuilder();
 			if (Results.Count > (8 * (Page - 1)))
 			{
@@ -61,19 +61,19 @@ namespace Essentials
 						sb.Append(((NPC)Results[j]).netID).Append(": ").Append(((NPC)Results[j]).name);
 					if (j == Results.Count - 1)
 					{
-						Send.Success(Player, sb.ToString());
+						Player.SendSuccessMessage(sb.ToString());
 						break;
 					}
 					if ((j + 1) % 2 == 0)
 					{
-						Send.Success(Player, sb.ToString());
+						Player.SendSuccessMessage(sb.ToString());
 						sb.Clear();
 					}
 				}
 			}
 			if (Results.Count > (8 * Page))
 			{
-				Send.Info(Player, "Type /spage {0} for more Results.", Page + 1);
+				Player.SendInfoMessage("Type /spage {0} for more Results.", Page + 1);
 			}
 		}
 

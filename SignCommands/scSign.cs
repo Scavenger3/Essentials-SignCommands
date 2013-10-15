@@ -103,7 +103,7 @@ namespace SignCommands
 							{
 								if (sPly.AlertCooldownCooldown == 0)
 								{
-									Send.Error(sPly.TSPlayer, "Everyone must wait another {0} seconds before using this sign.", (int)(SignCommands.GlobalCooldowns[this.CooldownGroup] - DateTime.UtcNow).TotalSeconds);
+									sPly.TSPlayer.SendErrorMessage("Everyone must wait another {0} seconds before using this sign.", (int)(SignCommands.GlobalCooldowns[this.CooldownGroup] - DateTime.UtcNow).TotalSeconds);
 									sPly.AlertCooldownCooldown = 3;
 								}
 								return;
@@ -129,7 +129,7 @@ namespace SignCommands
 							{
 								if (sPly.AlertCooldownCooldown == 0)
 								{
-									Send.Error(sPly.TSPlayer, "You must wait another {0} seconds before using this sign.", (int)(sPly.Cooldowns[CooldownID] - DateTime.UtcNow).TotalSeconds);
+									sPly.TSPlayer.SendErrorMessage("You must wait another {0} seconds before using this sign.", (int)(sPly.Cooldowns[CooldownID] - DateTime.UtcNow).TotalSeconds);
 									sPly.AlertCooldownCooldown = 3;
 								}
 								return;
@@ -161,7 +161,7 @@ namespace SignCommands
 
 			if (DoesntHavePermission > 0 && sPly.AlertPermissionCooldown == 0)
 			{
-				Send.Error(sPly.TSPlayer, "You do not have permission to use {0} command(s) on that sign.", DoesntHavePermission);
+				sPly.TSPlayer.SendErrorMessage("You do not have permission to use {0} command(s) on that sign.", DoesntHavePermission);
 				sPly.AlertPermissionCooldown = 5;
 			}
 		}

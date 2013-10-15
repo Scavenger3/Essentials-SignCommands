@@ -76,11 +76,11 @@ namespace SignCommands
 					Directory.CreateDirectory(SavePath);
 				}
 				SignCommands.Config = scConfig.Read(ConfigPath).Write(ConfigPath);
-				Send.Success(args.Player, "[Sign Commands] Config reloaded successfully.");
+				args.Player.SendSuccessMessage("[Sign Commands] Config reloaded successfully.");
 			}
 			catch (Exception ex)
 			{
-				Send.Error(args.Player, "[Sign Commands] Reload failed. Check logs for more details.");
+				args.Player.SendErrorMessage("[Sign Commands] Reload failed. Check logs for more details.");
 				Log.Error(string.Concat("[Sign Commands] Config Exception:\n", ex.ToString()));
 			}
 		}

@@ -143,7 +143,7 @@ namespace SignCommands
 						if (File.Exists(args[0]))
 							TShock.Utils.ShowFileToUser(sPly.TSPlayer, args[0]);
 						else
-							Send.Error(sPly.TSPlayer, "Could not find file.");
+							sPly.TSPlayer.SendErrorMessage("Could not find file.");
 					}
 					break;
 			}
@@ -203,7 +203,7 @@ namespace SignCommands
 						{
 							if (Main.wof >= 0 || (sPly.TSPlayer.Y / 16f < (float)(Main.maxTilesY - 205)))
 							{
-								Send.Error(sPly.TSPlayer, "Can't spawn Wall of Flesh.");
+								sPly.TSPlayer.SendErrorMessage("Can't spawn Wall of Flesh.");
 							}
 							NPC.SpawnWOF(new Vector2(sPly.TSPlayer.X, sPly.TSPlayer.Y));
 						}

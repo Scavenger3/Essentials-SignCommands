@@ -85,11 +85,11 @@ namespace Essentials
 					Directory.CreateDirectory(Essentials.SavePath);
 				}
 				Essentials.Config = esConfig.Read(ConfigPath).Write(ConfigPath);
-				Send.Success(args.Player, "[Essentials] Config reloaded successfully.");
+				args.Player.SendSuccessMessage("[Essentials] Config reloaded successfully.");
 			}
 			catch (Exception ex)
 			{
-				Send.Error(args.Player, "[Essnetials] Reload failed. Check logs for more details.");
+				args.Player.SendSuccessMessage("[Essnetials] Reload failed. Check logs for more details.");
 				Log.Error(string.Concat("[Essentials] Config Exception:\n", ex.ToString()));
 			}
 		}
