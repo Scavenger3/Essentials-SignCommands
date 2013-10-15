@@ -1450,7 +1450,7 @@ namespace Essentials
 			if (args.Player.Group.HasPermission("essentials.playertime.setother") && args.Parameters.Count == 2)
 			{
 				var PlayersFound = TShock.Utils.FindPlayer(args.Parameters[1]);
-				if (PlayersFound.Count != -1)
+				if (PlayersFound.Count != 1)
 				{
 					Send.Error(args.Player, PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
 					return;
