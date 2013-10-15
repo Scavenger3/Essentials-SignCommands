@@ -10,14 +10,14 @@ namespace SignCommands
 		public Point Position { get; set; }
 		public int Cooldown { get; set; }
 		public string CooldownGroup { get; set; }
-		public int Cost { get; set; }
+		public long Cost { get; set; }
 		public List<scCommand> Commands { get; set; }
 		public scSign(string text, Point position)
 		{
 			this.Position = position;
 			this.Cooldown = 0;
 			this.CooldownGroup = string.Empty;
-			this.Cost = 0;
+			this.Cost = 0L;
 			this.Commands = new List<scCommand>();
 			ParseCommands(text);
 		}
@@ -73,9 +73,7 @@ namespace SignCommands
 				/* Parse Cost */
 				else if (SignCommands.UsingSEConomy && cmd.command == "cost" && cmd.args.Count > 0)
 				{
-					int amount;
-					if (int.TryParse(cmd.args[0], out amount))
-						this.Cost = amount;
+					this.Cost = parseCost(cmd.args[0]);
 					this.Commands.Remove(cmd);
 				}
 				/* Check if Valid */
@@ -145,8 +143,8 @@ namespace SignCommands
 			#endregion
 
 			#region Check Cost
-			if (SignCommands.UsingSEConomy && this.Cost > 0 && !chargeSign(sPly))
-				return;
+			if (SignCommands.UsingSEConomy && this.Cost > 0)
+				chargeSign(sPly);
 			#endregion
 
 			int DoesntHavePermission = 0;
@@ -170,26 +168,26 @@ namespace SignCommands
 		#endregion
 
 		#region Economy
-		bool chargeSign(scPlayer sPly)
+		long parseCost(string arg)
 		{
 			try
 			{
-				var account = Wolfje.Plugins.SEconomy.SEconomyPlugin.GetEconomyPlayerSafe(sPly.Index).BankAccount;
-				var CostString = new Wolfje.Plugins.SEconomy.Money((long)this.Cost).ToString();
-				if (account.Balance < this.Cost)
-				{
-					if (sPly.AlertCooldownCooldown == 0)
-					{
-						Send.Error(sPly.TSPlayer, "You must have at least {0} to execute this sign.", CostString);
-						sPly.AlertCooldownCooldown = 3;
-					}
-					return false;
-				}
-				account.Balance -= this.Cost;
-				Send.Error(sPly.TSPlayer, "Charged {0}, Your balance is now {1}.", CostString, account.Balance.ToString());
-				return true;
+				Wolfje.Plugins.SEconomy.Money cost;
+				if (!Wolfje.Plugins.SEconomy.Money.TryParse(arg, out cost))
+					return 0L;
+				return cost;
 			}
-			catch { return true; }
+			catch { return 0L; }
+		}
+		void chargeSign(scPlayer sPly)
+		{
+			try
+			{
+				var economyPlayerSafe = Wolfje.Plugins.SEconomy.SEconomyPlugin.GetEconomyPlayerSafe(sPly.Index);
+				var money = new Wolfje.Plugins.SEconomy.Money(-this.Cost);
+				Wolfje.Plugins.SEconomy.SEconomyPlugin.WorldAccount.TransferTo(economyPlayerSafe.BankAccount, money, Wolfje.Plugins.SEconomy.Journal.BankAccountTransferOptions.AnnounceToReceiver, "", string.Format("Sign Command charge: {0} to {1} ", money.ToString(), economyPlayerSafe.TSPlayer.Name));
+			}
+			catch { }
 		}
 		#endregion
 	}
