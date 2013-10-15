@@ -525,8 +525,7 @@ namespace Essentials
 		{
 			if (!args.Player.RealPlayer)
 				return;
-
-			NetMessage.SendData(26, -1, -1, " decided it wasnt worth living.", args.Player.Index, 0, short.MaxValue, 0F);
+			NetMessage.SendData(26, -1, -1, " decided it wasnt worth living.", args.Player.Index, 0, 15000);
 		}
 		#endregion
 
@@ -1173,7 +1172,7 @@ namespace Essentials
 			args.Parameters.RemoveAt(0); //remove player name
 			string reason = " " + string.Join(" ", args.Parameters);
 
-			NetMessage.SendData(26, -1, -1, reason, Ply.Index, 0, short.MaxValue, 0F);
+			NetMessage.SendData(26, -1, -1, reason, Ply.Index, 0f, 15000);
 			Send.Success(args.Player, "You just killed {0}.", Ply.Name);
 		}
 		#endregion
