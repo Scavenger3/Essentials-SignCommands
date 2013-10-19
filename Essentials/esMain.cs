@@ -98,6 +98,7 @@ namespace Essentials
 			Commands.ChatCommands.Add(new Command("essentials.exacttime", CMDetime, "etime", "exacttime"));
 			Commands.ChatCommands.Add(new Command("essentials.forcelogin", CMDforcelogin, "forcelogin"));
 			Commands.ChatCommands.Add(new Command("essentials.inventory.see", CMDinvsee, "invsee"));
+			Commands.ChatCommands.Add(new Command("essentials.whois", CMDwhois, "whois"));
 			#endregion
 
 			SavePath = Path.Combine(TShock.SavePath, "Essentials");
@@ -1933,6 +1934,99 @@ namespace Essentials
 			CopyChar.RestoreCharacter(args.Player);
 
 			args.Player.SendSuccessMessage("Copied {0}'s inventory", PlayersFound[0].Name);
+		}
+		#endregion
+
+		#region Whois
+		private void CMDwhois(CommandArgs args)
+		{
+			if (args.Parameters.Count < 1)
+			{
+				args.Player.SendErrorMessage("Usage: /whois [-eui] player name");
+				args.Player.SendErrorMessage("Flags: ");
+				args.Player.SendErrorMessage("-e Exact name search");
+				args.Player.SendErrorMessage("-u User ID search");
+				args.Player.SendErrorMessage("-i IP address search");
+				return;
+			}
+			string Type = "\b";
+			string Query = string.Empty;
+			List<TSPlayer> Results = new List<TSPlayer>();
+			switch (args.Parameters[0].ToUpper())
+			{
+				case "-E":
+					{
+						Type = "Exact name";
+						args.Parameters.RemoveAt(0);
+						Query = string.Join(" ", args.Parameters);
+						foreach (var tPly in TShock.Players)
+						{
+							if (tPly.Name == Query)
+							{
+								Results.Add(tPly);
+							}
+						}
+					}
+					break;
+				case "-U":
+					{
+						Type = "User ID";
+						Query = args.Parameters[1];
+						int id;
+						if (!int.TryParse(Query, out id))
+						{
+							args.Player.SendWarningMessage("id must be an integer.");
+							return;
+						}
+						foreach (var tPly in TShock.Players)
+						{
+							if (tPly.UserID == id)
+							{
+								Results.Add(tPly);
+							}
+						}
+					}
+					break;
+				case "-I":
+					{
+						Type = "IP";
+						Query = args.Parameters[1];
+						foreach (var tPly in TShock.Players)
+						{
+							if (tPly.IP == Query)
+							{
+								Results.Add(tPly);
+							}
+						}
+					}
+					break;
+				default:
+					{
+						Query = string.Join(" ", args.Parameters);
+						Results = TShock.Utils.FindPlayer(Query);
+					}
+					break;
+			}
+			if (Results.Count < 1)
+			{
+				args.Player.SendErrorMessage("No matches for {0}", Query);
+			}
+			else if (Results.Count == 1)
+			{
+				args.Player.SendInfoMessage("Details of {0} search: {0}", Type, Query);
+				args.Player.SendSuccessMessage("UserID: {0}, Registered Name: {1}", Results[0].UserID, Results[0].UserAccountName);
+				if (esPlayers[Results[0].Index].HasNickName)
+					args.Player.SendSuccessMessage("Nickname: {0}{1}", Config.PrefixNicknamesWith, esPlayers[Results[0].Index].Nickname);
+				args.Player.SendSuccessMessage("IP: {0}", Results[0].IP);
+			}
+			else
+			{
+				args.Player.SendInfoMessage("Listing matches ({0}):", Results.Count);
+				foreach (var tPly in Results)
+				{
+					args.Player.SendSuccessMessage("({0}){1} (IP:{3})", tPly.UserID, tPly.UserAccountName, tPly.IP);
+				}
+			}
 		}
 		#endregion
 	}
