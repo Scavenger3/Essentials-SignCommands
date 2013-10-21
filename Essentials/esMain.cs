@@ -123,7 +123,7 @@ namespace Essentials
 				ePly.DisabledY = Disabled[TShock.Players[args.Who].Name][1];
 				ePly.TSPlayer.Teleport(ePly.DisabledX * 16F, ePly.DisabledY * 16F);
 				ePly.Disabled = true;
-				ePly.TSPlayer.Disable();
+				ePly.Disable();
 				ePly.LastDisabledCheck = DateTime.UtcNow;
 				ePly.TSPlayer.SendErrorMessage("You are still disabled.");
 			}
@@ -369,7 +369,7 @@ namespace Essentials
 					if (ePly.Disabled && ((DateTime.UtcNow - ePly.LastDisabledCheck).TotalMilliseconds) > 3000)
 					{
 						ePly.LastDisabledCheck = DateTime.UtcNow;
-						ePly.TSPlayer.Disable();
+						ePly.Disable();
 						if ((ePly.TSPlayer.TileX > ePly.DisabledX + 5 || ePly.TSPlayer.TileX < ePly.DisabledX - 5) || (ePly.TSPlayer.TileY > ePly.DisabledY + 5 || ePly.TSPlayer.TileY < ePly.DisabledY - 5))
 						{
 							ePly.TSPlayer.Teleport(ePly.DisabledX * 16F, ePly.DisabledY * 16F);

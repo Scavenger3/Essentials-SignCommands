@@ -60,6 +60,7 @@ namespace Essentials
 
 		public void Disable()
 		{
+			this.TSPlayer.LastThreat = DateTime.UtcNow;
 			this.TSPlayer.SetBuff(33, 330, true); //Weak
 			this.TSPlayer.SetBuff(32, 330, true); //Slow
 			this.TSPlayer.SetBuff(23, 330, true); //Cursed
