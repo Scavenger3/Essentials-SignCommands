@@ -140,6 +140,10 @@ namespace Essentials
 
 		public void OnLeave(LeaveEventArgs args)
 		{
+			if (esPlayers[args.Who].InvSee != null)
+			{
+				esPlayers[args.Who].InvSee.RestoreCharacter(TShock.Players[args.Who]);
+			}
 			esPlayers[args.Who] = null;
 		}
 		#endregion
