@@ -181,23 +181,26 @@ namespace Essentials
 				return;
 			}
 
-			if (e.Player.Index >= 0 && e.Player.Index <= 255 && e.CommandName != "=")
+			if (e.Player.Index >= 0 && e.Player.Index <= 255)
 			{
-				esPlayers[e.Player.Index].LastCMD = string.Concat("/", e.CommandText);
-			}
+				if (e.CommandName != "=")
+				{
+					esPlayers[e.Player.Index].LastCMD = string.Concat("/", e.CommandText);
+				}
 
-			if ((e.CommandName == "tp" && e.Player.Group.HasPermission(Permissions.tp)) ||
-				(e.CommandName == "home" && e.Player.Group.HasPermission(Permissions.home)) ||
-				(e.CommandName == "spawn" && e.Player.Group.HasPermission(Permissions.spawn)) ||
-				(e.CommandName == "warp" && e.Player.Group.HasPermission(Permissions.warp)))
-			{
-				var ePly = esPlayers[e.Player.Index];
-				ePly.LastBackX = e.Player.TileX;
-				ePly.LastBackY = e.Player.TileY;
-				ePly.LastBackAction = BackAction.TP;
+				if ((e.CommandName == "tp" && e.Player.Group.HasPermission(Permissions.tp)) ||
+					(e.CommandName == "home" && e.Player.Group.HasPermission(Permissions.home)) ||
+					(e.CommandName == "spawn" && e.Player.Group.HasPermission(Permissions.spawn)) ||
+					(e.CommandName == "warp" && e.Player.Group.HasPermission(Permissions.warp)))
+				{
+					var ePly = esPlayers[e.Player.Index];
+					ePly.LastBackX = e.Player.TileX;
+					ePly.LastBackY = e.Player.TileY;
+					ePly.LastBackAction = BackAction.TP;
+				}
 			}
 			else if (e.CommandName == "whisper" || e.CommandName == "w" || e.CommandName == "tell" ||
-				e.CommandName == "reply" || e.CommandName == "r")
+					e.CommandName == "reply" || e.CommandName == "r")
 			{
 				if (!e.Player.Group.HasPermission(Permissions.whisper))
 				{
