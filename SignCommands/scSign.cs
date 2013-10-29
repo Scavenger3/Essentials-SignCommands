@@ -143,8 +143,8 @@ namespace SignCommands
 			#endregion
 
 			#region Check Cost
-			if (SignCommands.UsingSEConomy && this.Cost > 0)
-				chargeSign(sPly);
+			if (SignCommands.UsingSEConomy && this.Cost > 0 && !chargeSign(sPly))
+				return;
 			#endregion
 
 			int DoesntHavePermission = 0;
@@ -179,15 +179,53 @@ namespace SignCommands
 			}
 			catch { return 0L; }
 		}
-		void chargeSign(scPlayer sPly)
+		bool chargeSign(scPlayer sPly)
 		{
 			try
 			{
-				var economyPlayerSafe = Wolfje.Plugins.SEconomy.SEconomyPlugin.GetEconomyPlayerSafe(sPly.Index);
-				var money = new Wolfje.Plugins.SEconomy.Money(-this.Cost);
-				Wolfje.Plugins.SEconomy.SEconomyPlugin.WorldAccount.TransferTo(economyPlayerSafe.BankAccount, money, Wolfje.Plugins.SEconomy.Journal.BankAccountTransferOptions.AnnounceToReceiver, "", string.Format("Sign Command charge: {0} to {1} ", money.ToString(), economyPlayerSafe.TSPlayer.Name));
+				var economyPlayer = Wolfje.Plugins.SEconomy.SEconomyPlugin.GetEconomyPlayerSafe(sPly.Index);
+				var commandCost = new Wolfje.Plugins.SEconomy.Money(this.Cost);
+
+				if (economyPlayer.BankAccount != null)
+				{
+					if (!economyPlayer.BankAccount.IsAccountEnabled)
+					{
+						sPly.TSPlayer.SendErrorMessage("You cannot use this command because your account is disabled.");
+					}
+					else if (economyPlayer.BankAccount.Balance >= this.Cost)
+					{
+						Wolfje.Plugins.SEconomy.Journal.BankTransferEventArgs trans = economyPlayer.BankAccount.TransferTo(
+							Wolfje.Plugins.SEconomy.SEconomyPlugin.WorldAccount,
+							commandCost,
+							Wolfje.Plugins.SEconomy.Journal.BankAccountTransferOptions.AnnounceToSender |
+							Wolfje.Plugins.SEconomy.Journal.BankAccountTransferOptions.IsPayment,
+							"",
+							string.Format("Sign Command charge to {0}", sPly.TSPlayer.Name)
+						);
+						if (trans.TransferSucceeded)
+						{
+							return true;
+						}
+						else
+						{
+							sPly.TSPlayer.SendErrorMessage("Your payment failed.");
+						}
+					}
+					else
+					{
+						sPly.TSPlayer.SendErrorMessage("This Sign Command costs {0}. You need {1} more to be able to use it.",
+							commandCost.ToLongString(),
+							((Wolfje.Plugins.SEconomy.Money)(economyPlayer.BankAccount.Balance - commandCost)).ToLongString()
+						);
+					}
+				}
+				else
+				{
+					sPly.TSPlayer.SendErrorMessage("This command costs money and you don't have a bank account. Please log in first.");
+				}
 			}
 			catch { }
+			return false;
 		}
 		#endregion
 	}
