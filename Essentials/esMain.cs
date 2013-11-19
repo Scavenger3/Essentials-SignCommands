@@ -144,7 +144,8 @@ namespace Essentials
 			{
 				esPlayers[args.Who].InvSee.RestoreCharacter(TShock.Players[args.Who]);
 			}
-			esPlayers[args.Who] = null;
+            if (esPlayers[args.Who] != null)
+                esPlayers[args.Who] = null;
 		}
 		#endregion
 
@@ -434,8 +435,10 @@ namespace Essentials
 				var PlayersFound = TShock.Utils.FindPlayer(string.Join(" ", args.Parameters));
 				if (PlayersFound.Count != 1)
 				{
-					args.Player.SendErrorMessage(PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
-					return;
+                    var matches = new List<string>();
+                    PlayersFound.ForEach(pl => { matches.Add(pl.Name); });
+                    TShock.Utils.SendMultipleMatchError(args.Player, matches);
+                    return;
 				}
 				args.Player.SendSuccessMessage("Position for {0}: X Tile: {1} - Y Tile: {2}", PlayersFound[0].Name, PlayersFound[0].TileX, PlayersFound[0].TileY);
 				return;
@@ -553,8 +556,10 @@ namespace Essentials
 			var PlayersFound = TShock.Utils.FindPlayer(args.Parameters[0]);
 			if (PlayersFound.Count != 1)
 			{
-				args.Player.SendErrorMessage(PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
-				return;
+                var matches = new List<string>();
+                PlayersFound.ForEach(pl => { matches.Add(pl.Name); });
+                TShock.Utils.SendMultipleMatchError(args.Player, matches);
+                return;
 			}
 			PlayersFound[0].SetBuff(24, duration);
 			args.Player.SendSuccessMessage("{0} Has been set on fire for {1} second(s).", PlayersFound[0].Name, duration);
@@ -573,7 +578,7 @@ namespace Essentials
 				if (ePly == null || ePly.TSPlayer.Group.HasPermission("essentials.kickall.immune")) continue;
 				ePly.TSPlayer.Disconnect(string.Format("Everyone has been kicked{0}", Reason));
 			}
-			TShock.Utils.Broadcast("Everyone has been kicked from the server.", Color.MediumSeaGreen);
+			TSPlayer.All.SendMessage("Everyone has been kicked from the server.", Color.MediumSeaGreen);
 		}
 		#endregion
 
@@ -1458,16 +1463,21 @@ namespace Essentials
 			if (args.Player.Group.HasPermission("essentials.playertime.setother") && args.Parameters.Count == 2)
 			{
 				var PlayersFound = TShock.Utils.FindPlayer(args.Parameters[1]);
-				if (PlayersFound.Count != 1)
-				{
-					args.Player.SendErrorMessage(PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
-					return;
-				}
+
+				if (PlayersFound.Count > 1)
+                {
+                    List<string> matches = new List<string>();
+                    PlayersFound.ForEach(pl => { matches.Add(pl.Name); });
+                    TShock.Utils.SendMultipleMatchError(args.Player, matches);
+                    return;
+                }
+
 				Ply = PlayersFound[0];
 			}
 
 			esPlayer ePly = esPlayers[Ply.Index];
 			string Time = args.Parameters[0].ToLower();
+
 			switch (Time)
 			{
 				case "day":
@@ -1958,7 +1968,7 @@ namespace Essentials
 			}
 			string Type = "\b";
 			string Query = string.Empty;
-			List<TSPlayer> Results = new List<TSPlayer>();
+			List<user_Obj> Results = new List<user_Obj>();
 			switch (args.Parameters[0].ToUpper())
 			{
 				case "-E":
@@ -1966,13 +1976,8 @@ namespace Essentials
 						Type = "Exact name";
 						args.Parameters.RemoveAt(0);
 						Query = string.Join(" ", args.Parameters);
-						foreach (var tPly in TShock.Players)
-						{
-							if (tPly.Name == Query)
-							{
-								Results.Add(tPly);
-							}
-						}
+                        var user = TShock.Users.GetUserByName(Query);
+                        Results.Add(new user_Obj(-1, user.Name, user.KnownIps.Split(',')[0]));
 					}
 					break;
 				case "-U":
@@ -1982,14 +1987,14 @@ namespace Essentials
 						int id;
 						if (!int.TryParse(Query, out id))
 						{
-							args.Player.SendWarningMessage("id must be an integer.");
+							args.Player.SendWarningMessage("ID must be an integer.");
 							return;
 						}
 						foreach (var tPly in TShock.Players)
 						{
 							if (tPly.UserID == id)
 							{
-								Results.Add(tPly);
+                                Results.Add(new user_Obj(id, tPly.Name, tPly.IP));
 							}
 						}
 					}
@@ -1998,19 +2003,14 @@ namespace Essentials
 					{
 						Type = "IP";
 						Query = args.Parameters[1];
-						foreach (var tPly in TShock.Players)
-						{
-							if (tPly.IP == Query)
-							{
-								Results.Add(tPly);
-							}
-						}
+                        var ipUser = TShock.Users.GetUsers().Find(user => user.KnownIps.Contains(Query));
+                        Results.Add(new user_Obj(-1, ipUser.Name, ipUser.KnownIps.Split(',')[0]));
 					}
 					break;
 				default:
 					{
 						Query = string.Join(" ", args.Parameters);
-						Results = TShock.Utils.FindPlayer(Query);
+                        //Results = TShock.Utils.FindPlayer(Query);
 					}
 					break;
 			}
@@ -2021,20 +2021,63 @@ namespace Essentials
 			else if (Results.Count == 1)
 			{
 				args.Player.SendInfoMessage("Details of {0} search: {0}", Type, Query);
-				args.Player.SendSuccessMessage("UserID: {0}, Registered Name: {1}", Results[0].UserID, Results[0].UserAccountName);
-				if (esPlayers[Results[0].Index].HasNickName)
-					args.Player.SendSuccessMessage("Nickname: {0}{1}", Config.PrefixNicknamesWith, esPlayers[Results[0].Index].Nickname);
-				args.Player.SendSuccessMessage("IP: {0}", Results[0].IP);
+
+                if (TShock.Players.Contains(TShock.Utils.FindPlayer(Results[0].name)[0]))
+                {
+                    var ply = TShock.Utils.FindPlayer(Results[0].name)[0];
+
+                    args.Player.SendSuccessMessage("UserID: {0}, Registered Name: {1}",
+                    Results[0].UserID, Results[0].name);
+
+                    if (esPlayers[ply.Index].HasNickName)
+                        args.Player.SendSuccessMessage("Nickname: {0}{1}", Config.PrefixNicknamesWith,
+                            esPlayers[ply.Index].Nickname);
+
+                    args.Player.SendSuccessMessage("IP: {0}", Results[0].IP);
+                }
+
+                else
+                {
+                    args.Player.SendSuccessMessage("Registered Name: {0}", Results[0].name);
+                    args.Player.SendSuccessMessage("IP: {0}", Results[0].IP);                    
+                }
+				
 			}
 			else
 			{
-				args.Player.SendInfoMessage("Listing matches ({0}):", Results.Count);
-				foreach (var tPly in Results)
-				{
-					args.Player.SendSuccessMessage("({0}){1} (IP:{3})", tPly.UserID, tPly.UserAccountName, tPly.IP);
-				}
+				args.Player.SendWarningMessage("Matches: ({0}):", Results.Count);
+
+                Results.ForEach(r =>
+                {
+                    TShock.Players.ForEach(pl =>
+                    {
+                        if (r.name == pl.Name)
+                        {
+                            args.Player.SendInfoMessage("Online matches:");
+                            args.Player.SendSuccessMessage("({0}){1} (IP:{3})", pl.UserID, pl.Name, pl.IP);
+                            Results.RemoveAll(result => result == r);
+                        }
+                    });
+
+                    args.Player.SendInfoMessage("Offline matches:");
+                    args.Player.SendSuccessMessage("{1} (IP:{3})", r.name, r.IP);
+                });
 			}
 		}
 		#endregion
 	}
+
+    public class user_Obj
+    {
+        public int UserID;
+        public string name;
+        public string IP;
+
+        public user_Obj(int u, string n, string i)
+        {
+            UserID = u;
+            name = n;
+            IP = i;
+        }
+    }
 }
