@@ -146,6 +146,7 @@ namespace Essentials
 			if (esPlayers[args.Who].InvSee != null)
 			{
 				esPlayers[args.Who].InvSee.RestoreCharacter(TShock.Players[args.Who]);
+                esPlayers[args.Who].InvSee = null;
 			}
             if (esPlayers[args.Who] != null)
                 esPlayers[args.Who] = null;
@@ -157,11 +158,6 @@ namespace Essentials
 		{
 			if (e.Handled)
 			{
-				return;
-			}
-			if (e.Text == "/")
-			{
-				e.Handled = true;
 				return;
 			}
 
