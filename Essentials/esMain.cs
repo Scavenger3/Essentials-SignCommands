@@ -11,7 +11,7 @@ using TShockAPI.Hooks;
 
 namespace Essentials
 {
-	[ApiVersion(1, 14)]
+	[ApiVersion(1, 15)]
 	public class Essentials : TerrariaPlugin
 	{
 		public override string Name { get { return "Essentials"; } }
@@ -116,26 +116,29 @@ namespace Essentials
 		{
 			esPlayers[args.Who] = new esPlayer(args.Who);
 
-			if (Disabled.ContainsKey(TShock.Players[args.Who].Name))
-			{
-				var ePly = esPlayers[args.Who];
-				ePly.DisabledX = Disabled[TShock.Players[args.Who].Name][0];
-				ePly.DisabledY = Disabled[TShock.Players[args.Who].Name][1];
-				ePly.TSPlayer.Teleport(ePly.DisabledX * 16F, ePly.DisabledY * 16F);
-				ePly.Disabled = true;
-				ePly.Disable();
-				ePly.LastDisabledCheck = DateTime.UtcNow;
-				ePly.TSPlayer.SendErrorMessage("You are still disabled.");
-			}
+            if (esPlayers[args.Who] != null && TShock.Players[args.Who] != null)
+            {
+                if (Disabled.ContainsKey(TShock.Players[args.Who].Name))
+                {
+                    var ePly = esPlayers[args.Who];
+                    ePly.DisabledX = Disabled[TShock.Players[args.Who].Name][0];
+                    ePly.DisabledY = Disabled[TShock.Players[args.Who].Name][1];
+                    ePly.TSPlayer.Teleport(ePly.DisabledX * 16F, ePly.DisabledY * 16F);
+                    ePly.Disabled = true;
+                    ePly.Disable();
+                    ePly.LastDisabledCheck = DateTime.UtcNow;
+                    ePly.TSPlayer.SendErrorMessage("You are still disabled.");
+                }
 
-			string nickname;
-			if (esSQL.GetNickname(TShock.Players[args.Who].Name, out nickname))
-			{
-				var ePly = esPlayers[args.Who];
-				ePly.HasNickName = true;
-				ePly.OriginalName = ePly.TSPlayer.Name;
-				ePly.Nickname = nickname;
-			}
+                string nickname;
+                if (esSQL.GetNickname(TShock.Players[args.Who].Name, out nickname))
+                {
+                    var ePly = esPlayers[args.Who];
+                    ePly.HasNickName = true;
+                    ePly.OriginalName = ePly.TSPlayer.Name;
+                    ePly.Nickname = nickname;
+                }
+            }
 		}
 
 		public void OnLeave(LeaveEventArgs args)
@@ -164,20 +167,22 @@ namespace Essentials
 
 			var ePly = esPlayers[e.Who];
 			var tPly = TShock.Players[e.Who];
-
-			if (ePly.HasNickName && !e.Text.StartsWith("/") && !tPly.mute)
-			{
-				e.Handled = true;
-				string nick = Config.PrefixNicknamesWith + ePly.Nickname;
-				TShock.Utils.Broadcast(String.Format(TShock.Config.ChatFormat, tPly.Group.Name, tPly.Group.Prefix, nick, tPly.Group.Suffix, e.Text),
-								tPly.Group.R, tPly.Group.G, tPly.Group.B);
-			}
-			else if (ePly.HasNickName && e.Text.StartsWith("/me ") && !tPly.mute)
-			{
-				e.Handled = true;
-				string nick = Config.PrefixNicknamesWith + ePly.Nickname;
-				TShock.Utils.Broadcast(string.Format("*{0} {1}", nick, e.Text.Remove(0, 4)), 205, 133, 63);
-			}
+            if (ePly.TSPlayer.Active && tPly.Active)
+            {
+                if (ePly.HasNickName && !e.Text.StartsWith("/") && !tPly.mute)
+                {
+                    e.Handled = true;
+                    string nick = Config.PrefixNicknamesWith + ePly.Nickname;
+                    TShock.Utils.Broadcast(String.Format(TShock.Config.ChatFormat, tPly.Group.Name, tPly.Group.Prefix, nick, tPly.Group.Suffix, e.Text),
+                                    tPly.Group.R, tPly.Group.G, tPly.Group.B);
+                }
+                else if (ePly.HasNickName && e.Text.StartsWith("/me ") && !tPly.mute)
+                {
+                    e.Handled = true;
+                    string nick = Config.PrefixNicknamesWith + ePly.Nickname;
+                    TShock.Utils.Broadcast(string.Format("*{0} {1}", nick, e.Text.Remove(0, 4)), 205, 133, 63);
+                }
+            }
 		}
 		public void OnPlayerCommand(PlayerCommandEventArgs e)
 		{
