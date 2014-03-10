@@ -163,6 +163,10 @@ namespace Essentials
 
 			var ePly = esPlayers[e.Who];
 			var tPly = TShock.Players[e.Who];
+
+            if (ePly == null || tPly == null)
+                return;
+
             if (ePly.TSPlayer.Active && tPly.Active)
             {
                 if (ePly.HasNickName && !e.Text.StartsWith("/") && !tPly.mute)
