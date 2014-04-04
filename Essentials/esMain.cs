@@ -28,7 +28,7 @@ namespace Essentials
 		public Essentials(Main game)
 			: base(game)
 		{
-			base.Order = 5;
+			base.Order = 6;
 		}
 
 		public override void Initialize()
