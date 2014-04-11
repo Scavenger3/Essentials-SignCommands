@@ -28,7 +28,7 @@ namespace Essentials
 		public Essentials(Main game)
 			: base(game)
 		{
-			base.Order = 6;
+			base.Order = 4;
 		}
 
 		public override void Initialize()
@@ -142,7 +142,18 @@ namespace Essentials
 		}
 
 		public void OnLeave(LeaveEventArgs args)
+<<<<<<< HEAD
         {
+=======
+		{
+            if (TShock.Players[args.Who] == null)
+                return;
+			if (esPlayers[args.Who].InvSee != null)
+			{
+				esPlayers[args.Who].InvSee.RestoreCharacter(TShock.Players[args.Who]);
+                esPlayers[args.Who].InvSee = null;
+			}
+>>>>>>> d928640b7df72aed8e5ba34b45cb4398cf13af79
             if (esPlayers[args.Who] != null)
                 if (esPlayers[args.Who].InvSee != null)
                 {
@@ -175,14 +186,14 @@ namespace Essentials
                 {
                     e.Handled = true;
                     string nick = Config.PrefixNicknamesWith + ePly.Nickname;
-                    TShock.Utils.Broadcast(String.Format(TShock.Config.ChatFormat, tPly.Group.Name, tPly.Group.Prefix, nick, tPly.Group.Suffix, e.Text),
+                    TSPlayer.All.SendMessage(String.Format(TShock.Config.ChatFormat, tPly.Group.Name, tPly.Group.Prefix, nick, tPly.Group.Suffix, e.Text),
                                     tPly.Group.R, tPly.Group.G, tPly.Group.B);
                 }
                 else if (ePly.HasNickName && e.Text.StartsWith("/me ") && !tPly.mute)
                 {
                     e.Handled = true;
                     string nick = Config.PrefixNicknamesWith + ePly.Nickname;
-                    TShock.Utils.Broadcast(string.Format("*{0} {1}", nick, e.Text.Remove(0, 4)), 205, 133, 63);
+                    TSPlayer.All.SendMessage(string.Format("*{0} {1}", nick, e.Text.Remove(0, 4)), 205, 133, 63);
                 }
             }
 		}
