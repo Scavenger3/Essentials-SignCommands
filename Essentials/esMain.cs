@@ -11,7 +11,7 @@ using TShockAPI.Hooks;
 
 namespace Essentials
 {
-	[ApiVersion(1, 15)]
+	[ApiVersion(1, 16)]
 	public class Essentials : TerrariaPlugin
 	{
 		public override string Name { get { return "Essentials"; } }
@@ -28,7 +28,7 @@ namespace Essentials
 		public Essentials(Main game)
 			: base(game)
 		{
-			base.Order = 4;
+			Order = 4;
 		}
 
 		public override void Initialize()
@@ -141,30 +141,27 @@ namespace Essentials
             }
 		}
 
-		public void OnLeave(LeaveEventArgs args)
-<<<<<<< HEAD
-        {
-=======
-		{
-            if (TShock.Players[args.Who] == null)
-                return;
-			if (esPlayers[args.Who].InvSee != null)
-			{
-				esPlayers[args.Who].InvSee.RestoreCharacter(TShock.Players[args.Who]);
-                esPlayers[args.Who].InvSee = null;
-			}
->>>>>>> d928640b7df72aed8e5ba34b45cb4398cf13af79
-            if (esPlayers[args.Who] != null)
-                if (esPlayers[args.Who].InvSee != null)
-                {
-                    esPlayers[args.Who].InvSee.RestoreCharacter(TShock.Players[args.Who]);
+	    public void OnLeave(LeaveEventArgs args)
+	    {
+	            if (TShock.Players[args.Who] == null)
+	                return;
+	            if (esPlayers[args.Who].InvSee != null)
+	            {
+	                esPlayers[args.Who].InvSee.RestoreCharacter(TShock.Players[args.Who]);
+	                esPlayers[args.Who].InvSee = null;
+	            }
+	            if (esPlayers[args.Who] != null)
+	                if (esPlayers[args.Who].InvSee != null)
+	                {
+	                    esPlayers[args.Who].InvSee.RestoreCharacter(TShock.Players[args.Who]);
 
-                    esPlayers[args.Who].InvSee = null;
+	                    esPlayers[args.Who].InvSee = null;
 
-                    esPlayers[args.Who] = null;
-                }
-		}
-		#endregion
+	                    esPlayers[args.Who] = null;
+	                }
+	    }
+
+	    #endregion
 
 		#region Chat / Command
 		public void OnChat(ServerChatEventArgs e)
@@ -328,6 +325,7 @@ namespace Essentials
 		#endregion
 
 		#region Send Bytes
+        [Obsolete("Length is now 2 bytes instead of 4")]
 		void OnSendBytes(SendBytesEventArgs args)
 		{
 			if ((args.Buffer[4] != 7 && args.Buffer[4] != 18) || args.Socket.whoAmI < 0 || args.Socket.whoAmI > 255 || esPlayers[args.Socket.whoAmI].ptTime < 0.0)
@@ -1810,13 +1808,13 @@ namespace Essentials
 				return;
 			}
 
-			string[] split = args.Parameters[0].Split(':');
-			string sHours = split[0];
-			string sMinutes = split[1];
+			var split = args.Parameters[0].Split(':');
+			var sHours = split[0];
+			var sMinutes = split[1];
 
-			bool PM = false;
-			int Hours = -1;
-			int Minutes = -1;
+			var PM = false;
+			var Hours = -1;
+			var Minutes = -1;
 			if (!int.TryParse(sHours, out Hours) || !int.TryParse(sMinutes, out Minutes))
 			{
 				args.Player.SendErrorMessage("Usage: /etime <hours>:<minutes>");
@@ -1833,7 +1831,7 @@ namespace Essentials
 				return;
 			}
 
-			int TFHour = Hours;
+			var TFHour = Hours;
 
 			if (TFHour == 24 || TFHour == 0)
 			{
@@ -1846,14 +1844,14 @@ namespace Essentials
 					Hours -= 12;
 			}
 
-			int THour = Hours;
+			var THour = Hours;
 
 			Hours = TFHour;
 			if (Hours == 24)
 				Hours = 0;
 
-			double TimeMinutes = Minutes / 60.0;
-			double MainTime = TimeMinutes + Hours;
+			var TimeMinutes = Minutes / 60.0;
+			var MainTime = TimeMinutes + Hours;
 
 			if (MainTime >= 4.5 && MainTime < 24)
 				MainTime -= 24.0;
@@ -1861,18 +1859,18 @@ namespace Essentials
 			MainTime = MainTime + 19.5;
 			MainTime = MainTime / 24.0 * 86400.0;
 
-			bool Day = false;
-			if ((!PM && ((THour > 4 || (THour == 4 && Minutes >= 30))) && THour < 12) || (PM && ((THour < 7 || (THour == 7 && Minutes < 30)) || THour == 12)))
-				Day = true;
+		    var Day = 
+                (!PM && ((THour > 4 || (THour == 4 && Minutes >= 30))) && THour < 12) ||
+                (PM && ((THour < 7 || (THour == 7 && Minutes < 30)) || THour == 12));
 
-			if (!Day)
+		    if (!Day)
 				MainTime -= 54000.0;
 
 			TSPlayer.Server.SetTime(Day, MainTime);
 
 			string min = Minutes.ToString();
 			if (Minutes < 10)
-				min = "0" + Minutes.ToString();
+				min = "0" + Minutes;
 			TSPlayer.All.SendSuccessMessage("{0} set time to {1}:{2} {3}.", args.Player.Name, THour, min, PM ? "PM" : "AM");
 		}
 		#endregion
