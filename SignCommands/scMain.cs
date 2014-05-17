@@ -9,7 +9,7 @@ using TShockAPI;
 
 namespace SignCommands
 {
-	[ApiVersion(1, 15)]
+	[ApiVersion(1, 16)]
 	public class SignCommands : TerrariaPlugin
 	{
 		public override string Name { get { return "Sign Commands"; } }
