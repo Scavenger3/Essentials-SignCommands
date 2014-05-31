@@ -236,16 +236,17 @@ namespace SignCommands
 			{
 				return;
 			}
+			using (var reader = new BinaryReader(new MemoryStream(e.Msg.readBuffer, e.Index, e.Length)))
 			switch (e.MsgID)
 			{
 				#region Sign Edit
 				case PacketTypes.SignNew:
 					{
-						int X = BitConverter.ToInt32(e.Msg.readBuffer, e.Index + 2);
-						int Y = BitConverter.ToInt32(e.Msg.readBuffer, e.Index + 6);
-						string text = Encoding.UTF8.GetString(e.Msg.readBuffer, e.Index + 10, e.Length - 11);
-
-						int id = Terraria.Sign.ReadSign(X, Y);
+						reader.ReadInt16();
+						int X = reader.ReadInt16();
+						int Y = reader.ReadInt16();
+						string text = reader.ReadString();
+						int id = Terraria.Sign.ReadSign((Int32)X, (Int32)Y);
 						if (id < 0 || Main.sign[id] == null) return;
 						X = Main.sign[id].x;
 						Y = Main.sign[id].y;
@@ -261,19 +262,21 @@ namespace SignCommands
 				#region Tile Modify
 				case PacketTypes.Tile:
 					{
-						int X = BitConverter.ToInt32(e.Msg.readBuffer, e.Index + 1);
-						int Y = BitConverter.ToInt32(e.Msg.readBuffer, e.Index + 5);
+						byte action = reader.ReadByte();
+						int X = reader.ReadInt16();
+						int Y = reader.ReadInt16();
+						ushort type = reader.ReadUInt16();
 
 						if (Main.tile[X, Y].type != 55) return;
 
-						int id = Terraria.Sign.ReadSign(X, Y);
+						int id = Terraria.Sign.ReadSign((Int32)X, (Int32)Y);
 						if (id < 0 || Main.sign[id] == null) return;
 						X = Main.sign[id].x;
 						Y = Main.sign[id].y;
 						string text = Main.sign[id].text;
 
 						bool handle = false;
-						if (e.Msg.readBuffer[e.Index] == 0 && e.Msg.readBuffer[e.Index + 9] == 0)
+						if (action == 0 && type == 0)
 							handle = OnSignKill(X, Y, text, e.Msg.whoAmI);
 						else
 							handle = OnSignHit(X, Y, text, e.Msg.whoAmI);
