@@ -326,7 +326,7 @@ namespace SignCommands
 				else
 					return;
 			}
-			if (buffid > 0 && buffid < Main.maxBuffs)
+			if (buffid > 0 && buffid < Main.maxBuffTypes)
 			{
 				if (duration < 1 || duration > short.MaxValue)
 					duration = 60;
