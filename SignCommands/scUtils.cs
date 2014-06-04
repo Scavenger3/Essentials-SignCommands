@@ -7,18 +7,18 @@ namespace SignCommands
 {
 	public static class scUtils
 	{
-		public static bool CanCreate(TSPlayer player, scSign sign)
+		public static bool CanCreate(TSPlayer player, ScSign sign)
 		{
-			foreach (scCommand cmd in sign.Commands)
-				if (!player.Group.HasPermission(string.Concat("essentials.signs.create.", cmd.command)))
+			foreach (ScCommand cmd in sign.Commands)
+				if (!player.Group.HasPermission(string.Concat("essentials.signs.create.", cmd.Command)))
 					return false;
 			return true;
 		}
 
-		public static bool CanBreak(TSPlayer player, scSign sign)
+		public static bool CanBreak(TSPlayer player, ScSign sign)
 		{
-			foreach (scCommand cmd in sign.Commands)
-				if (!player.Group.HasPermission(string.Concat("essentials.signs.break.", cmd.command)))
+			foreach (ScCommand cmd in sign.Commands)
+				if (!player.Group.HasPermission(string.Concat("essentials.signs.break.", cmd.Command)))
 					return false;
 			return true;
 		}

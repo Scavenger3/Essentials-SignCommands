@@ -5,34 +5,35 @@ using System.Text;
 
 namespace SignCommands
 {
-	public class scSign
+	public class ScSign
 	{
-		public Point Position { get; set; }
-		public int Cooldown { get; set; }
-		public string CooldownGroup { get; set; }
-		public long Cost { get; set; }
-		public List<scCommand> Commands { get; set; }
-		public scSign(string text, Point position)
+	    private Point Position { get; set; }
+	    private int Cooldown { get; set; }
+	    private string CooldownGroup { get; set; }
+	    private long Cost { get; set; }
+		public List<ScCommand> Commands { get; private set; }
+		public ScSign(string text, Point position)
 		{
-			this.Position = position;
-			this.Cooldown = 0;
-			this.CooldownGroup = string.Empty;
-			this.Cost = 0L;
-			this.Commands = new List<scCommand>();
+			Position = position;
+			Cooldown = 0;
+			CooldownGroup = string.Empty;
+			Cost = 0L;
+			Commands = new List<ScCommand>();
 			ParseCommands(text);
 		}
 
 		#region ParseCommands
-		public void ParseCommands(string text)
+
+	    private void ParseCommands(string text)
 		{
-			char LF = Encoding.UTF8.GetString(new byte[] { 10 })[0];
-			text = string.Join(" ", text.Split(LF));
+			var lf = Encoding.UTF8.GetString(new byte[] { 10 })[0];
+			text = string.Join(" ", text.Split(lf));
 
-			char split = '>';
-			if (SignCommands.Config.CommandsStartWith.Length == 1)
-				split = SignCommands.Config.CommandsStartWith[0];
+			var split = '>';
+			if (SignCommands.config.CommandsStartWith.Length == 1)
+				split = SignCommands.config.CommandsStartWith[0];
 
-			List<string> commands = new List<string> { text };
+			var commands = new List<string> { text };
 			if (text.Contains(split))
 				commands = text.Split(split).ToList();
 
@@ -40,7 +41,7 @@ namespace SignCommands
 			if (commands.Count > 0)
 				commands.RemoveAt(0);
 
-			foreach (string cmd in commands)
+			foreach (var cmd in commands)
 			{
 				/* Parse Parameters */
 				var args = scUtils.ParseParameters(cmd);
@@ -48,39 +49,37 @@ namespace SignCommands
 				var name = args[0];
 				args.RemoveAt(0);
 
-				this.Commands.Add(new scCommand(this, name, args));
+				Commands.Add(new ScCommand(this, name, args));
 			}
 
-			List<scCommand> Commands = this.Commands.ToList();
-			foreach (scCommand cmd in Commands)
+			var cmds = Commands.ToList();
+			foreach (var cmd in cmds)
 			{
 				/* Parse Cooldown */
-				if (cmd.command == "cooldown" && cmd.args.Count > 0)
+				if (cmd.Command == "cooldown" && cmd.Args.Count > 0)
 				{
 					int seconds;
-					if (!int.TryParse(cmd.args[0], out seconds))
+					if (!int.TryParse(cmd.Args[0], out seconds))
 					{
-						this.CooldownGroup = cmd.args[0].ToLower();
-						if (SignCommands.Config.CooldownGroups.ContainsKey(this.CooldownGroup))
-							this.Cooldown = SignCommands.Config.CooldownGroups[this.CooldownGroup];
+						CooldownGroup = cmd.Args[0].ToLower();
+						if (SignCommands.config.CooldownGroups.ContainsKey(CooldownGroup))
+							Cooldown = SignCommands.config.CooldownGroups[CooldownGroup];
 						else
-							this.CooldownGroup = string.Empty;
+							CooldownGroup = string.Empty;
 					}
 					else
-						this.Cooldown = seconds;
-					this.Commands.Remove(cmd);
+						Cooldown = seconds;
+					Commands.Remove(cmd);
 				}
 				/* Parse Cost */
-				else if (SignCommands.UsingSEConomy && cmd.command == "cost" && cmd.args.Count > 0)
+				else if (SignCommands.UsingSEConomy && cmd.Command == "cost" && cmd.Args.Count > 0)
 				{
-					this.Cost = parseCost(cmd.args[0]);
-					this.Commands.Remove(cmd);
+					Cost = ParseCost(cmd.Args[0]);
+					Commands.Remove(cmd);
 				}
 				/* Check if Valid */
 				else if (!cmd.AmIValid())
-				{
-					this.Commands.Remove(cmd);
-				}
+					Commands.Remove(cmd);
 			}
 		}
 		#endregion
@@ -89,17 +88,17 @@ namespace SignCommands
 		public void ExecuteCommands(scPlayer sPly)
 		{
 			#region Check Cooldown
-			if (!sPly.TSPlayer.Group.HasPermission("essentials.signs.nocooldown") && this.Cooldown > 0)
+			if (!sPly.TSPlayer.Group.HasPermission("essentials.signs.nocooldown") && Cooldown > 0)
 			{
-				if (this.CooldownGroup.StartsWith("global-"))
+				if (CooldownGroup.StartsWith("global-"))
 				{
 					lock (SignCommands.GlobalCooldowns)
 					{
-						if (!SignCommands.GlobalCooldowns.ContainsKey(this.CooldownGroup))
-							SignCommands.GlobalCooldowns.Add(this.CooldownGroup, DateTime.UtcNow.AddSeconds(this.Cooldown));
+						if (!SignCommands.GlobalCooldowns.ContainsKey(CooldownGroup))
+							SignCommands.GlobalCooldowns.Add(CooldownGroup, DateTime.UtcNow.AddSeconds(Cooldown));
 						else
 						{
-							if (SignCommands.GlobalCooldowns[this.CooldownGroup] > DateTime.UtcNow)
+						    if (SignCommands.GlobalCooldowns[CooldownGroup] > DateTime.UtcNow)
 							{
 								if (sPly.AlertCooldownCooldown == 0)
 								{
@@ -108,8 +107,7 @@ namespace SignCommands
 								}
 								return;
 							}
-							else
-								SignCommands.GlobalCooldowns[this.CooldownGroup] = DateTime.UtcNow.AddSeconds(this.Cooldown);
+						    SignCommands.GlobalCooldowns[CooldownGroup] = DateTime.UtcNow.AddSeconds(Cooldown);
 						}
 					}
 				}
@@ -143,32 +141,33 @@ namespace SignCommands
 			#endregion
 
 			#region Check Cost
-			if (SignCommands.UsingSEConomy && this.Cost > 0 && !chargeSign(sPly))
+			if (SignCommands.UsingSEConomy && Cost > 0 && !ChargeSign(sPly))
 				return;
 			#endregion
 
-			int DoesntHavePermission = 0;
-			foreach (scCommand cmd in this.Commands)
+			var doesntHavePermission = 0;
+			foreach (var cmd in Commands)
 			{
-				if (!sPly.TSPlayer.Group.HasPermission(string.Format("essentials.signs.use.{0}", cmd.command)))
+				if (!sPly.TSPlayer.Group.HasPermission(string.Format("essentials.signs.use.{0}", cmd.Command)))
 				{
-					DoesntHavePermission++;
+					doesntHavePermission++;
 					continue;
 				}
 
 				cmd.ExecuteCommand(sPly);
 			}
 
-			if (DoesntHavePermission > 0 && sPly.AlertPermissionCooldown == 0)
+			if (doesntHavePermission > 0 && sPly.AlertPermissionCooldown == 0)
 			{
-				sPly.TSPlayer.SendErrorMessage("You do not have permission to use {0} command(s) on that sign.", DoesntHavePermission);
+				sPly.TSPlayer.SendErrorMessage("You do not have permission to use {0} command(s) on that sign.", doesntHavePermission);
 				sPly.AlertPermissionCooldown = 5;
 			}
 		}
 		#endregion
 
 		#region Economy
-		long parseCost(string arg)
+
+	    static long ParseCost(string arg)
 		{
 			try
 			{
@@ -179,52 +178,48 @@ namespace SignCommands
 			}
 			catch { return 0L; }
 		}
-		bool chargeSign(scPlayer sPly)
+		bool ChargeSign(scPlayer sPly)
 		{
 			try
 			{
 				var economyPlayer = Wolfje.Plugins.SEconomy.SEconomyPlugin.GetEconomyPlayerSafe(sPly.Index);
-				var commandCost = new Wolfje.Plugins.SEconomy.Money(this.Cost);
+				var commandCost = new Wolfje.Plugins.SEconomy.Money(Cost);
 
 				if (economyPlayer.BankAccount != null)
 				{
 					if (!economyPlayer.BankAccount.IsAccountEnabled)
-					{
 						sPly.TSPlayer.SendErrorMessage("You cannot use this command because your account is disabled.");
-					}
-					else if (economyPlayer.BankAccount.Balance >= this.Cost)
-					{
-						Wolfje.Plugins.SEconomy.Journal.BankTransferEventArgs trans = economyPlayer.BankAccount.TransferTo(
-							Wolfje.Plugins.SEconomy.SEconomyPlugin.WorldAccount,
-							commandCost,
-							Wolfje.Plugins.SEconomy.Journal.BankAccountTransferOptions.AnnounceToSender |
-							Wolfje.Plugins.SEconomy.Journal.BankAccountTransferOptions.IsPayment,
-							"",
-							string.Format("Sign Command charge to {0}", sPly.TSPlayer.Name)
-						);
-						if (trans.TransferSucceeded)
-						{
-							return true;
-						}
-						else
-						{
-							sPly.TSPlayer.SendErrorMessage("Your payment failed.");
-						}
-					}
-					else
-					{
-						sPly.TSPlayer.SendErrorMessage("This Sign Command costs {0}. You need {1} more to be able to use it.",
-							commandCost.ToLongString(),
-							((Wolfje.Plugins.SEconomy.Money)(economyPlayer.BankAccount.Balance - commandCost)).ToLongString()
-						);
-					}
+
+                    else if (economyPlayer.BankAccount.Balance >= Cost)
+                    {
+                        var trans = economyPlayer.BankAccount.TransferTo(
+                            Wolfje.Plugins.SEconomy.SEconomyPlugin.WorldAccount,
+                            commandCost,
+                            Wolfje.Plugins.SEconomy.Journal.BankAccountTransferOptions.AnnounceToSender |
+                            Wolfje.Plugins.SEconomy.Journal.BankAccountTransferOptions.IsPayment,
+                            "",
+                            string.Format("Sign Command charge to {0}", sPly.TSPlayer.Name)
+                            );
+                        if (trans.TransferSucceeded)
+                            return true;
+
+                        sPly.TSPlayer.SendErrorMessage("Your payment failed.");
+                    }
+                    else
+                    {
+                        sPly.TSPlayer.SendErrorMessage(
+                            "This Sign Command costs {0}. You need {1} more to be able to use it.",
+                            commandCost.ToLongString(),
+                            ((Wolfje.Plugins.SEconomy.Money) (economyPlayer.BankAccount.Balance - commandCost))
+                                .ToLongString()
+                            );
+                    }
 				}
 				else
-				{
 					sPly.TSPlayer.SendErrorMessage("This command costs money and you don't have a bank account. Please log in first.");
-				}
 			}
-			catch { }
+			catch
+			{ }
 			return false;
 		}
 		#endregion

@@ -4,7 +4,7 @@ using TShockAPI;
 
 namespace Essentials
 {
-	public class esPlayer
+	public class EsPlayer
 	{
 		public int Index { get; set; }
 		public TSPlayer TSPlayer { get { return TShock.Players[Index]; } }
@@ -18,7 +18,7 @@ namespace Essentials
 		public string GreenPassword { get; set; }
 		public string BluePassword { get; set; }
 		public string YellowPassword { get; set; }
-		public string LastCMD { get; set; }
+		public string LastCmd { get; set; }
 		public bool Disabled { get; set; }
 		public int DisabledX { get; set; }
 		public int DisabledY { get; set; }
@@ -27,49 +27,50 @@ namespace Essentials
 		public bool HasNickName { get; set; }
 		public string Nickname { get; set; }
 		public string OriginalName { get; set; }
-		public double ptTime { get; set; }
-		public bool ptDay { get; set; }
+		public double PtTime { get; set; }
+		public bool PtDay { get; set; }
 		public PlayerData InvSee { get; set; }
 
-		public esPlayer(int index)
+		public EsPlayer(int index)
 		{
-			this.Index = index;
-			this.LastBackX = -1;
-			this.LastBackY = -1;
-			this.LastBackAction = BackAction.None;
-			this.SavedBackAction = false;
-			this.BackCooldown = 0;
-			this.LastSearchResults = new List<object>();
-			this.RedPassword = string.Empty;
-			this.GreenPassword = string.Empty;
-			this.BluePassword = string.Empty;
-			this.YellowPassword = string.Empty;
-			this.LastCMD = string.Empty;
-			this.Disabled = false;
-			this.DisabledX = -1;
-			this.DisabledY = -1;
-			this.LastDisabledCheck = DateTime.UtcNow;
-			this.SocialSpy = false;
-			this.HasNickName = false;
-			this.Nickname = string.Empty;
-			this.OriginalName = string.Empty;
-			this.ptTime = -1.0;
-			this.ptDay = true;
-			this.InvSee = null;
+			Index = index;
+			LastBackX = -1;
+			LastBackY = -1;
+			LastBackAction = BackAction.None;
+			SavedBackAction = false;
+			BackCooldown = 0;
+			LastSearchResults = new List<object>();
+			RedPassword = string.Empty;
+			GreenPassword = string.Empty;
+			BluePassword = string.Empty;
+			YellowPassword = string.Empty;
+			LastCmd = string.Empty;
+			Disabled = false;
+			DisabledX = -1;
+			DisabledY = -1;
+			LastDisabledCheck = DateTime.UtcNow;
+			SocialSpy = false;
+			HasNickName = false;
+			Nickname = string.Empty;
+			OriginalName = string.Empty;
+			PtTime = -1.0;
+			PtDay = true;
+			InvSee = null;
 		}
 
 		public void Disable()
 		{
-			this.TSPlayer.LastThreat = DateTime.UtcNow;
-			this.TSPlayer.SetBuff(33, 330, true); //Weak
-			this.TSPlayer.SetBuff(32, 330, true); //Slow
-			this.TSPlayer.SetBuff(23, 330, true); //Cursed
+			TSPlayer.LastThreat = DateTime.UtcNow;
+			TSPlayer.SetBuff(33, 330, true); //Weak
+			TSPlayer.SetBuff(32, 330, true); //Slow
+            TSPlayer.SetBuff(23, 330, true); //Cursed	
+            TSPlayer.SetBuff(47, 330, true); //Frozen
 		}
 	}
 	public enum BackAction
 	{
 		None = 0,
-		TP = 1,
+		Tp = 1,
 		Death = 2
 	}
 }

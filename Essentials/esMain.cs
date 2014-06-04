@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using Terraria;
 using TerrariaApi.Server;
@@ -17,13 +17,13 @@ namespace Essentials
 		public override string Name { get { return "Essentials"; } }
 		public override string Author { get { return "Scavenger"; } }
 		public override string Description { get { return "Some Essential commands for TShock!"; } }
-		public override Version Version { get { return Assembly.GetExecutingAssembly().GetName().Version; } }
+		public override Version Version { get { return new Version(1, 6, 0); } }
 
-		public Dictionary<string, int[]> Disabled = new Dictionary<string, int[]>();
-		public esPlayer[] esPlayers = new esPlayer[256];
-		public DateTime LastCheck = DateTime.UtcNow;
-		public static esConfig Config = new esConfig();
-		public static string SavePath = string.Empty;
+	    private readonly Dictionary<string, int[]> _disabled = new Dictionary<string, int[]>();
+	    public List<EsPlayer> players = new List<EsPlayer>();
+	    private DateTime _lastCheck = DateTime.UtcNow;
+		public static EsConfig config = new EsConfig();
+		public static string savePath = string.Empty;
 
 		public Essentials(Main game)
 			: base(game)
@@ -43,9 +43,9 @@ namespace Essentials
 			ServerApi.Hooks.GameUpdate.Register(this, OnUpdate);
 		}
 
-		protected override void Dispose(bool Disposing)
+		protected override void Dispose(bool disposing)
 		{
-			if (Disposing)
+			if (disposing)
 			{
 				ServerApi.Hooks.GameInitialize.Deregister(this, OnInitialize);
 				ServerApi.Hooks.ServerJoin.Deregister(this, OnJoin);
@@ -56,218 +56,211 @@ namespace Essentials
 				ServerApi.Hooks.NetSendBytes.Deregister(this, OnSendBytes);
 				ServerApi.Hooks.GameUpdate.Deregister(this, OnUpdate);
 			}
-			base.Dispose(Disposing);
+			base.Dispose(disposing);
 		}
 
-		public void OnInitialize(EventArgs args)
+		private void OnInitialize(EventArgs args)
 		{
 			#region Add Commands
 			Commands.ChatCommands.Add(new Command("essentials.more", CMDmore, "more"));
-			Commands.ChatCommands.Add(new Command(new List<string> { "essentials.position.get", "essentials.position.getother" }, CMDpos, "pos", "getpos"));
-			Commands.ChatCommands.Add(new Command("essentials.position.tp", CMDtppos, "tppos"));
-			Commands.ChatCommands.Add(new Command("essentials.position.ruler", CMDruler, "ruler"));
-			Commands.ChatCommands.Add(new Command("essentials.helpop.ask", CMDhelpop, "helpop"));
-			Commands.ChatCommands.Add(new Command("essentials.suicide", CMDsuicide, "suicide", "die"));
-			Commands.ChatCommands.Add(new Command("essentials.pvp.burn", CMDburn, "burn"));
-			Commands.ChatCommands.Add(new Command("essentials.kickall.kick", CMDkickall, "kickall"));
-			Commands.ChatCommands.Add(new Command("essentials.moon", CMDmoon, "moon"));
-			Commands.ChatCommands.Add(new Command(new List<string> { "essentials.back.tp", "essentials.back.death" }, CMDback, "b"));
-			Commands.ChatCommands.Add(new Command("essentials.ids.search", CMDsitems, "sitem", "si", "searchitem"));
-			Commands.ChatCommands.Add(new Command("essentials.ids.search", CMDspage, "spage", "sp"));
-			Commands.ChatCommands.Add(new Command("essentials.ids.search", CMDsnpcs, "snpc", "sn", "searchnpc"));
-			Commands.ChatCommands.Add(new Command("essentials.home", CMDsethome, "sethome"));
-			Commands.ChatCommands.Add(new Command("essentials.home", CMDmyhome, "myhome"));
-			Commands.ChatCommands.Add(new Command("essentials.home", CMDdelhome, "delhome"));
-			Commands.ChatCommands.Add(new Command("essentials.essentials", CMDessentials, "essentials"));
-			Commands.ChatCommands.Add(new Command(/*no permission*/ CMDteamunlock, "teamunlock"));
-			Commands.ChatCommands.Add(new Command("essentials.lastcommand", CMDequals, "=") { DoLog = false });
-			Commands.ChatCommands.Add(new Command("essentials.pvp.killr", CMDkillr, "killr"));
-			Commands.ChatCommands.Add(new Command("essentials.disable", CMDdisable, "disable"));
-			Commands.ChatCommands.Add(new Command("essentials.level.top", CMDtop, "top"));
-			Commands.ChatCommands.Add(new Command("essentials.level.up", CMDup, "up"));
-			Commands.ChatCommands.Add(new Command("essentials.level.down", CMDdown, "down"));
-			Commands.ChatCommands.Add(new Command("essentials.level.side", CMDleft, "left"));
-			Commands.ChatCommands.Add(new Command("essentials.level.side", CMDright, "right"));
-			Commands.ChatCommands.Add(new Command(new List<string> { "essentials.playertime.set", "essentials.playertime.setother" }, CMDptime, "ptime"));
-			Commands.ChatCommands.Add(new Command("essentials.ping", CMDping, "ping", "pong", "echo"));
-			Commands.ChatCommands.Add(new Command("essentials.sudo", CMDsudo, "sudo"));
-			Commands.ChatCommands.Add(new Command("essentials.socialspy", CMDsocialspy, "socialspy"));
-			Commands.ChatCommands.Add(new Command("essentials.near", CMDnear, "near"));
-			Commands.ChatCommands.Add(new Command(new List<string> { "essentials.nick.set", "essentials.nick.setother" }, CMDnick, "nick"));
-			Commands.ChatCommands.Add(new Command("essentials.realname", CMDrealname, "realname"));
-			Commands.ChatCommands.Add(new Command("essentials.exacttime", CMDetime, "etime", "exacttime"));
-			Commands.ChatCommands.Add(new Command("essentials.forcelogin", CMDforcelogin, "forcelogin"));
-			Commands.ChatCommands.Add(new Command("essentials.inventory.see", CMDinvsee, "invsee"));
-			Commands.ChatCommands.Add(new Command("essentials.whois", CMDwhois, "whois"));
+
+			Commands.ChatCommands.Add(new Command(
+                new List<string> { "essentials.position.get", "essentials.position.getother" },
+                CmdPos, "pos", "getpos"));
+
+			Commands.ChatCommands.Add(new Command("essentials.position.tp", CmdTpPos, "tppos"));
+			Commands.ChatCommands.Add(new Command("essentials.position.ruler", CmdRuler, "ruler"));
+			Commands.ChatCommands.Add(new Command("essentials.helpop.ask", CmdHelpOp, "helpop"));
+			Commands.ChatCommands.Add(new Command("essentials.suicide", CmdSuicide, "suicide", "die"));
+			Commands.ChatCommands.Add(new Command("essentials.pvp.burn", CmdBurn, "burn"));
+			Commands.ChatCommands.Add(new Command("essentials.kickall.kick", CmdKickAll, "kickall"));
+			Commands.ChatCommands.Add(new Command("essentials.moon", CmdMoon, "moon"));
+
+			Commands.ChatCommands.Add(new Command(
+                new List<string> { "essentials.back.tp", "essentials.back.death" }, CmdBack, "b"));
+
+			Commands.ChatCommands.Add(new Command("essentials.ids.search", CmdItemSearch, "sitem", "si", "searchitem"));
+			Commands.ChatCommands.Add(new Command("essentials.ids.search", CmdPageSearch, "spage", "sp"));
+			Commands.ChatCommands.Add(new Command("essentials.ids.search", CmdNpcSearch, "snpc", "sn", "searchnpc"));
+			Commands.ChatCommands.Add(new Command("essentials.home", CmdSetHome, "sethome"));
+			Commands.ChatCommands.Add(new Command("essentials.home", CmdMyHome, "myhome"));
+			Commands.ChatCommands.Add(new Command("essentials.home", CmdDeleteHome, "delhome"));
+			Commands.ChatCommands.Add(new Command("essentials.essentials", CmdReload, "essentials"));
+			Commands.ChatCommands.Add(new Command(CmdTeamUnlock, "teamunlock"));
+			Commands.ChatCommands.Add(new Command("essentials.lastcommand", CmdRepeatCommand, "=") { DoLog = false });
+			Commands.ChatCommands.Add(new Command("essentials.pvp.killr", CmdKillReason, "killr"));
+			Commands.ChatCommands.Add(new Command("essentials.disable", CmdDisable, "disable"));
+			Commands.ChatCommands.Add(new Command("essentials.level.top", CmdTop, "top"));
+			Commands.ChatCommands.Add(new Command("essentials.level.up", CmdUp, "up"));
+			Commands.ChatCommands.Add(new Command("essentials.level.down", CmdDown, "down"));
+			Commands.ChatCommands.Add(new Command("essentials.level.side", CmdLeft, "left"));
+			Commands.ChatCommands.Add(new Command("essentials.level.side", CmdRight, "right"));
+
+			Commands.ChatCommands.Add(new Command(
+                new List<string> { "essentials.playertime.set", "essentials.playertime.setother" },
+                CmdPTime, "ptime"));
+
+			Commands.ChatCommands.Add(new Command("essentials.ping", CmdPing, "ping", "pong", "echo"));
+			Commands.ChatCommands.Add(new Command("essentials.sudo", CmdSudo, "sudo"));
+			Commands.ChatCommands.Add(new Command("essentials.socialspy", CmdSocialSpy, "socialspy"));
+			Commands.ChatCommands.Add(new Command("essentials.near", CmdNear, "near"));
+
+			Commands.ChatCommands.Add(new Command(
+                new List<string> { "essentials.nick.set", "essentials.nick.setother" }, CmdNick, "nick"));
+
+			Commands.ChatCommands.Add(new Command("essentials.realname", CmdRealName, "realname"));
+			Commands.ChatCommands.Add(new Command("essentials.exacttime", CmdExactTime, "etime", "exacttime"));
+			Commands.ChatCommands.Add(new Command("essentials.forcelogin", CmdForceLogin, "forcelogin"));
+			Commands.ChatCommands.Add(new Command("essentials.inventory.see", CmdInvSee, "invsee"));
+			Commands.ChatCommands.Add(new Command("essentials.whois", CmdWhoIs, "whois"));
 			#endregion
 
-			SavePath = Path.Combine(TShock.SavePath, "Essentials");
-			if (!Directory.Exists(SavePath))
-			{
-				Directory.CreateDirectory(SavePath);
-			}
+			savePath = Path.Combine(TShock.SavePath, "Essentials");
+			if (!Directory.Exists(savePath))
+				Directory.CreateDirectory(savePath);
 
-			esSQL.SetupDB();
-			esConfig.LoadConfig();
+            EsSql.SetupDb();
+            var configPath = Path.Combine(savePath, "esConfig.json");
+            (config = EsConfig.Read(configPath)).Write(configPath);
 		}
 
 		#region esPlayer Join / Leave
-		public void OnJoin(JoinEventArgs args)
+
+	    private void OnJoin(JoinEventArgs args)
 		{
-			esPlayers[args.Who] = new esPlayer(args.Who);
+		    var ePly = players.AddObj(new EsPlayer(args.Who));
 
-            if (esPlayers[args.Who] != null && TShock.Players[args.Who] != null)
-            {
-                if (Disabled.ContainsKey(TShock.Players[args.Who].Name))
-                {
-                    var ePly = esPlayers[args.Who];
-                    ePly.DisabledX = Disabled[TShock.Players[args.Who].Name][0];
-                    ePly.DisabledY = Disabled[TShock.Players[args.Who].Name][1];
-                    ePly.TSPlayer.Teleport(ePly.DisabledX * 16F, ePly.DisabledY * 16F);
-                    ePly.Disabled = true;
-                    ePly.Disable();
-                    ePly.LastDisabledCheck = DateTime.UtcNow;
-                    ePly.TSPlayer.SendErrorMessage("You are still disabled.");
-                }
+		    if (ePly == null || TShock.Players[args.Who] == null) return;
 
-                string nickname;
-                if (esSQL.GetNickname(TShock.Players[args.Who].Name, out nickname))
-                {
-                    var ePly = esPlayers[args.Who];
-                    ePly.HasNickName = true;
-                    ePly.OriginalName = ePly.TSPlayer.Name;
-                    ePly.Nickname = nickname;
-                }
-            }
+		    if (_disabled.ContainsKey(TShock.Players[args.Who].Name))
+		    {
+		        ePly.DisabledX = _disabled[TShock.Players[args.Who].Name][0];
+		        ePly.DisabledY = _disabled[TShock.Players[args.Who].Name][1];
+		        ePly.TSPlayer.Teleport(ePly.DisabledX * 16F, ePly.DisabledY * 16F);
+		        ePly.Disabled = true;
+		        ePly.Disable();
+		        ePly.LastDisabledCheck = DateTime.UtcNow;
+		        ePly.TSPlayer.SendErrorMessage("You are still disabled.");
+		    }
+
+		    string nickname;
+	        if (!EsSql.GetNickname(TShock.Players[args.Who].Name, out nickname)) return;
+	        ePly.HasNickName = true;
+	        ePly.OriginalName = ePly.TSPlayer.Name;
+	        ePly.Nickname = nickname;
 		}
 
-	    public void OnLeave(LeaveEventArgs args)
-	    {
-	            if (TShock.Players[args.Who] == null)
-	                return;
-	            if (esPlayers[args.Who].InvSee != null)
-	            {
-	                esPlayers[args.Who].InvSee.RestoreCharacter(TShock.Players[args.Who]);
-	                esPlayers[args.Who].InvSee = null;
-	            }
-	            if (esPlayers[args.Who] != null)
-	                if (esPlayers[args.Who].InvSee != null)
-	                {
-	                    esPlayers[args.Who].InvSee.RestoreCharacter(TShock.Players[args.Who]);
+	    private void OnLeave(LeaveEventArgs args)
+        {
+            var ply = FindPlayer(args.Who);
 
-	                    esPlayers[args.Who].InvSee = null;
+	        if (TShock.Players[args.Who] == null || ply == null)
+	            return;
 
-	                    esPlayers[args.Who] = null;
-	                }
+
+	        if (ply.InvSee == null) return;
+	        ply.InvSee.RestoreCharacter(TShock.Players[args.Who]);
+	        ply.InvSee = null;
 	    }
 
 	    #endregion
 
 		#region Chat / Command
-		public void OnChat(ServerChatEventArgs e)
+
+	    private void OnChat(ServerChatEventArgs e)
 		{
 			if (e.Handled)
 			{
 				return;
 			}
 
-			var ePly = esPlayers[e.Who];
+	        var ePly = FindPlayer(e.Who);
 			var tPly = TShock.Players[e.Who];
 
             if (ePly == null || tPly == null)
                 return;
 
-            if (ePly.TSPlayer.Active && tPly.Active)
-            {
-                if (ePly.HasNickName && !e.Text.StartsWith("/") && !tPly.mute)
-                {
-                    e.Handled = true;
-                    string nick = Config.PrefixNicknamesWith + ePly.Nickname;
-                    TSPlayer.All.SendMessage(String.Format(TShock.Config.ChatFormat, tPly.Group.Name, tPly.Group.Prefix, nick, tPly.Group.Suffix, e.Text),
-                                    tPly.Group.R, tPly.Group.G, tPly.Group.B);
-                }
-                else if (ePly.HasNickName && e.Text.StartsWith("/me ") && !tPly.mute)
-                {
-                    e.Handled = true;
-                    string nick = Config.PrefixNicknamesWith + ePly.Nickname;
-                    TSPlayer.All.SendMessage(string.Format("*{0} {1}", nick, e.Text.Remove(0, 4)), 205, 133, 63);
-                }
-            }
+		    if (!ePly.TSPlayer.Active || !tPly.Active) return;
+
+		    if (ePly.HasNickName && !e.Text.StartsWith("/") && !tPly.mute)
+		    {
+		        e.Handled = true;
+		        var nick = config.PrefixNicknamesWith + ePly.Nickname;
+		        TSPlayer.All.SendMessage(String.Format(TShock.Config.ChatFormat, tPly.Group.Name, tPly.Group.Prefix, nick, tPly.Group.Suffix, e.Text),
+		            tPly.Group.R, tPly.Group.G, tPly.Group.B);
+		    }
+		    else if (ePly.HasNickName && e.Text.StartsWith("/me ") && !tPly.mute)
+		    {
+		        e.Handled = true;
+		        var nick = config.PrefixNicknamesWith + ePly.Nickname;
+		        TSPlayer.All.SendMessage(string.Format("*{0} {1}", nick, e.Text.Remove(0, 4)), 205, 133, 63);
+		    }
 		}
-		public void OnPlayerCommand(PlayerCommandEventArgs e)
+
+	    private void OnPlayerCommand(PlayerCommandEventArgs e)
 		{
 			if (e.Handled)
-			{
 				return;
-			}
 
-			if (e.Player.Index >= 0 && e.Player.Index <= 255)
-			{
+	        var ply = FindPlayer(e.Player.Index);
+
+	        if (ply == null)
+	            return;
+
 				if (e.CommandName != "=")
-				{
-					esPlayers[e.Player.Index].LastCMD = string.Concat("/", e.CommandText);
-				}
+					ply.LastCmd = string.Concat("/", e.CommandText);
 
-				if ((e.CommandName == "tp" && e.Player.Group.HasPermission(Permissions.tp)) ||
-					(e.CommandName == "home" && e.Player.Group.HasPermission(Permissions.home)) ||
-					(e.CommandName == "spawn" && e.Player.Group.HasPermission(Permissions.spawn)) ||
-					(e.CommandName == "warp" && e.Player.Group.HasPermission(Permissions.warp)))
-				{
-					var ePly = esPlayers[e.Player.Index];
-					ePly.LastBackX = e.Player.TileX;
-					ePly.LastBackY = e.Player.TileY;
-					ePly.LastBackAction = BackAction.TP;
-				}
-			}
-			else if (e.CommandName == "whisper" || e.CommandName == "w" || e.CommandName == "tell" ||
-					e.CommandName == "reply" || e.CommandName == "r")
-			{
-				if (!e.Player.Group.HasPermission(Permissions.whisper))
-				{
-					return;
-				}
-				foreach (var player in esPlayers)
-				{
-					if (player == null || !player.SocialSpy || player.Index == e.Player.Index)
-					{
-						continue;
-					}
-					if ((e.CommandName == "reply" || e.CommandName == "r") && e.Player.LastWhisper != null)
-					{
-						player.TSPlayer.SendMessage(string.Format("[SocialSpy] from {0} to {1}: /{2}", e.Player.Name, e.Player.LastWhisper.Name, e.CommandText), Color.Gray);
-					}
-					else
-					{
-						player.TSPlayer.SendMessage(string.Format("[SocialSpy] {0}: /{1}", e.Player.Name, e.CommandText), Color.Gray);
-					}
-				}
-			}
+			    if ((e.CommandName != "tp" || !e.Player.Group.HasPermission(Permissions.tp)) &&
+			        (e.CommandName != "home" || !e.Player.Group.HasPermission(Permissions.home)) &&
+			        (e.CommandName != "spawn" || !e.Player.Group.HasPermission(Permissions.spawn)) &&
+			        (e.CommandName != "warp" || !e.Player.Group.HasPermission(Permissions.warp))) return;
+
+			    ply.LastBackX = e.Player.TileX;
+			    ply.LastBackY = e.Player.TileY;
+			    ply.LastBackAction = BackAction.Tp;
+
+	        if (e.CommandName != "whisper" && e.CommandName != "w" && e.CommandName != "tell"
+                && e.CommandName != "reply" && e.CommandName != "r") return;
+
+	        if (!e.Player.Group.HasPermission(Permissions.whisper))
+	            return;
+
+	        foreach (var player in players)
+	        {
+	            if (player == null || !player.SocialSpy || player.Index == e.Player.Index)
+	                continue;
+	            if ((e.CommandName == "reply" || e.CommandName == "r") && e.Player.LastWhisper != null)
+	                player.TSPlayer.SendMessage(string.Format("[SocialSpy] from {0} to {1}: /{2}",
+	                    e.Player.Name, e.Player.LastWhisper.Name, e.CommandText), Color.Gray);
+	            else
+	                player.TSPlayer.SendMessage(string.Format("[SocialSpy] {0}: /{1}", 
+	                    e.Player.Name, e.CommandText), Color.Gray);
+	        }
 		}
 		#endregion
 
 		#region Get Data
-		public void OnGetData(GetDataEventArgs e)
+		private void OnGetData(GetDataEventArgs e)
 		{
-			if (e.MsgID != PacketTypes.PlayerTeam || !(Config.LockRedTeam || Config.LockGreenTeam || Config.LockBlueTeam || Config.LockYellowTeam))
-			{
+			if (e.MsgID != PacketTypes.PlayerTeam || !(config.LockRedTeam || config.LockGreenTeam || config.LockBlueTeam || config.LockYellowTeam))
 				return;
-			}
 
 			var who = e.Msg.readBuffer[e.Index];
 			var team = e.Msg.readBuffer[e.Index + 1];
 
-			var ePly = esPlayers[who];
+		    var ePly = FindPlayer(who);
 			var tPly = TShock.Players[who];
-			if (ePly == null || tPly == null) return;
+		    if (ePly == null || tPly == null)
+		        return;
 			switch (team)
 			{
 				#region Red
 				case 1:
-					if (Config.LockRedTeam && !tPly.Group.HasPermission(Config.RedTeamPermission) && (ePly.RedPassword != Config.RedTeamPassword || ePly.RedPassword == ""))
+					if (config.LockRedTeam && !tPly.Group.HasPermission(config.RedTeamPermission) && (ePly.RedPassword != config.RedTeamPassword || ePly.RedPassword == ""))
 					{
 						e.Handled = true;
 						tPly.SetTeam(tPly.Team);
-						if (Config.RedTeamPassword == "")
+						if (config.RedTeamPassword == "")
 							tPly.SendErrorMessage("You do not have permission to join that team.");
 						else
 							tPly.SendErrorMessage("That team is locked, use \'/teamunlock red <password>\' to access it.");
@@ -278,11 +271,11 @@ namespace Essentials
 
 				#region Green
 				case 2:
-					if (Config.LockGreenTeam && !tPly.Group.HasPermission(Config.GreenTeamPermission) && (ePly.GreenPassword != Config.GreenTeamPassword || ePly.GreenPassword == ""))
+					if (config.LockGreenTeam && !tPly.Group.HasPermission(config.GreenTeamPermission) && (ePly.GreenPassword != config.GreenTeamPassword || ePly.GreenPassword == ""))
 					{
 						e.Handled = true;
 						tPly.SetTeam(tPly.Team);
-						if (Config.GreenTeamPassword == "")
+						if (config.GreenTeamPassword == "")
 							tPly.SendErrorMessage("You do not have permission to join that team.");
 						else
 							tPly.SendErrorMessage("That team is locked, use \'/teamunlock green <password>\' to access it.");
@@ -293,11 +286,11 @@ namespace Essentials
 
 				#region Blue
 				case 3:
-					if (Config.LockBlueTeam && !tPly.Group.HasPermission(Config.BlueTeamPermission) && (ePly.BluePassword != Config.BlueTeamPassword || ePly.BluePassword == ""))
+					if (config.LockBlueTeam && !tPly.Group.HasPermission(config.BlueTeamPermission) && (ePly.BluePassword != config.BlueTeamPassword || ePly.BluePassword == ""))
 					{
 						e.Handled = true;
 						tPly.SetTeam(tPly.Team);
-						if (Config.BlueTeamPassword == "")
+						if (config.BlueTeamPassword == "")
 							tPly.SendErrorMessage("You do not have permission to join that team.");
 						else
 							tPly.SendErrorMessage("That team is locked, use \'/teamunlock blue <password>\' to access it.");
@@ -308,11 +301,11 @@ namespace Essentials
 
 				#region Yellow
 				case 4:
-					if (Config.LockYellowTeam && !tPly.Group.HasPermission(Config.YellowTeamPermission) && (ePly.YellowPassword != Config.YellowTeamPassword || ePly.YellowPassword == ""))
+					if (config.LockYellowTeam && !tPly.Group.HasPermission(config.YellowTeamPermission) && (ePly.YellowPassword != config.YellowTeamPassword || ePly.YellowPassword == ""))
 					{
 						e.Handled = true;
 						tPly.SetTeam(tPly.Team);
-						if (Config.YellowTeamPassword == "")
+						if (config.YellowTeamPassword == "")
 							tPly.SendErrorMessage("You do not have permission to join that team.");
 						else
 							tPly.SendErrorMessage("That team is locked, use \'/teamunlock yellow <password>\' to access it.");
@@ -325,39 +318,40 @@ namespace Essentials
 		#endregion
 
 		#region Send Bytes
-        [Obsolete("Length is now 2 bytes instead of 4")]
 		void OnSendBytes(SendBytesEventArgs args)
 		{
-			if ((args.Buffer[4] != 7 && args.Buffer[4] != 18) || args.Socket.whoAmI < 0 || args.Socket.whoAmI > 255 || esPlayers[args.Socket.whoAmI].ptTime < 0.0)
-			{
+		    var ply = FindPlayer(args.Socket.whoAmI);
+		    if (ply == null)
+		        return;
+
+			if ((args.Buffer[4] != 7 && args.Buffer[4] != 18) || args.Socket.whoAmI < 0 || args.Socket.whoAmI > 255 || ply.PtTime < 0.0)
 				return;
-			}
+
+
 			switch (args.Buffer[4])
 			{
 				case 7:
-					Buffer.BlockCopy(BitConverter.GetBytes((int)esPlayers[args.Socket.whoAmI].ptTime), 0, args.Buffer, 5, 4);
-					args.Buffer[9] = (byte)(esPlayers[args.Socket.whoAmI].ptDay ? 1 : 0);
+					Buffer.BlockCopy(BitConverter.GetBytes((int)ply.PtTime), 0, args.Buffer, 5, 4);
+					args.Buffer[9] = (byte)(ply.PtDay ? 1 : 0);
 					break;
 				case 18:
-					args.Buffer[5] = (byte)(esPlayers[args.Socket.whoAmI].ptDay ? 1 : 0);
-					Buffer.BlockCopy(BitConverter.GetBytes((int)esPlayers[args.Socket.whoAmI].ptTime), 0, args.Buffer, 6, 4);
+					args.Buffer[5] = (byte)(ply.PtDay ? 1 : 0);
+					Buffer.BlockCopy(BitConverter.GetBytes((int)ply.PtTime), 0, args.Buffer, 6, 4);
 					break;
 			}
 		}
 		#endregion
 
 		#region Timer
-		public void OnUpdate(EventArgs args)
+		private void OnUpdate(EventArgs args)
 		{
-			if ((DateTime.UtcNow - LastCheck).TotalMilliseconds >= 1000)
+			if ((DateTime.UtcNow - _lastCheck).TotalMilliseconds >= 1000)
 			{
-				LastCheck = DateTime.UtcNow;
-				foreach (var ePly in esPlayers)
+				_lastCheck = DateTime.UtcNow;
+				foreach (var ePly in players)
 				{
-					if (ePly == null)
-					{
-						continue;
-					}
+				    if (ePly == null)
+				        continue;
 
 					if (!ePly.SavedBackAction && ePly.TSPlayer.Dead)
 					{
@@ -367,7 +361,7 @@ namespace Essentials
 							ePly.LastBackY = ePly.TSPlayer.TileY;
 							ePly.LastBackAction = BackAction.Death;
 							ePly.SavedBackAction = true;
-							if (Config.ShowBackMessageOnDeath)
+							if (config.ShowBackMessageOnDeath)
 								ePly.TSPlayer.SendSuccessMessage("Type \"/b\" to return to your position before you died.");
 						}
 					}
@@ -377,17 +371,14 @@ namespace Essentials
 					if (ePly.BackCooldown > 0)
 						ePly.BackCooldown--;
 
-					if (ePly.ptTime > -1.0)
+					if (ePly.PtTime > -1.0)
 					{
-						ePly.ptTime += 60.0;
-						if (!ePly.ptDay && ePly.ptTime > 32400.0)
-						{
-							ePly.ptDay = true; ePly.ptTime = 0.0;
-						}
-						else if (ePly.ptDay && ePly.ptTime > 54000.0)
-						{
-							ePly.ptDay = false; ePly.ptTime = 0.0;
-						}
+						ePly.PtTime += 60.0;
+						if (!ePly.PtDay && ePly.PtTime > 32400.0)
+							ePly.PtDay = true; ePly.PtTime = 0.0;
+
+						if (ePly.PtDay && ePly.PtTime > 54000.0)
+							ePly.PtDay = false; ePly.PtTime = 0.0;
 					}
 
 					if (ePly.Disabled && ((DateTime.UtcNow - ePly.LastDisabledCheck).TotalMilliseconds) > 3000)
@@ -395,9 +386,7 @@ namespace Essentials
 						ePly.LastDisabledCheck = DateTime.UtcNow;
 						ePly.Disable();
 						if ((ePly.TSPlayer.TileX > ePly.DisabledX + 5 || ePly.TSPlayer.TileX < ePly.DisabledX - 5) || (ePly.TSPlayer.TileY > ePly.DisabledY + 5 || ePly.TSPlayer.TileY < ePly.DisabledY - 5))
-						{
 							ePly.TSPlayer.Teleport(ePly.DisabledX * 16F, ePly.DisabledY * 16F);
-						}
 					}
 				}
 			}
@@ -411,18 +400,16 @@ namespace Essentials
 		{
 			if (args.Parameters.Count > 0 && args.Parameters[0].ToLower() == "all")
 			{
-				bool full = true;
-				int i = 0;
-				foreach (Item item in args.TPlayer.inventory)
+				var full = true;
+				foreach (var item in args.TPlayer.inventory)
 				{
 					if (item == null || item.stack == 0) continue;
-					int amtToAdd = item.maxStack - item.stack;
+					var amtToAdd = item.maxStack - item.stack;
 					if (item.stack > 0 && amtToAdd > 0 && !item.name.ToLower().Contains("coin"))
 					{
 						full = false;
 						args.Player.GiveItem(item.type, item.name, item.width, item.height, amtToAdd);
 					}
-					i++;
 				}
 				if (!full)
 					args.Player.SendSuccessMessage("Filled all your items.");
@@ -431,8 +418,8 @@ namespace Essentials
 			}
 			else
 			{
-				Item holding = args.Player.TPlayer.inventory[args.TPlayer.selectedItem];
-				int amtToAdd = holding.maxStack - holding.stack;
+				var holding = args.Player.TPlayer.inventory[args.TPlayer.selectedItem];
+				var amtToAdd = holding.maxStack - holding.stack;
 				if (holding.stack > 0 && amtToAdd > 0)
 					args.Player.GiveItem(holding.type, holding.name, holding.width, holding.height, amtToAdd);
 				if (amtToAdd == 0)
@@ -444,25 +431,23 @@ namespace Essentials
 		#endregion
 
 		#region Position Commands
-		private void CMDpos(CommandArgs args)
+		private static void CmdPos(CommandArgs args)
 		{
 			if (args.Player.Group.HasPermission("essentials.position.getother") && args.Parameters.Count > 0)
 			{
-				var PlayersFound = TShock.Utils.FindPlayer(string.Join(" ", args.Parameters));
-				if (PlayersFound.Count != 1)
+				var found = TShock.Utils.FindPlayer(string.Join(" ", args.Parameters));
+				if (found.Count != 1)
 				{
-                    var matches = new List<string>();
-                    PlayersFound.ForEach(pl => { matches.Add(pl.Name); });
-                    TShock.Utils.SendMultipleMatchError(args.Player, matches);
+				    TShock.Utils.SendMultipleMatchError(args.Player, found.Select(p => p.Name));
                     return;
 				}
-				args.Player.SendSuccessMessage("Position for {0}: X Tile: {1} - Y Tile: {2}", PlayersFound[0].Name, PlayersFound[0].TileX, PlayersFound[0].TileY);
+				args.Player.SendSuccessMessage("Position for {0}: X Tile: {1} - Y Tile: {2}", found[0].Name, found[0].TileX, found[0].TileY);
 				return;
 			}
 			args.Player.SendSuccessMessage("X Tile: {0} - Y Tile: {1}", args.Player.TileX, args.Player.TileY);
 		}
 
-		private void CMDtppos(CommandArgs args)
+		private void CmdTpPos(CommandArgs args)
 		{
 			if (args.Parameters.Count < 1 || args.Parameters.Count > 2)
 			{
@@ -470,32 +455,32 @@ namespace Essentials
 				return;
 			}
 
-			int X = 0, Y = 0;
-			if (!int.TryParse(args.Parameters[0], out X) || (args.Parameters.Count == 2 && !int.TryParse(args.Parameters[1], out Y)))
+			int x, y = 0;
+			if (!int.TryParse(args.Parameters[0], out x)
+                || (args.Parameters.Count == 2 && !int.TryParse(args.Parameters[1], out y)))
 			{
 				args.Player.SendErrorMessage("Usage: /tppos <X> [Y]");
 				return;
 			}
 
 			if (args.Parameters.Count == 1)
-				Y = esUtils.GetTop(X);
+				y = esUtils.GetTop(x);
 
-			var ePly = esPlayers[args.Player.Index];
+		    var ePly = FindPlayer(args.Player.Index);
 			if (ePly != null)
 			{
 				ePly.LastBackX = args.Player.TileX;
 				ePly.LastBackY = args.Player.TileY;
-				ePly.LastBackAction = BackAction.TP;
+				ePly.LastBackAction = BackAction.Tp;
 			}
 
-			args.Player.Teleport(X * 16F, Y * 16F);
-			args.Player.SendSuccessMessage("Teleported you to X: {0} - Y: {1}", X, Y);
+			args.Player.Teleport(x * 16F, y * 16F);
+			args.Player.SendSuccessMessage("Teleported you to X: {0} - Y: {1}", x, y);
 		}
 
-		private void CMDruler(CommandArgs args)
+		private static void CmdRuler(CommandArgs args)
 		{
-			int choice = 0;
-
+		    int choice;
 			if (args.Parameters.Count == 1 &&
 				int.TryParse(args.Parameters[0], out choice) &&
 				choice >= 1 && choice <= 2)
@@ -519,7 +504,7 @@ namespace Essentials
 		#endregion
 
 		#region HelpOp
-		private void CMDhelpop(CommandArgs args)
+		private void CmdHelpOp(CommandArgs args)
 		{
 			if (args.Parameters.Count < 1)
 			{
@@ -527,28 +512,30 @@ namespace Essentials
 				return;
 			}
 
-			string text = string.Join(" ", args.Parameters);
+			var text = string.Join(" ", args.Parameters);
 
-			List<string> online = new List<string>();
+			var online = new List<string>();
 
-			foreach (var ePly in esPlayers)
+			foreach (var ePly in players.Where(ePly => ePly != null 
+                && ePly.TSPlayer.Group.HasPermission("essentials.helpop.receive")))
 			{
-				if (ePly == null || !ePly.TSPlayer.Group.HasPermission("essentials.helpop.receive")) continue;
-				online.Add(ePly.TSPlayer.Name);
-				ePly.TSPlayer.SendMessage(string.Format("[HelpOp] {0}: {1}", args.Player.Name, text), Color.MediumPurple);
+			    online.Add(ePly.TSPlayer.Name);
+			    ePly.TSPlayer.SendMessage(string.Format("[HelpOp] {0}: {1}", args.Player.Name, text),
+                    Color.MediumPurple);
 			}
-			if (online.Count < 1)
-				args.Player.SendMessage("[HelpOp] There are no operators online to receive your message.", Color.MediumPurple);
+			if (online.Count == 0)
+				args.Player.SendMessage("[HelpOp] There are no operators online to receive your message.", 
+                    Color.MediumPurple);
 			else
 			{
-				string to = string.Join(", ", online);
-				args.Player.SendMessage(string.Format("[HelpOp] Your message has been received by the operator(s): {0}", to), Color.MediumPurple);
+				args.Player.SendMessage(string.Format("[HelpOp] Your message has been received by {0} operator{1}", 
+                    online.Count, online.Count == 1 ? "" : "s"), Color.MediumPurple);
 			}
 		}
 		#endregion
 
 		#region Suicide
-		private void CMDsuicide(CommandArgs args)
+		private void CmdSuicide(CommandArgs args)
 		{
 			if (!args.Player.RealPlayer)
 				return;
@@ -557,7 +544,7 @@ namespace Essentials
 		#endregion
 
 		#region Burn
-		private void CMDburn(CommandArgs args)
+		private static void CmdBurn(CommandArgs args)
 		{
 			if (args.Parameters.Count < 1 || args.Parameters.Count > 2)
 			{
@@ -565,41 +552,44 @@ namespace Essentials
 				return;
 			}
 
-			int duration = 30;
+			var duration = 30;
 			if (args.Parameters.Count == 2 && !int.TryParse(args.Parameters[1], out duration))
 				duration = 30;
 			duration *= 60;
-			var PlayersFound = TShock.Utils.FindPlayer(args.Parameters[0]);
-			if (PlayersFound.Count != 1)
+			var found = TShock.Utils.FindPlayer(args.Parameters[0]);
+		    if (found.Count == 0)
+		    {
+		        args.Player.SendErrorMessage("Invalid player");
+		        return;
+		    }
+			if (found.Count > 1)
 			{
-                var matches = new List<string>();
-                PlayersFound.ForEach(pl => { matches.Add(pl.Name); });
-                TShock.Utils.SendMultipleMatchError(args.Player, matches);
+			    TShock.Utils.SendMultipleMatchError(args.Player, found.Select(p => p.Name));
                 return;
 			}
-			PlayersFound[0].SetBuff(24, duration);
-			args.Player.SendSuccessMessage("{0} Has been set on fire for {1} second(s).", PlayersFound[0].Name, duration);
+			found[0].SetBuff(24, duration);
+			args.Player.SendSuccessMessage("{0} Has been set on fire for {1} second(s).", found[0].Name, duration);
 		}
 		#endregion
 
 		#region KickAll
-		private void CMDkickall(CommandArgs args)
+		private void CmdKickAll(CommandArgs args)
 		{
-			string Reason = string.Empty;
+			var reason = string.Empty;
 			if (args.Parameters.Count > 0)
-				Reason = " (" + string.Join(" ", args.Parameters) + ")";
+				reason = " (" + string.Join(" ", args.Parameters) + ")";
 
-			foreach (var ePly in esPlayers)
+			foreach (var ePly in players.Where(ePly => ePly != null 
+                && !ePly.TSPlayer.Group.HasPermission("essentials.kickall.immune")))
 			{
-				if (ePly == null || ePly.TSPlayer.Group.HasPermission("essentials.kickall.immune")) continue;
-				ePly.TSPlayer.Disconnect(string.Format("Everyone has been kicked{0}", Reason));
+			    ePly.TSPlayer.Disconnect(string.Format("Everyone has been kicked{0}", reason));
 			}
 			TSPlayer.All.SendMessage("Everyone has been kicked from the server.", Color.MediumSeaGreen);
 		}
 		#endregion
 
 		#region Moon
-		private void CMDmoon(CommandArgs args)
+		private static void CmdMoon(CommandArgs args)
 		{
 			if (args.Parameters.Count < 1)
 			{
@@ -607,7 +597,7 @@ namespace Essentials
 				return;
 			}
 
-			string subcmd = args.Parameters[0].ToLower();
+			var subcmd = args.Parameters[0].ToLower();
 
 			switch (subcmd)
 			{
@@ -636,12 +626,12 @@ namespace Essentials
 		#endregion
 
 		#region Back
-		private void CMDback(CommandArgs args)
+		private void CmdBack(CommandArgs args)
 		{
-			var ePly = esPlayers[args.Player.Index];
+		    var ePly = FindPlayer(args.Player.Index);
 			if (ePly.TSPlayer.Dead)
 			{
-				args.Player.SendErrorMessage("Please wait till you respawn.");
+				args.Player.SendErrorMessage("Please wait until you respawn.");
 				return;
 			}
 			if (ePly.BackCooldown > 0)
@@ -650,33 +640,37 @@ namespace Essentials
 				return;
 			}
 
-			if (ePly.LastBackAction == BackAction.None)
-				args.Player.SendErrorMessage("You do not have a /b position stored.");
-			else if (ePly.LastBackAction == BackAction.TP)
+			switch (ePly.LastBackAction)
 			{
-				if (Config.BackCooldown > 0 && !args.Player.Group.HasPermission("essentials.back.nocooldown"))
-				{
-					ePly.BackCooldown = Config.BackCooldown;
-				}
-				args.Player.Teleport(ePly.LastBackX * 16F, ePly.LastBackY * 16F);
-				args.Player.SendSuccessMessage("Moved you to your position before you last teleported.");
+			    case BackAction.None:
+			        args.Player.SendErrorMessage("You do not have a /b position stored.");
+			        break;
+			    case BackAction.Tp:
+			        if (config.BackCooldown > 0 && !args.Player.Group.HasPermission("essentials.back.nocooldown"))
+			        {
+			            ePly.BackCooldown = config.BackCooldown;
+			        }
+			        args.Player.Teleport(ePly.LastBackX * 16F, ePly.LastBackY * 16F);
+			        args.Player.SendSuccessMessage("Moved you to your position before you last teleported.");
+			        break;
+                case BackAction.Death:
+			        if (args.Player.Group.HasPermission("essentials.back.death"))
+			        {
+			            if (config.BackCooldown > 0 && !args.Player.Group.HasPermission("essentials.back.nocooldown"))
+			                ePly.BackCooldown = config.BackCooldown;
+
+			            args.Player.Teleport(ePly.LastBackX * 16F, ePly.LastBackY * 16F);
+			            args.Player.SendSuccessMessage("Moved you to your position before you last died.");
+			        }
+			        else
+			            args.Player.SendErrorMessage("You do not have permission to /b after death.");
+			        break;
 			}
-			else if (ePly.LastBackAction == BackAction.Death && args.Player.Group.HasPermission("essentials.back.death"))
-			{
-				if (Config.BackCooldown > 0 && !args.Player.Group.HasPermission("essentials.back.nocooldown"))
-				{
-					ePly.BackCooldown = Config.BackCooldown;
-				}
-				args.Player.Teleport(ePly.LastBackX * 16F, ePly.LastBackY * 16F);
-				args.Player.SendSuccessMessage("Moved you to your position before you last died.");
-			}
-			else
-				args.Player.SendErrorMessage("You do not have permission to /b after death.");
 		}
 		#endregion
 
 		#region Seach IDs
-		private void CMDspage(CommandArgs args)
+		private void CmdPageSearch(CommandArgs args)
 		{
 			if (args.Parameters.Count != 1)
 			{
@@ -684,19 +678,19 @@ namespace Essentials
 				return;
 			}
 
-			int Page = 1;
-			if (!int.TryParse(args.Parameters[0], out Page))
+		    int page;
+			if (!int.TryParse(args.Parameters[0], out page))
 			{
 				args.Player.SendErrorMessage(string.Format("Specified page ({0}) invalid.", args.Parameters[0]));
 				return;
 			}
 
-			var ePly = esPlayers[args.Player.Index];
+		    var ePly = FindPlayer(args.Player.Index);
 
-			esUtils.DisplaySearchResults(args.Player, ePly.LastSearchResults, Page);
+			esUtils.DisplaySearchResults(args.Player, ePly.LastSearchResults, page);
 		}
 
-		private void CMDsitems(CommandArgs args)
+		private void CmdItemSearch(CommandArgs args)
 		{
 			if (args.Parameters.Count < 1)
 			{
@@ -704,22 +698,22 @@ namespace Essentials
 				return;
 			}
 
-			string Search = string.Join(" ", args.Parameters);
-			List<object> Results = esUtils.ItemIdSearch(Search);
+			var search = string.Join(" ", args.Parameters);
+			var results = esUtils.ItemIdSearch(search);
 
-			if (Results.Count < 1)
+            if (results.Count < 1)
 			{
 				args.Player.SendErrorMessage("Could not find any matching Items.");
 				return;
 			}
 
-			esPlayer ePly = esPlayers[args.Player.Index];
+		    var ePly = FindPlayer(args.Player.Index);
 
-			ePly.LastSearchResults = Results;
-			esUtils.DisplaySearchResults(args.Player, Results, 1);
+            ePly.LastSearchResults = results;
+            esUtils.DisplaySearchResults(args.Player, results, 1);
 		}
 
-		private void CMDsnpcs(CommandArgs args)
+		private void CmdNpcSearch(CommandArgs args)
 		{
 			if (args.Parameters.Count < 1)
 			{
@@ -727,24 +721,24 @@ namespace Essentials
 				return;
 			}
 
-			string Search = string.Join(" ", args.Parameters);
-			List<object> Results = esUtils.NPCIdSearch(Search);
+			var search = string.Join(" ", args.Parameters);
+			var results = esUtils.NPCIdSearch(search);
 
-			if (Results.Count < 1)
+			if (results.Count < 1)
 			{
 				args.Player.SendErrorMessage("Could not find any matching NPCs.");
 				return;
 			}
 
-			esPlayer ePly = esPlayers[args.Player.Index];
+            var ePly = FindPlayer(args.Player.Index);
 
-			ePly.LastSearchResults = Results;
-			esUtils.DisplaySearchResults(args.Player, Results, 1);
+			ePly.LastSearchResults = results;
+			esUtils.DisplaySearchResults(args.Player, results, 1);
 		}
 		#endregion
 
 		#region MyHome
-		private void CMDsethome(CommandArgs args)
+		private void CmdSetHome(CommandArgs args)
 		{
 			/* Chek if the player is a real player */
 			if (!args.Player.RealPlayer)
@@ -761,39 +755,37 @@ namespace Essentials
 			/* Make sure the player isn't in a SetHome Disabled region */
 			if (!args.Player.Group.HasPermission("essentials.home.bypassdisabled"))
 			{
-				foreach (string r in Config.DisableSetHomeInRegions)
+				if (config.DisableSetHomeInRegions.Select(r =>
+                    TShock.Regions.GetRegionByName(r)).Where(region => 
+                        region != null).Any(region => 
+                            region.InArea(args.Player.TileX, args.Player.TileY)))
 				{
-					var region = TShock.Regions.GetRegionByName(r);
-					if (region == null) continue;
-					if (region.InArea(args.Player.TileX, args.Player.TileY))
-					{
-						args.Player.SendErrorMessage("You cannot set your home in this region.");
-						return;
-					}
+				    args.Player.SendErrorMessage("You cannot set your home in this region.");
+				    return;
 				}
 			}
 
 			/* get a list of the player's homes */
-			List<string> homes = esSQL.GetNames(args.Player.UserID, Main.worldID);
+			var homes = EsSql.GetNames(args.Player.UserID, Main.worldID);
 			/* how many homes is the user allowed to set */
-			int CanSet = esUtils.NoOfHomesCanSet(args.Player);
+			var canSet = esUtils.NoOfHomesCanSet(args.Player);
 
 			if (homes.Count < 1)
 			{
 				/* the player doesn't have a home, Create one! */
-				if (args.Parameters.Count < 1 || (args.Parameters.Count > 0 && CanSet == 1))
+				if (args.Parameters.Count < 1 || (args.Parameters.Count > 0 && canSet == 1))
 				{
 					/* they dont specify a name OR they specify a name but they only have permission to set 1, use a default name */
-					if (esSQL.AddHome(args.Player.UserID, args.Player.TileX, args.Player.TileY, "1", Main.worldID))
+					if (EsSql.AddHome(args.Player.UserID, args.Player.TileX, args.Player.TileY, "1", Main.worldID))
 						args.Player.SendSuccessMessage("Set home.");
 					else
 						args.Player.SendErrorMessage("An error occurred while setting your home.");
 				}
-				else if (args.Parameters.Count == 1 && !args.Parameters[0].Contains(" ") && (CanSet == -1 || CanSet > 1))
+				else if (args.Parameters.Count == 1 && !args.Parameters[0].Contains(" ") && (canSet == -1 || canSet > 1))
 				{
 					/* they specify a name And have permission to specify more than 1 */
-					string name = args.Parameters[0].ToLower();
-					if (esSQL.AddHome(args.Player.UserID, args.Player.TileX, args.Player.TileY, name, Main.worldID))
+					var name = args.Parameters[0].ToLower();
+					if (EsSql.AddHome(args.Player.UserID, args.Player.TileX, args.Player.TileY, name, Main.worldID))
 						args.Player.SendSuccessMessage("Set home {0}.", name);
 					else
 						args.Player.SendErrorMessage("An error occurred while setting your home.");
@@ -807,14 +799,14 @@ namespace Essentials
 			else if (homes.Count == 1)
 			{
 				/* If they only have 1 home */
-				if (args.Parameters.Count == 1 && !args.Parameters[0].Contains(" ") && (1 < CanSet || CanSet == -1))
+				if (args.Parameters.Count == 1 && !args.Parameters[0].Contains(" ") && (1 < canSet || canSet == -1))
 				{
 					/* They Specify a name and can set more than 1  */
-					string name = args.Parameters[0].ToLower();
+					var name = args.Parameters[0].ToLower();
 					if (homes.Contains(name))
 					{
 						/* They want to update a home */
-						if (esSQL.UpdateHome(args.Player.TileX, args.Player.TileY, args.Player.UserID, name, Main.worldID))
+						if (EsSql.UpdateHome(args.Player.TileX, args.Player.TileY, args.Player.UserID, name, Main.worldID))
 							args.Player.SendSuccessMessage("Updated home {0}.", name);
 						else
 							args.Player.SendErrorMessage("An error occurred while updating your home.");
@@ -822,24 +814,24 @@ namespace Essentials
 					else
 					{
 						/* They want to add a new home */
-						if (esSQL.AddHome(args.Player.UserID, args.Player.TileX, args.Player.TileY, name, Main.worldID))
+						if (EsSql.AddHome(args.Player.UserID, args.Player.TileX, args.Player.TileY, name, Main.worldID))
 							args.Player.SendSuccessMessage("Set home {0}.", name);
 						else
 							args.Player.SendErrorMessage("An error occurred while setting your home.");
 					}
 				}
-				else if (args.Parameters.Count < 1 && (1 < CanSet || CanSet == -1))
+				else if (args.Parameters.Count < 1 && (1 < canSet || canSet == -1))
 				{
 					/* if they dont specify a name & can set more than 1  - add a new home*/
-					if (esSQL.AddHome(args.Player.UserID, args.Player.TileX, args.Player.TileY, esUtils.NextHome(homes), Main.worldID))
+					if (EsSql.AddHome(args.Player.UserID, args.Player.TileX, args.Player.TileY, esUtils.NextHome(homes), Main.worldID))
 						args.Player.SendSuccessMessage("Set home.");
 					else
 						args.Player.SendErrorMessage("An error occurred while setting your home.");
 				}
-				else if (args.Parameters.Count > 0 && CanSet == 1)
+				else if (args.Parameters.Count > 0 && canSet == 1)
 				{
 					/* They specify a name but can only set 1 home, update their current home */
-					if (esSQL.UpdateHome(args.Player.TileX, args.Player.TileY, args.Player.UserID, homes[0], Main.worldID))
+					if (EsSql.UpdateHome(args.Player.TileX, args.Player.TileY, args.Player.UserID, homes[0], Main.worldID))
 						args.Player.SendSuccessMessage("Updated home.");
 					else
 						args.Player.SendErrorMessage("An error occurred while updating your home.");
@@ -856,10 +848,10 @@ namespace Essentials
 				if (args.Parameters.Count < 1)
 				{
 					/* they didnt specify a name */
-					if (homes.Count < CanSet || CanSet == -1)
+					if (homes.Count < canSet || canSet == -1)
 					{
 						/* They can set more homes */
-						if (esSQL.AddHome(args.Player.UserID, args.Player.TileX, args.Player.TileY, esUtils.NextHome(homes), Main.worldID))
+						if (EsSql.AddHome(args.Player.UserID, args.Player.TileX, args.Player.TileY, esUtils.NextHome(homes), Main.worldID))
 							args.Player.SendSuccessMessage("Set home.");
 						else
 							args.Player.SendErrorMessage("An error occurred while setting your home.");
@@ -867,18 +859,18 @@ namespace Essentials
 					else
 					{
 						/* they cant set any more homes */
-						args.Player.SendErrorMessage("You are only allowed to set {0} homes.", CanSet.ToString());
+						args.Player.SendErrorMessage("You are only allowed to set {0} homes.", canSet.ToString());
 						args.Player.SendErrorMessage("Homes: {0}", string.Join(", ", homes));
 					}
 				}
 				else if (args.Parameters.Count == 1 && !args.Parameters[0].Contains(" "))
 				{
 					/* they want to set / update another home and specified a name */
-					string name = args.Parameters[0].ToLower();
+					var name = args.Parameters[0].ToLower();
 					if (homes.Contains(name))
 					{
 						/* they want to update a home */
-						if (esSQL.UpdateHome(args.Player.TileX, args.Player.TileY, args.Player.UserID, name, Main.worldID))
+						if (EsSql.UpdateHome(args.Player.TileX, args.Player.TileY, args.Player.UserID, name, Main.worldID))
 							args.Player.SendSuccessMessage("Updated home.");
 						else
 							args.Player.SendErrorMessage("An error occurred while updating your home.");
@@ -886,10 +878,10 @@ namespace Essentials
 					else
 					{
 						/* they want to add a new home */
-						if (homes.Count < CanSet || CanSet == -1)
+						if (homes.Count < canSet || canSet == -1)
 						{
 							/* they can set more homes */
-							if (esSQL.AddHome(args.Player.UserID, args.Player.TileX, args.Player.TileY, name, Main.worldID))
+							if (EsSql.AddHome(args.Player.UserID, args.Player.TileX, args.Player.TileY, name, Main.worldID))
 								args.Player.SendSuccessMessage("Set home {0}.", name);
 							else
 								args.Player.SendErrorMessage("An error occurred while setting your home.");
@@ -897,7 +889,7 @@ namespace Essentials
 						else
 						{
 							/* they cant set any more homes */
-							args.Player.SendErrorMessage("You are only allowed to set {0} homes.", CanSet.ToString());
+							args.Player.SendErrorMessage("You are only allowed to set {0} homes.", canSet.ToString());
 							args.Player.SendErrorMessage("Homes: {0}", string.Join(", ", homes));
 						}
 					}
@@ -910,7 +902,7 @@ namespace Essentials
 			}
 		}
 
-		private void CMDmyhome(CommandArgs args)
+		private void CmdMyHome(CommandArgs args)
 		{
 			/* Chek if the player is a real player */
 			if (!args.Player.RealPlayer)
@@ -926,9 +918,9 @@ namespace Essentials
 			}
 
 			/* get a list of the player's homes */
-			List<string> homes = esSQL.GetNames(args.Player.UserID, Main.worldID);
+			var homes = EsSql.GetNames(args.Player.UserID, Main.worldID);
 			/* Set home position variable */
-			Point homePos = Point.Zero;
+			var homePos = Point.Zero;
 
 			if (homes.Count < 1)
 			{
@@ -936,10 +928,10 @@ namespace Essentials
 				args.Player.SendErrorMessage("You have not set a home. type /sethome to set one.");
 				return;
 			}
-			else if (homes.Count == 1)
+			if (homes.Count == 1)
 			{
 				/* they have 1 home */
-				homePos = esSQL.GetHome(args.Player.UserID, homes[0], Main.worldID);
+				homePos = EsSql.GetHome(args.Player.UserID, homes[0], Main.worldID);
 			}
 			else if (homes.Count > 1)
 			{
@@ -951,12 +943,12 @@ namespace Essentials
 					args.Player.SendErrorMessage("Homes: {0}", string.Join(", ", homes));
 					return;
 				}
-				else if (args.Parameters.Count == 1 && !args.Parameters[0].Contains(" "))
+				if (args.Parameters.Count == 1 && !args.Parameters[0].Contains(" "))
 				{
-					string name = args.Parameters[0].ToLower();
+					var name = args.Parameters[0].ToLower();
 					if (homes.Contains(name))
 					{
-						homePos = esSQL.GetHome(args.Player.UserID, name, Main.worldID);
+						homePos = EsSql.GetHome(args.Player.UserID, name, Main.worldID);
 					}
 					else
 					{
@@ -982,19 +974,19 @@ namespace Essentials
 				return;
 			}
 
-			esPlayer ePly = esPlayers[args.Player.Index];
+			var ePly = FindPlayer(args.Player.Index);
 			if (ePly != null)
 			{
 				ePly.LastBackX = args.Player.TileX;
 				ePly.LastBackY = args.Player.TileY;
-				ePly.LastBackAction = BackAction.TP;
+				ePly.LastBackAction = BackAction.Tp;
 			}
 
 			args.Player.Teleport(homePos.X * 16F, homePos.Y * 16F);
 			args.Player.SendSuccessMessage("Teleported home.");
 		}
 
-		private void CMDdelhome(CommandArgs args)
+		private void CmdDeleteHome(CommandArgs args)
 		{
 			/* Chek if the player is a real player */
 			if (!args.Player.RealPlayer)
@@ -1010,7 +1002,7 @@ namespace Essentials
 			}
 
 			/* get a list of the player's homes */
-			List<string> homes = esSQL.GetNames(args.Player.UserID, Main.worldID);
+			var homes = EsSql.GetNames(args.Player.UserID, Main.worldID);
 
 			if (homes.Count < 1)
 			{
@@ -1020,7 +1012,7 @@ namespace Essentials
 			else if (homes.Count == 1)
 			{
 				/* they have 1 home */
-				if (esSQL.RemoveHome(args.Player.UserID, homes[0], Main.worldID))
+				if (EsSql.RemoveHome(args.Player.UserID, homes[0], Main.worldID))
 					args.Player.SendSuccessMessage("Removed home.");
 				else
 					args.Player.SendErrorMessage("An error occurred while removing your home.");
@@ -1036,10 +1028,10 @@ namespace Essentials
 				}
 				else if (args.Parameters.Count == 1 && !args.Parameters[0].Contains(" "))
 				{
-					string name = args.Parameters[0].ToLower();
+					var name = args.Parameters[0].ToLower();
 					if (homes.Contains(name))
 					{
-						if (esSQL.RemoveHome(args.Player.UserID, name, Main.worldID))
+						if (EsSql.RemoveHome(args.Player.UserID, name, Main.worldID))
 							args.Player.SendSuccessMessage("Removed home {0}.", name);
 						else
 							args.Player.SendErrorMessage("An error occurred while removing your home.");
@@ -1061,17 +1053,17 @@ namespace Essentials
 		}
 		#endregion
 
-		#region essentials
-		private void CMDessentials(CommandArgs args)
+		#region Reload
+		private void CmdReload(CommandArgs args)
 		{
-			esConfig.ReloadConfig(args);
+            //reload config
 		}
 		#endregion
 
 		#region Team Unlock
-		private void CMDteamunlock(CommandArgs args)
+		private void CmdTeamUnlock(CommandArgs args)
 		{
-			if (!Config.LockRedTeam && !Config.LockGreenTeam && !Config.LockBlueTeam && !Config.LockYellowTeam)
+			if (!config.LockRedTeam && !config.LockGreenTeam && !config.LockBlueTeam && !config.LockYellowTeam)
 			{
 				args.Player.SendErrorMessage("Teams are not locked.");
 				return;
@@ -1083,23 +1075,23 @@ namespace Essentials
 				return;
 			}
 
-			string team = args.Parameters[0].ToLower();
+			var team = args.Parameters[0].ToLower();
 
 			args.Parameters.RemoveAt(0);
-			string Password = string.Join(" ", args.Parameters);
+			var password = string.Join(" ", args.Parameters);
 
-			var ePly = esPlayers[args.Player.Index];
+			var ePly = FindPlayer(args.Player.Index);
 
 			switch (team)
 			{
 				case "red":
 					{
-						if (Config.LockRedTeam)
+						if (config.LockRedTeam)
 						{
-							if (Password == Config.RedTeamPassword && Config.RedTeamPassword != "")
+							if (password == config.RedTeamPassword && config.RedTeamPassword != "")
 							{
 								args.Player.SendSuccessMessage("You can now join red team.");
-								ePly.RedPassword = Password;
+								ePly.RedPassword = password;
 							}
 							else
 								args.Player.SendErrorMessage("Incorrect Password.");
@@ -1110,12 +1102,12 @@ namespace Essentials
 					break;
 				case "green":
 					{
-						if (Config.LockGreenTeam)
+						if (config.LockGreenTeam)
 						{
-							if (Password == Config.GreenTeamPassword && Config.GreenTeamPassword != "")
+							if (password == config.GreenTeamPassword && config.GreenTeamPassword != "")
 							{
 								args.Player.SendSuccessMessage("You can now join green team.");
-								ePly.GreenPassword = Password;
+								ePly.GreenPassword = password;
 							}
 							else
 								args.Player.SendErrorMessage("Incorrect Password.");
@@ -1126,12 +1118,12 @@ namespace Essentials
 					break;
 				case "blue":
 					{
-						if (Config.LockBlueTeam)
+						if (config.LockBlueTeam)
 						{
-							if (Password == Config.BlueTeamPassword && Config.BlueTeamPassword != "")
+							if (password == config.BlueTeamPassword && config.BlueTeamPassword != "")
 							{
 								args.Player.SendSuccessMessage("You can now join blue team.");
-								ePly.BluePassword = Password;
+								ePly.BluePassword = password;
 							}
 							else
 								args.Player.SendErrorMessage("Incorrect Password.");
@@ -1142,12 +1134,12 @@ namespace Essentials
 					break;
 				case "yellow":
 					{
-						if (Config.LockYellowTeam)
+						if (config.LockYellowTeam)
 						{
-							if (Password == Config.YellowTeamPassword && Config.YellowTeamPassword != "")
+							if (password == config.YellowTeamPassword && config.YellowTeamPassword != "")
 							{
 								args.Player.SendSuccessMessage("You can now join yellow team.");
-								ePly.YellowPassword = Password;
+								ePly.YellowPassword = password;
 							}
 							else
 								args.Player.SendErrorMessage("Incorrect Password.");
@@ -1164,25 +1156,25 @@ namespace Essentials
 		#endregion
 
 		#region Last Command
-		private void CMDequals(CommandArgs args)
+		private void CmdRepeatCommand(CommandArgs args)
 		{
-			var ePly = esPlayers[args.Player.Index];
+		    var ePly = FindPlayer(args.Player.Index);
 
-			if (ePly.LastCMD == "/=" || ePly.LastCMD.StartsWith("/= "))
+            if (ePly.LastCmd == "/=" || ePly.LastCmd.StartsWith("/= "))
 			{
 				args.Player.SendErrorMessage("Error with last command.");
 				return;
 			}
 
-			if (ePly.LastCMD == string.Empty)
+            if (ePly.LastCmd == string.Empty)
 				args.Player.SendErrorMessage("You have not entered a command yet.");
 			else
-				TShockAPI.Commands.HandleCommand(args.Player, ePly.LastCMD);
+                Commands.HandleCommand(args.Player, ePly.LastCmd);
 		}
 		#endregion
 
 		#region Kill Reason
-		private void CMDkillr(CommandArgs args)
+		private static void CmdKillReason(CommandArgs args)
 		{
 			if (args.Parameters.Count < 1)
 			{
@@ -1190,24 +1182,28 @@ namespace Essentials
 				return;
 			}
 
-			var PlayersFound = TShock.Utils.FindPlayer(args.Parameters[0]);
-			if (PlayersFound.Count != 1)
-			{
-				args.Player.SendErrorMessage(PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
-				return;
-			}
+			var found = TShock.Utils.FindPlayer(args.Parameters[0]);
+		    if (found.Count > 1)
+		    {
+		        TShock.Utils.SendMultipleMatchError(args.Player, found.Select(p => p.Name));
+		        return;
+		    }
+		    if (found.Count == 0)
+		    {
+		        args.Player.SendErrorMessage("No matches found");
+		    }
 
-			var Ply = PlayersFound[0];
+		    var ply = found[0];
 			args.Parameters.RemoveAt(0); //remove player name
 			string reason = " " + string.Join(" ", args.Parameters);
 
-			NetMessage.SendData(26, -1, -1, reason, Ply.Index, 0f, 15000);
-			args.Player.SendSuccessMessage("You just killed {0}.", Ply.Name);
+			NetMessage.SendData(26, -1, -1, reason, ply.Index, 0f, 15000);
+			args.Player.SendSuccessMessage("You just killed {0}.", ply.Name);
 		}
 		#endregion
 
 		#region Disable
-		private void CMDdisable(CommandArgs args)
+		private void CmdDisable(CommandArgs args)
 		{
 			if (args.Parameters.Count < 1)
 			{
@@ -1217,59 +1213,59 @@ namespace Essentials
 
 			if (args.Parameters[0].ToLower() == "-list")
 			{
-				List<string> Names = new List<string>(Disabled.Keys);
-				if (Disabled.Count < 1)
+				var names = new List<string>(_disabled.Keys);
+				if (_disabled.Count < 1)
 					args.Player.SendSuccessMessage("There are currently no players disabled.", Color.MediumSeaGreen);
 				else
-					args.Player.SendSuccessMessage("Disabled Players: {0}", string.Join(", ", Names));
+					args.Player.SendSuccessMessage("Disabled Players: {0}", string.Join(", ", names));
 				return;
 			}
 
-			var PlayersFound = TShock.Utils.FindPlayer(args.Parameters[0]);
-			if (PlayersFound.Count < 1)
+			var found = TShock.Utils.FindPlayer(args.Parameters[0]);
+			if (found.Count < 1)
 			{
-				foreach (var pair in Disabled)
-				{
-					if (pair.Key.ToLower().Contains(args.Parameters[0].ToLower()))
-					{
-						Disabled.Remove(pair.Key);
-						args.Player.SendSuccessMessage("{0} is no longer disabled (even though they aren't online).", pair.Key);
-						return;
-					}
-				}
-				args.Player.SendErrorMessage("No players matched.");
+			    foreach (var pair in _disabled.Where(pair => 
+                    pair.Key.ToLower().Contains(args.Parameters[0].ToLower())))
+			    {
+			        _disabled.Remove(pair.Key);
+			        args.Player.SendSuccessMessage("{0} is no longer disabled (even though they aren't online).",
+                        pair.Key);
+			        return;
+			    }
+			    args.Player.SendErrorMessage("No players matched.");
+			    return;
 			}
-			else if (PlayersFound.Count > 1)
+			if (found.Count > 1)
 			{
-				args.Player.SendErrorMessage("More than one player matched.");
-				return;
+			    TShock.Utils.SendMultipleMatchError(args.Player, found.Select(p => p.Name));
+                return;
 			}
 
-			var tPly = PlayersFound[0];
-			var ePly = esPlayers[tPly.Index];
+			var tPly = found[0];
+		    var ePly = FindPlayer(tPly.Index);
 
-			if (!Disabled.ContainsKey(tPly.Name))
+			if (!_disabled.ContainsKey(tPly.Name))
 			{
-				string Reason = string.Empty;
+				var reason = string.Empty;
 				if (args.Parameters.Count > 1)
 				{
 					args.Parameters.RemoveAt(0);
-					Reason = string.Join(" ", args.Parameters);
+                    reason = string.Join(" ", args.Parameters);
 				}
 				ePly.DisabledX = tPly.TileX;
 				ePly.DisabledY = tPly.TileY;
 				ePly.Disabled = true;
 				ePly.Disable();
 				ePly.LastDisabledCheck = DateTime.UtcNow;
-				int[] pos = new int[2];
+				var pos = new int[2];
 				pos[0] = ePly.DisabledX;
 				pos[1] = ePly.DisabledY;
-				Disabled.Add(tPly.Name, pos);
+				_disabled.Add(tPly.Name, pos);
 				args.Player.SendSuccessMessage("You disabled {0}, They can not be enabled until you type \"/disable {0}\".", tPly.Name);
-				if (Reason == string.Empty)
+                if (reason == string.Empty)
 					tPly.SendSuccessMessage("You have been disabled by {0}.", args.Player.Name);
 				else
-					tPly.SendSuccessMessage("You have been disabled by {0} for {1}.", args.Player.Name, Reason);
+                    tPly.SendSuccessMessage("You have been disabled by {0} for {1}.", args.Player.Name, reason);
 			}
 			else
 			{
@@ -1277,7 +1273,7 @@ namespace Essentials
 				ePly.DisabledX = -1;
 				ePly.DisabledY = -1;
 
-				Disabled.Remove(tPly.Name);
+				_disabled.Remove(tPly.Name);
 
 				args.Player.SendSuccessMessage("{0} is no longer disabled.", tPly.Name);
 				tPly.SendSuccessMessage("You are no longer disabled.");
@@ -1286,272 +1282,278 @@ namespace Essentials
 		#endregion
 
 		#region Top, Up and Down
-		private void CMDtop(CommandArgs args)
+
+		private void CmdTop(CommandArgs args)
 		{
-			int Y = esUtils.GetTop(args.Player.TileX);
-			if (Y == -1)
+			var y = esUtils.GetTop(args.Player.TileX);
+			if (y == -1)
 			{
 				args.Player.SendErrorMessage("You are already on the top.");
 				return;
 			}
-			esPlayer ePly = esPlayers[args.Player.Index];
+			var ePly = FindPlayer(args.Player.Index);
 			if (ePly != null)
 			{
 				ePly.LastBackX = args.Player.TileX;
 				ePly.LastBackY = args.Player.TileY;
-				ePly.LastBackAction = BackAction.TP;
+				ePly.LastBackAction = BackAction.Tp;
 			}
-			args.Player.Teleport(args.Player.TileX * 16F, Y * 16F);
+			args.Player.Teleport(args.Player.TileX * 16F, y * 16F);
 			args.Player.SendSuccessMessage("Teleported you to the top.");
 		}
-		private void CMDup(CommandArgs args)
+		private void CmdUp(CommandArgs args)
 		{
-			int levels = 1;
+			var levels = 1;
 			if (args.Parameters.Count > 0 && !int.TryParse(args.Parameters[0], out levels))
 			{
 				args.Player.SendErrorMessage("Usage: /up [No. levels]");
 				return;
 			}
 
-			int Y = esUtils.GetUp(args.Player.TileX, args.Player.TileY);
-			if (Y == -1)
+			var y = esUtils.GetUp(args.Player.TileX, args.Player.TileY);
+			if (y == -1)
 			{
 				args.Player.SendErrorMessage("You are already on the top.");
 				return;
 			}
-			bool limit = false;
-			for (int i = 1; i < levels; i++)
+			var limit = false;
+			for (var i = 1; i < levels; i++)
 			{
-				int newY = esUtils.GetUp(args.Player.TileX, Y);
+				var newY = esUtils.GetUp(args.Player.TileX, y);
 				if (newY == -1)
 				{
 					levels = i;
 					limit = true;
 					break;
 				}
-				Y = newY;
+				y = newY;
 			}
 
-			esPlayer ePly = esPlayers[args.Player.Index];
+			var ePly = FindPlayer(args.Player.Index);
 			if (ePly != null)
 			{
 				ePly.LastBackX = args.Player.TileX;
 				ePly.LastBackY = args.Player.TileY;
-				ePly.LastBackAction = BackAction.TP;
+				ePly.LastBackAction = BackAction.Tp;
 			}
-			args.Player.Teleport(args.Player.TileX * 16F, Y * 16F);
+			args.Player.Teleport(args.Player.TileX * 16F, y * 16F);
 			args.Player.SendSuccessMessage("Teleported you up {0} level(s).{1}", levels, limit ? " You cant go up any further." : string.Empty);
 		}
-		private void CMDdown(CommandArgs args)
+
+		private void CmdDown(CommandArgs args)
 		{
-			int levels = 1;
+			var levels = 1;
 			if (args.Parameters.Count > 0 && !int.TryParse(args.Parameters[0], out levels))
 			{
 				args.Player.SendErrorMessage("Usage: /down [No. levels]");
 				return;
 			}
 
-			int Y = esUtils.GetDown(args.Player.TileX, args.Player.TileY);
-			if (Y == -1)
+			var y = esUtils.GetDown(args.Player.TileX, args.Player.TileY);
+			if (y == -1)
 			{
 				args.Player.SendErrorMessage("You are already on the bottom.");
 				return;
 			}
-			bool limit = false;
-			for (int i = 1; i < levels; i++)
+			var limit = false;
+			for (var i = 1; i < levels; i++)
 			{
-				int newY = esUtils.GetDown(args.Player.TileX, Y);
+				var newY = esUtils.GetDown(args.Player.TileX, y);
 				if (newY == -1)
 				{
 					levels = i;
 					limit = true;
 					break;
 				}
-				Y = newY;
+				y = newY;
 			}
 
-			esPlayer ePly = esPlayers[args.Player.Index];
+			var ePly = FindPlayer(args.Player.Index);
 			if (ePly != null)
 			{
 				ePly.LastBackX = args.Player.TileX;
 				ePly.LastBackY = args.Player.TileY;
-				ePly.LastBackAction = BackAction.TP;
+				ePly.LastBackAction = BackAction.Tp;
 			}
-			args.Player.Teleport(args.Player.TileX * 16F, Y * 16F);
+			args.Player.Teleport(args.Player.TileX * 16F, y * 16F);
 			args.Player.SendSuccessMessage("Teleported you down {0} level(s).{1}", levels, limit ? " You can't go down any further." : string.Empty);
 		}
 		#endregion
 
 		#region Left & Right
-		private void CMDleft(CommandArgs args)
+		private void CmdLeft(CommandArgs args)
 		{
-			int levels = 1;
+		    var levels = 1;
 			if (args.Parameters.Count > 0 && !int.TryParse(args.Parameters[0], out levels))
 			{
 				args.Player.SendErrorMessage("Usage: /left [No. times]");
 				return;
 			}
 
-			int X = esUtils.GetLeft(args.Player.TileX, args.Player.TileY);
-			if (X == -1)
+			var x = esUtils.GetLeft(args.Player.TileX, args.Player.TileY);
+			if (x == -1)
 			{
 				args.Player.SendErrorMessage("You cannot go any further left.");
 				return;
 			}
-			bool limit = false;
-			for (int i = 1; i < levels; i++)
+			var limit = false;
+			for (var i = 1; i < levels; i++)
 			{
-				int newX = esUtils.GetLeft(X, args.Player.TileY);
+				var newX = esUtils.GetLeft(x, args.Player.TileY);
 				if (newX == -1)
 				{
 					levels = i;
 					limit = true;
 					break;
 				}
-				X = newX;
+				x = newX;
 			}
 
-			esPlayer ePly = esPlayers[args.Player.Index];
+		    var ePly = FindPlayer(args.Player.Index);
 			if (ePly != null)
 			{
 				ePly.LastBackX = args.Player.TileX;
 				ePly.LastBackY = args.Player.TileY;
-				ePly.LastBackAction = BackAction.TP;
+				ePly.LastBackAction = BackAction.Tp;
 			}
-			args.Player.Teleport(X * 16F, args.Player.TileY * 16F);
+			args.Player.Teleport(x * 16F, args.Player.TileY * 16F);
 			args.Player.SendSuccessMessage("Teleported you to the left {0} time(s).{1}", levels, limit ? " You can't go any further." : string.Empty);
 		}
-		private void CMDright(CommandArgs args)
+		private void CmdRight(CommandArgs args)
 		{
-			int levels = 1;
+			var levels = 1;
 			if (args.Parameters.Count > 0 && !int.TryParse(args.Parameters[0], out levels))
 			{
 				args.Player.SendErrorMessage("Usage: /right [No. times]");
 				return;
 			}
 
-			int X = esUtils.GetRight(args.Player.TileX, args.Player.TileY);
-			if (X == -1)
+			var x = esUtils.GetRight(args.Player.TileX, args.Player.TileY);
+			if (x == -1)
 			{
 				args.Player.SendErrorMessage("You cannot go any further right.");
 				return;
 			}
-			bool limit = false;
-			for (int i = 1; i < levels; i++)
+			var limit = false;
+			for (var i = 1; i < levels; i++)
 			{
-				int newX = esUtils.GetRight(X, args.Player.TileY);
+				var newX = esUtils.GetRight(x, args.Player.TileY);
 				if (newX == -1)
 				{
 					levels = i;
 					limit = true;
 					break;
 				}
-				X = newX;
+				x = newX;
 			}
 
-			esPlayer ePly = esPlayers[args.Player.Index];
+		    var ePly = FindPlayer(args.Player.Index);
 			if (ePly != null)
 			{
 				ePly.LastBackX = args.Player.TileX;
 				ePly.LastBackY = args.Player.TileY;
-				ePly.LastBackAction = BackAction.TP;
+				ePly.LastBackAction = BackAction.Tp;
 			}
-			args.Player.Teleport(X * 16F, args.Player.TileY * 16F);
+			args.Player.Teleport(x * 16F, args.Player.TileY * 16F);
 			args.Player.SendSuccessMessage("Teleported you to the right {0} time(s).{1}", levels, limit ? " You can't go any further." : string.Empty);
 		}
 		#endregion
 
 		#region ptime
-		private void CMDptime(CommandArgs args)
+		private void CmdPTime(CommandArgs args)
 		{
 			if (!args.Player.Group.HasPermission("essentials.playertime.setother") && args.Parameters.Count != 1)
 			{
 				args.Player.SendErrorMessage("Usage: /ptime <day/night/noon/midnight/reset>");
 				return;
 			}
-			else if (args.Parameters.Count < 1 || args.Parameters.Count > 2)
+			if (args.Parameters.Count < 1 || args.Parameters.Count > 2)
 			{
 				args.Player.SendErrorMessage("Usage: /ptime <day/night/noon/midnight/reset> [player]");
 				return;
 			}
 
-			var Ply = args.Player;
+			var ply = args.Player;
 			if (args.Player.Group.HasPermission("essentials.playertime.setother") && args.Parameters.Count == 2)
 			{
-				var PlayersFound = TShock.Utils.FindPlayer(args.Parameters[1]);
+				var found = TShock.Utils.FindPlayer(args.Parameters[1]);
 
-				if (PlayersFound.Count > 1)
+                if (found.Count > 1)
                 {
-                    List<string> matches = new List<string>();
-                    PlayersFound.ForEach(pl => { matches.Add(pl.Name); });
-                    TShock.Utils.SendMultipleMatchError(args.Player, matches);
+                    TShock.Utils.SendMultipleMatchError(args.Player, found.Select(p => p.Name));
                     return;
                 }
+			    if (found.Count == 0)
+			    {
+			        args.Player.SendErrorMessage("No players matched");
+			    }
 
-				Ply = PlayersFound[0];
+                ply = found[0];
 			}
 
-			esPlayer ePly = esPlayers[Ply.Index];
-			string Time = args.Parameters[0].ToLower();
+		    var ePly = FindPlayer(args.Player.Index);
+			var time = args.Parameters[0].ToLower();
 
-			switch (Time)
+			switch (time)
 			{
 				case "day":
 					{
-						ePly.ptDay = true;
-						ePly.ptTime = 150.0;
-						Ply.SendData(PacketTypes.TimeSet, "", 0, Main.sunModY, Main.moonModY);
+						ePly.PtDay = true;
+						ePly.PtTime = 150.0;
+						ply.SendData(PacketTypes.TimeSet, "", 0, Main.sunModY, Main.moonModY);
 					}
 					break;
 				case "night":
 					{
-						ePly.ptDay = false;
-						ePly.ptTime = 0.0;
-						Ply.SendData(PacketTypes.TimeSet, "", 0, Main.sunModY, Main.moonModY);
+						ePly.PtDay = false;
+						ePly.PtTime = 0.0;
+						ply.SendData(PacketTypes.TimeSet, "", 0, Main.sunModY, Main.moonModY);
 					}
 					break;
 				case "noon":
 					{
-						ePly.ptDay = true;
-						ePly.ptTime = 27000.0;
-						Ply.SendData(PacketTypes.TimeSet, "", 0, Main.sunModY, Main.moonModY);
+						ePly.PtDay = true;
+						ePly.PtTime = 27000.0;
+						ply.SendData(PacketTypes.TimeSet, "", 0, Main.sunModY, Main.moonModY);
 					}
 					break;
 				case "midnight":
 					{
-						ePly.ptDay = false;
-						ePly.ptTime = 16200.0;
-						Ply.SendData(PacketTypes.TimeSet, "", 0, Main.sunModY, Main.moonModY);
+						ePly.PtDay = false;
+						ePly.PtTime = 16200.0;
+						ply.SendData(PacketTypes.TimeSet, "", 0, Main.sunModY, Main.moonModY);
 					}
 					break;
 				case "reset":
 					{
-						ePly.ptTime = -1.0;
-						Ply.SendData(PacketTypes.TimeSet, "", 0, Main.sunModY, Main.moonModY);
-						args.Player.SendSuccessMessage("{0} time is the same as the server.", Ply == args.Player ? "Your" : string.Concat(Ply.Name, "'s"));
-						if (Ply != args.Player)
-							Ply.SendSuccessMessage("{0} Set your time to the server time.", args.Player.Name);
+						ePly.PtTime = -1.0;
+						ply.SendData(PacketTypes.TimeSet, "", 0, Main.sunModY, Main.moonModY);
+						args.Player.SendSuccessMessage("{0} time is the same as the server.", 
+                            ply == args.Player ? "Your" : string.Concat(ply.Name, "'s"));
+						if (ply != args.Player)
+							ply.SendSuccessMessage("{0} Set your time to the server time.", args.Player.Name);
 					}
 					return;
 				default:
 					args.Player.SendErrorMessage("Usage: /ptime <day/night/dusk/noon/midnight/reset> [player]");
 					return;
 			}
-			args.Player.SendSuccessMessage("Set {0} time to {1}.", args.Player == Ply ? "your" : string.Concat(Ply.Name, "'s"), Time);
-			if (Ply != args.Player)
-				Ply.SendSuccessMessage("{0} set your time to {1}.", args.Player.Name, Time);
+			args.Player.SendSuccessMessage("Set {0} time to {1}.", 
+                args.Player == ply ? "your" : string.Concat(ply.Name, "'s"), time);
+			if (ply != args.Player)
+				ply.SendSuccessMessage("{0} set your time to {1}.", args.Player.Name, time);
 		}
 		#endregion
 
 		#region Ping
-		private void CMDping(CommandArgs args)
+		private static void CmdPing(CommandArgs args)
 		{
 			args.Player.SendMessage("pong.", Color.White);
 		}
 		#endregion
 
-		#region sudo
-		private void CMDsudo(CommandArgs args)
+		#region Sudo
+		private void CmdSudo(CommandArgs args)
 		{
 			if (args.Parameters.Count < 2)
 			{
@@ -1559,43 +1561,48 @@ namespace Essentials
 				return;
 			}
 
-			var PlayersFound = TShock.Utils.FindPlayer(args.Parameters[0]);
-			if (PlayersFound.Count != 1)
+			var found = TShock.Utils.FindPlayer(args.Parameters[0]);
+			if (found.Count == 0)
 			{
-				args.Player.SendErrorMessage(PlayersFound.Count < 1 ? "No Players matched." : "More than one player matched.");
+			    args.Player.SendErrorMessage("No players found");
 				return;
 			}
+		    if (found.Count > 1)
+		    {
+		        TShock.Utils.SendMultipleMatchError(args.Player, found.Select(p => p.Name));
+		        return;
+		    }
 
-			var Ply = PlayersFound[0];
-			if (Ply.Group.HasPermission("essentials.sudo.immune"))
+			var ply = found[0];
+			if (ply.Group.HasPermission("essentials.sudo.immune"))
 			{
-				args.Player.SendErrorMessage("You cannot force {0} to do a command.", Ply.Name);
+				args.Player.SendErrorMessage("You cannot force {0} to do a command.", ply.Name);
 				return;
 			}
-			Group OldGroup = null;
+			Group oldGroup = null;
 			if (args.Player.Group.HasPermission("essentials.sudo.super"))
 			{
-				OldGroup = Ply.Group;
-				Ply.Group = new SuperAdminGroup();
+				oldGroup = ply.Group;
+				ply.Group = new SuperAdminGroup();
 			}
 
 			args.Parameters.RemoveAt(0);
-			string command = string.Join(" ", args.Parameters);
+			var command = string.Join(" ", args.Parameters);
 			if (!command.StartsWith("/"))
 				command = string.Concat("/", command);
 
-			Commands.HandleCommand(Ply, command);
-			args.Player.SendSuccessMessage("Forced {0} to execute: {1}", Ply.Name, command);
+			Commands.HandleCommand(ply, command);
+			args.Player.SendSuccessMessage("Forced {0} to execute: {1}", ply.Name, command);
 
-			if (OldGroup != null)
-				Ply.Group = OldGroup;
+			if (oldGroup != null)
+				ply.Group = oldGroup;
 		}
 		#endregion
 
 		#region SocialSpy
-		private void CMDsocialspy(CommandArgs args)
+		private void CmdSocialSpy(CommandArgs args)
 		{
-			esPlayer ePly = esPlayers[args.Player.Index];
+			var ePly = FindPlayer(args.Player.Index);
 
 			ePly.SocialSpy = !ePly.SocialSpy;
 			args.Player.SendSuccessMessage("Socialspy {0}abled.", ePly.SocialSpy ? "En" : "Dis");
@@ -1603,58 +1610,55 @@ namespace Essentials
 		#endregion
 
 		#region Near
-		private void CMDnear(CommandArgs args)
+		private void CmdNear(CommandArgs args)
 		{
-			var Players = new Dictionary<string, int>();
-			foreach (var ePly in esPlayers)
+			var plys = new Dictionary<string, int>();
+			foreach (var ePly in players)
 			{
 				if (ePly == null || ePly.Index == args.Player.Index) continue;
-				int x = Math.Abs(args.Player.TileX - ePly.TSPlayer.TileX);
-				int y = Math.Abs(args.Player.TileY - ePly.TSPlayer.TileY);
-				int h = (int)Math.Sqrt((double)(Math.Pow(x, 2) + Math.Pow(y, 2)));
-				Players.Add(ePly.TSPlayer.Name, h);
+				var x = Math.Abs(args.Player.TileX - ePly.TSPlayer.TileX);
+				var y = Math.Abs(args.Player.TileY - ePly.TSPlayer.TileY);
+				var h = (int)Math.Sqrt((Math.Pow(x, 2) + Math.Pow(y, 2)));
+				plys.Add(ePly.TSPlayer.Name, h);
 			}
-			if (Players.Count == 0)
+			if (plys.Count == 0)
 			{
 				args.Player.SendSuccessMessage("No players found.");
 				return;
 			}
-			List<string> Names = new List<string>();
-			Players.OrderBy(pair => pair.Value).ForEach(pair => Names.Add(pair.Key));
-			List<string> Results = new List<string>();
-			var Line = new StringBuilder();
-			int Added = 0;
-			for (int i = 0; i < Names.Count; i++)
+			var names = new List<string>();
+			plys.OrderBy(pair => pair.Value).ForEach(pair => names.Add(pair.Key));
+			var results = new List<string>();
+			var line = new StringBuilder();
+			var added = 0;
+			foreach (var n in names)
 			{
-				if (Line.Length == 0)
-					Line.Append(string.Format("{0}({1}m)", Names[i], Players[Names[i]]));
-				else
-					Line.Append(string.Format(", {0}({1}m)", Names[i], Players[Names[i]]));
-				Added++;
-				if (Added == 5)
-				{
-					Results.Add(Line.ToString());
-					Line.Clear();
-					Added = 0;
-				}
+			    line.Append(line.Length == 0 
+                    ? string.Format("{0}({1}m)", n, plys[n]) 
+                    : string.Format(", {0}({1}m)", n, plys[n]));
+			    added++;
+			    if (added != 5) continue;
+			    results.Add(line.ToString());
+			    line.Clear();
+			    added = 0;
 			}
-			if (Results.Count <= 6)
+            if (results.Count <= 6)
 			{
 				args.Player.SendInfoMessage("Nearby Players:");
-				foreach (var Result in Results)
+                foreach (var res in results)
 				{
-					args.Player.SendSuccessMessage(Result);
+					args.Player.SendSuccessMessage(res);
 				}
 			}
 			else
 			{
-				int page = 1;
+				var page = 1;
 				if (args.Parameters.Count > 0 && !int.TryParse(args.Parameters[0], out page))
 					page = 1;
 				page--;
 				const int pagelimit = 6;
 
-				int pagecount = Results.Count / pagelimit;
+                var pagecount = results.Count / pagelimit;
 				if (page > pagecount)
 				{
 					args.Player.SendErrorMessage("Page number exceeds pages ({0}/{1}).", page + 1, pagecount + 1);
@@ -1662,137 +1666,134 @@ namespace Essentials
 				}
 
 				args.Player.SendInfoMessage("Nearby Players - Page {0} of {1} | /near [page]", page + 1, pagecount + 1);
-				for (int i = (page * pagelimit); (i < ((page * pagelimit) + pagelimit)) && i < Results.Count; i++)
-					args.Player.SendSuccessMessage(Results[i]);
+                for (var i = (page * pagelimit); (i < ((page * pagelimit) + pagelimit)) && i < results.Count; i++)
+                    args.Player.SendSuccessMessage(results[i]);
 			}
 		}
 		#endregion
 
 		#region Nick
-		private void CMDnick(CommandArgs args)
+		private void CmdNick(CommandArgs args)
 		{
 			if (args.Parameters.Count != 1 && !args.Player.Group.HasPermission("essentials.nick.setother"))
 			{
 				args.Player.SendErrorMessage("Usage: /nick <nickname / off>");
 				return;
 			}
-			else if ((args.Parameters.Count < 1 || args.Parameters.Count > 2) && args.Player.Group.HasPermission("essentials.nick.setother"))
+			if ((args.Parameters.Count < 1 || args.Parameters.Count > 2) && args.Player.Group.HasPermission("essentials.nick.setother"))
 			{
 				args.Player.SendErrorMessage("Usage: /nick [player] <nickname / off>");
 				return;
 			}
 
-			TSPlayer NickPly = args.Player;
+			var ply = args.Player;
 			if (args.Parameters.Count > 1 && args.Player.Group.HasPermission("essentials.nick.setother"))
 			{
-				var PlayersFound = TShock.Utils.FindPlayer(args.Parameters[0]);
-				if (PlayersFound.Count != 1)
+				var found = TShock.Utils.FindPlayer(args.Parameters[0]);
+				if (found.Count == 0)
 				{
-					args.Player.SendErrorMessage(PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
+					args.Player.SendErrorMessage("No players matched.");
 					return;
 				}
-				NickPly = PlayersFound[0];
+			    if (found.Count > 1)
+			    {
+			        TShock.Utils.SendMultipleMatchError(args.Player, found.Select(p => p.Name));
+			    }
+				ply = found[0];
 			}
 
-			esPlayer eNickPly = esPlayers[NickPly.Index];
+			var eNickPly = FindPlayer(args.Player.Index);
 
-			bool self = NickPly == args.Player;
+			var self = ply == args.Player;
 
-			string nickname = args.Parameters[args.Parameters.Count - 1];
+			var nickname = args.Parameters[args.Parameters.Count - 1];
 
 			if (nickname.ToLower() == "off")
 			{
 				if (eNickPly.HasNickName)
 				{
-					esSQL.RemoveNickname(NickPly.Name);
+					EsSql.RemoveNickname(ply.Name);
 
 					eNickPly.HasNickName = false;
 					eNickPly.Nickname = string.Empty;
 
-					args.Player.SendSuccessMessage("Removed {0} nickname.", self ? "your" : string.Concat(NickPly.Name, "'s"));
+					args.Player.SendSuccessMessage("Removed {0} nickname.",
+                        self ? "your" : string.Concat(ply.Name, "'s"));
 					if (!self)
-						NickPly.SendSuccessMessage("Your nickname was removed by {0}.", args.Player.Name);
+						ply.SendSuccessMessage("Your nickname was removed by {0}.", args.Player.Name);
 				}
 				else
 				{
-					args.Player.SendErrorMessage("{0} not have a nickname to remove.", self ? "You do" : string.Concat(NickPly.Name, " does"));
+					args.Player.SendErrorMessage("{0} not have a nickname to remove.", 
+                        self ? "You do" : string.Concat(ply.Name, " does"));
 				}
 				return;
 			}
 
-			/*System.Text.RegularExpressions.Regex alphanumeric = new System.Text.RegularExpressions.Regex("^[a-zA-Z0-9_ ]*$");
-			if (!alphanumeric.Match(nickname).Success)
-			{
-				args.Player.SendErrorMessage("Nicknames must be Alphanumeric.");
-				return;
-			}*/
-
 			if (!eNickPly.HasNickName)
 			{
-				eNickPly.OriginalName = NickPly.Name;
+				eNickPly.OriginalName = ply.Name;
 				eNickPly.HasNickName = true;
 			}
 
 			eNickPly.Nickname = nickname;
 
 			string curNickname;
-			if (esSQL.GetNickname(NickPly.Name, out curNickname))
-				esSQL.UpdateNickname(NickPly.Name, nickname);
+			if (EsSql.GetNickname(ply.Name, out curNickname))
+				EsSql.UpdateNickname(ply.Name, nickname);
 			else
-				esSQL.AddNickname(NickPly.Name, nickname);
+				EsSql.AddNickname(ply.Name, nickname);
 
-			args.Player.SendSuccessMessage("Set {0} nickname to '{1}'.", self ? "your" : string.Concat(eNickPly.OriginalName), nickname);
+			args.Player.SendSuccessMessage("Set {0} nickname to '{1}'.",
+                self ? "your" : eNickPly.OriginalName, nickname);
 			if (!self)
-				NickPly.SendSuccessMessage("{0} set your nickname to '{1}'.", args.Player.Name, nickname);
+				ply.SendSuccessMessage("{0} set your nickname to '{1}'.", args.Player.Name, nickname);
 		}
 		#endregion
 
-		#region realname
-		private void CMDrealname(CommandArgs args)
+		#region RealName
+		private void CmdRealName(CommandArgs args)
 		{
 			if (args.Parameters.Count < 1)
 			{
 				args.Player.SendErrorMessage("Usage: /realname <player/-all>");
 				return;
 			}
-			string search = args.Parameters[0].ToLower();
+			var search = args.Parameters[0].ToLower();
 			if (search == "-all")
 			{
-				List<string> Nicks = new List<string>();
-				foreach (var player in esPlayers)
-				{
-					if (player == null || !player.HasNickName) continue;
-					Nicks.Add(string.Concat(Config.PrefixNicknamesWith, player.Nickname, "(", player.OriginalName, ")"));
-				}
+				var nicks = (from player in players where player != null 
+                                 && player.HasNickName 
+                             select string.Concat(config.PrefixNicknamesWith, player.Nickname, 
+                             "(", player.OriginalName, ")")).ToList();
 
-				if (Nicks.Count < 1)
+			    if (nicks.Count < 1)
 					args.Player.SendErrorMessage("No players online have nicknames.");
 				else
-					args.Player.SendSuccessMessage(string.Join(", ", Nicks));
+                    args.Player.SendSuccessMessage(string.Join(", ", nicks));
 				return;
 			}
-			if (search.StartsWith(Config.PrefixNicknamesWith))
-				search = search.Remove(0, Config.PrefixNicknamesWith.Length);
+			if (search.StartsWith(config.PrefixNicknamesWith))
+				search = search.Remove(0, config.PrefixNicknamesWith.Length);
 
-			List<esPlayer> PlayersFound = new List<esPlayer>();
-			foreach (var player in esPlayers)
+			var found = new List<EsPlayer>();
+			foreach (var player in players.Where(player => player != null && player.HasNickName))
 			{
-				if (player == null || !player.HasNickName) continue;
-				if (player.Nickname.ToLower() == search)
-				{
-					PlayersFound = new List<esPlayer> { player };
-					break;
-				}
-				else if (player.Nickname.ToLower().Contains(search))
-					PlayersFound.Add(player);
+			    if (player.Nickname.ToLower() == search)
+			    {
+			        found = new List<EsPlayer> { player };
+			        break;
+			    }
+			    if (player.Nickname.ToLower().Contains(search))
+			        found.Add(player);
 			}
-			if (PlayersFound.Count != 1)
+			if (found.Count > 1)
 			{
-				args.Player.SendErrorMessage(PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
-				return;
+			    TShock.Utils.SendMultipleMatchError(args.Player, found.Select(p => p.TSPlayer.Name));
+                return;
 			}
 
-			esPlayer ply = PlayersFound[0];
+			var ply = found[0];
 
 			args.Player.SendSuccessMessage("The user '{0}' has the nickname '{1}'.", ply.OriginalName, ply.Nickname);
 
@@ -1800,7 +1801,7 @@ namespace Essentials
 		#endregion
 
 		#region Exact Time
-		private void CMDetime(CommandArgs args)
+		private void CmdExactTime(CommandArgs args)
 		{
 			if (args.Parameters.Count != 1 || !args.Parameters[0].Contains(':'))
 			{
@@ -1812,71 +1813,71 @@ namespace Essentials
 			var sHours = split[0];
 			var sMinutes = split[1];
 
-			var PM = false;
-			var Hours = -1;
-			var Minutes = -1;
-			if (!int.TryParse(sHours, out Hours) || !int.TryParse(sMinutes, out Minutes))
+			var pm = false;
+		    int hours;
+		    int minutes;
+			if (!int.TryParse(sHours, out hours) || !int.TryParse(sMinutes, out minutes))
 			{
 				args.Player.SendErrorMessage("Usage: /etime <hours>:<minutes>");
 				return;
 			}
-			if (Hours < 0 || Hours > 24)
+			if (hours < 0 || hours > 24)
 			{
 				args.Player.SendErrorMessage("Hours is out of range.");
 				return;
 			}
-			if (Minutes < 0 || Minutes > 59)
+			if (minutes < 0 || minutes > 59)
 			{
 				args.Player.SendErrorMessage("Minutes is out of range.");
 				return;
 			}
 
-			var TFHour = Hours;
+			var tfHour = hours;
 
-			if (TFHour == 24 || TFHour == 0)
+			if (tfHour == 24 || tfHour == 0)
 			{
-				Hours = 12;
+				hours = 12;
 			}
-			if (TFHour >= 12 && TFHour < 24)
+			if (tfHour >= 12 && tfHour < 24)
 			{
-				PM = true;
-				if (Hours > 12)
-					Hours -= 12;
+				pm = true;
+				if (hours > 12)
+					hours -= 12;
 			}
 
-			var THour = Hours;
+			var hour = hours;
 
-			Hours = TFHour;
-			if (Hours == 24)
-				Hours = 0;
+			hours = tfHour;
+			if (hours == 24)
+				hours = 0;
 
-			var TimeMinutes = Minutes / 60.0;
-			var MainTime = TimeMinutes + Hours;
+			var timeMinutes = minutes / 60.0;
+			var mainTime = timeMinutes + hours;
 
-			if (MainTime >= 4.5 && MainTime < 24)
-				MainTime -= 24.0;
+			if (mainTime >= 4.5 && mainTime < 24)
+				mainTime -= 24.0;
 
-			MainTime = MainTime + 19.5;
-			MainTime = MainTime / 24.0 * 86400.0;
+			mainTime = mainTime + 19.5;
+			mainTime = mainTime / 24.0 * 86400.0;
 
-		    var Day = 
-                (!PM && ((THour > 4 || (THour == 4 && Minutes >= 30))) && THour < 12) ||
-                (PM && ((THour < 7 || (THour == 7 && Minutes < 30)) || THour == 12));
+		    var day = 
+                (!pm && ((hour > 4 || (hour == 4 && minutes >= 30))) && hour < 12) ||
+                (pm && ((hour < 7 || (hour == 7 && minutes < 30)) || hour == 12));
 
-		    if (!Day)
-				MainTime -= 54000.0;
+		    if (!day)
+				mainTime -= 54000.0;
 
-			TSPlayer.Server.SetTime(Day, MainTime);
+			TSPlayer.Server.SetTime(day, mainTime);
 
-			string min = Minutes.ToString();
-			if (Minutes < 10)
-				min = "0" + Minutes;
-			TSPlayer.All.SendSuccessMessage("{0} set time to {1}:{2} {3}.", args.Player.Name, THour, min, PM ? "PM" : "AM");
+			var min = minutes.ToString(CultureInfo.InvariantCulture);
+			if (minutes < 10)
+				min = "0" + minutes;
+			TSPlayer.All.SendSuccessMessage("{0} set time to {1}:{2} {3}.", args.Player.Name, hour, min, pm ? "PM" : "AM");
 		}
 		#endregion
 
 		#region Force Login
-		private void CMDforcelogin(CommandArgs args)
+		private void CmdForceLogin(CommandArgs args)
 		{
 			if (args.Parameters.Count < 1 || args.Parameters.Count > 2)
 			{
@@ -1891,33 +1892,38 @@ namespace Essentials
 			}
 			var group = TShock.Utils.GetGroup(user.Group);
 
-			var PlayersFound = new List<TSPlayer>() { args.Player };
+			var found = new List<TSPlayer> { args.Player };
 			if (args.Parameters.Count == 2)
 			{
-				PlayersFound = TShock.Utils.FindPlayer(args.Parameters[1]);
-				if (PlayersFound.Count != 1)
-				{
-					args.Player.SendErrorMessage(PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
-					return;
-				}
+                found = TShock.Utils.FindPlayer(args.Parameters[1]);
+			    if (found.Count > 1)
+			    {
+			        TShock.Utils.SendMultipleMatchError(args.Player, found.Select(p => p.Name));
+			        return;
+			    }
+			    if (found.Count == 0)
+			    {
+			        args.Player.SendErrorMessage("No players found");
+			        return;
+			    }
 			}
 
-			var Player = PlayersFound[0];
-			Player.Group = group;
-			Player.UserAccountName = user.Name;
-			Player.UserID = TShock.Users.GetUserID(Player.UserAccountName);
-			Player.IsLoggedIn = true;
-			Player.IgnoreActionsForInventory = "none";
+            var player = found[0];
+			player.Group = group;
+			player.UserAccountName = user.Name;
+			player.UserID = TShock.Users.GetUserID(player.UserAccountName);
+			player.IsLoggedIn = true;
+			player.IgnoreActionsForInventory = "none";
 
-			Player.SendSuccessMessage("{0} in as {1}.", Player != args.Player ? string.Concat(args.Player.Name, " Logged you") : "Logged", user.Name);
-			if (Player != args.Player)
-				args.Player.SendSuccessMessage("Logged {0} in as {1}.", Player.Name, user.Name);
-			Log.ConsoleInfo(string.Format("{0} forced logged in {1}as user: {2}.", args.Player.Name, args.Player != Player ? string.Concat(Player.Name, " ") : string.Empty, user.Name));
+			player.SendSuccessMessage("{0} in as {1}.", player != args.Player ? string.Concat(args.Player.Name, " Logged you") : "Logged", user.Name);
+			if (player != args.Player)
+				args.Player.SendSuccessMessage("Logged {0} in as {1}.", player.Name, user.Name);
+			Log.ConsoleInfo(string.Format("{0} forced logged in {1}as user: {2}.", args.Player.Name, args.Player != player ? string.Concat(player.Name, " ") : string.Empty, user.Name));
 		}
 		#endregion
 
 		#region Invsee
-		private void CMDinvsee(CommandArgs args)
+		private void CmdInvSee(CommandArgs args)
 		{
 			if (!TShock.Config.ServerSideCharacter)
 			{
@@ -1929,7 +1935,7 @@ namespace Essentials
 				args.Player.SendErrorMessage("Usage: /invsee <player name / -restore>");
 				return;
 			}
-			var ePly = esPlayers[args.Player.Index];
+		    var ePly = FindPlayer(args.Player.Index);
 			if (args.Parameters.Count == 1 && args.Parameters[0].ToLower() == "-restore")
 			{
 				if (ePly.InvSee == null)
@@ -1942,36 +1948,39 @@ namespace Essentials
 				args.Player.SendSuccessMessage("Restored your inventory.");
 				return;
 			}
-			var PlayersFound = TShock.Utils.FindPlayer(string.Join(" ", args.Parameters));
-			if (PlayersFound.Count != 1)
+			var found = TShock.Utils.FindPlayer(string.Join(" ", args.Parameters));
+			if (found.Count > 1)
 			{
-				args.Player.SendErrorMessage(PlayersFound.Count < 1 ? "No Players matched." : "More than one player matched.");
+			    TShock.Utils.SendMultipleMatchError(args.Player, found.Select(p => p.Name));
 				return;
 			}
+		    if (found.Count == 0)
+		    {
+		        args.Player.SendErrorMessage("No players matched");
+		        return;
+		    }
 
-			var PlayerChar = new PlayerData(args.Player);
-			PlayerChar.CopyCharacter(args.Player);
+			var playerChar = new PlayerData(args.Player);
+			playerChar.CopyCharacter(args.Player);
 			if (ePly.InvSee == null)
-			{
-				ePly.InvSee = PlayerChar;
-			}
+				ePly.InvSee = playerChar;
 
-			var CopyChar = new PlayerData(PlayersFound[0]);
-			CopyChar.CopyCharacter(PlayersFound[0]);
-			CopyChar.health = PlayerChar.health;
-			CopyChar.maxHealth = PlayerChar.maxHealth;
-			CopyChar.mana = PlayerChar.mana;
-			CopyChar.maxMana = PlayerChar.maxMana;
-			CopyChar.spawnX = PlayerChar.spawnX;
-			CopyChar.spawnY = PlayerChar.spawnY;
-			CopyChar.RestoreCharacter(args.Player);
+			var copyChar = new PlayerData(found[0]);
+			copyChar.CopyCharacter(found[0]);
+			copyChar.health = playerChar.health;
+			copyChar.maxHealth = playerChar.maxHealth;
+			copyChar.mana = playerChar.mana;
+			copyChar.maxMana = playerChar.maxMana;
+			copyChar.spawnX = playerChar.spawnX;
+			copyChar.spawnY = playerChar.spawnY;
+			copyChar.RestoreCharacter(args.Player);
 
-			args.Player.SendSuccessMessage("Copied {0}'s inventory", PlayersFound[0].Name);
+			args.Player.SendSuccessMessage("Copied {0}'s inventory", found[0].Name);
 		}
 		#endregion
 
 		#region Whois
-		private void CMDwhois(CommandArgs args)
+		private void CmdWhoIs(CommandArgs args)
 		{
 			if (args.Parameters.Count < 1)
 			{
@@ -1982,118 +1991,126 @@ namespace Essentials
 				args.Player.SendErrorMessage("-i IP address search");
 				return;
 			}
-			string Type = "\b";
-			string Query = string.Empty;
-			List<user_Obj> Results = new List<user_Obj>();
+			var type = "\b";
+			string query;
+			var results = new List<UserObj>();
 			switch (args.Parameters[0].ToUpper())
 			{
 				case "-E":
 					{
-						Type = "Exact name";
+						type = "Exact name";
 						args.Parameters.RemoveAt(0);
-						Query = string.Join(" ", args.Parameters);
-                        var user = TShock.Users.GetUserByName(Query);
-                        Results.Add(new user_Obj(-1, user.Name, user.KnownIps.Split(',')[0]));
+						query = string.Join(" ", args.Parameters);
+                        var user = TShock.Users.GetUserByName(query);
+                        results.Add(new UserObj(-1, user.Name, user.KnownIps.Split(',')[0]));
 					}
 					break;
 				case "-U":
 					{
-						Type = "User ID";
-						Query = args.Parameters[1];
+						type = "User ID";
+						query = args.Parameters[1];
 						int id;
-						if (!int.TryParse(Query, out id))
+						if (!int.TryParse(query, out id))
 						{
 							args.Player.SendWarningMessage("ID must be an integer.");
 							return;
 						}
-						foreach (var tPly in TShock.Players)
-						{
-							if (tPly.UserID == id)
-							{
-                                Results.Add(new user_Obj(id, tPly.Name, tPly.IP));
-							}
-						}
+					    results.AddRange(from tPly in TShock.Players 
+                                         where tPly.UserID == id select new UserObj(id, tPly.Name, tPly.IP));
 					}
 					break;
 				case "-I":
 					{
-						Type = "IP";
-						Query = args.Parameters[1];
-                        var ipUser = TShock.Users.GetUsers().Find(user => user.KnownIps.Contains(Query));
-                        Results.Add(new user_Obj(-1, ipUser.Name, ipUser.KnownIps.Split(',')[0]));
+						type = "IP";
+						query = args.Parameters[1];
+                        var ipUser = TShock.Users.GetUsers().Find(user => user.KnownIps.Contains(query));
+                        results.Add(new UserObj(-1, ipUser.Name, ipUser.KnownIps.Split(',')[0]));
 					}
 					break;
 				default:
 					{
-						Query = string.Join(" ", args.Parameters);
+						query = string.Join(" ", args.Parameters);
                         //Results = TShock.Utils.FindPlayer(Query);
 					}
 					break;
 			}
-			if (Results.Count < 1)
+			if (results.Count < 1)
 			{
-				args.Player.SendErrorMessage("No matches for {0}", Query);
+				args.Player.SendErrorMessage("No matches for {0}", query);
+			    return;
 			}
-			else if (Results.Count == 1)
+			if (results.Count == 1)
 			{
-				args.Player.SendInfoMessage("Details of {0} search: {0}", Type, Query);
+				args.Player.SendInfoMessage("Details of {0} search: {0}", type, query);
 
-                if (TShock.Players.Contains(TShock.Utils.FindPlayer(Results[0].name)[0]))
+                if (TShock.Players.Contains(TShock.Utils.FindPlayer(results[0].name)[0]))
                 {
-                    var ply = TShock.Utils.FindPlayer(Results[0].name)[0];
-
+                    var ply = TShock.Utils.FindPlayer(results[0].name)[0];
+                    var ePly = FindPlayer(ply.Index);
                     args.Player.SendSuccessMessage("UserID: {0}, Registered Name: {1}",
-                    Results[0].UserID, Results[0].name);
+                    results[0].userId, results[0].name);
 
-                    if (esPlayers[ply.Index].HasNickName)
-                        args.Player.SendSuccessMessage("Nickname: {0}{1}", Config.PrefixNicknamesWith,
-                            esPlayers[ply.Index].Nickname);
+                    if (ePly.HasNickName)
+                        args.Player.SendSuccessMessage("Nickname: {0}{1}", config.PrefixNicknamesWith,
+                            ePly.Nickname);
 
-                    args.Player.SendSuccessMessage("IP: {0}", Results[0].IP);
+                    args.Player.SendSuccessMessage("IP: {0}", results[0].ip);
                 }
 
                 else
                 {
-                    args.Player.SendSuccessMessage("Registered Name: {0}", Results[0].name);
-                    args.Player.SendSuccessMessage("IP: {0}", Results[0].IP);                    
+                    args.Player.SendSuccessMessage("Registered Name: {0}", results[0].name);
+                    args.Player.SendSuccessMessage("IP: {0}", results[0].ip);                    
                 }
 				
 			}
 			else
 			{
-				args.Player.SendWarningMessage("Matches: ({0}):", Results.Count);
+				args.Player.SendWarningMessage("Matches: ({0}):", results.Count);
 
-                Results.ForEach(r =>
+                results.ForEach(r =>
                 {
                     TShock.Players.ForEach(pl =>
                     {
-                        if (r.name == pl.Name)
-                        {
-                            args.Player.SendInfoMessage("Online matches:");
-                            args.Player.SendSuccessMessage("({0}){1} (IP:{3})", pl.UserID, pl.Name, pl.IP);
-                            Results.RemoveAll(result => result == r);
-                        }
+                        if (r.name != pl.Name) return;
+                        args.Player.SendInfoMessage("Online matches:");
+                        args.Player.SendSuccessMessage("({0}){1} (IP:{3})", pl.UserID, pl.Name, pl.IP);
+                        results.RemoveAll(result => result == r);
                     });
 
                     args.Player.SendInfoMessage("Offline matches:");
-                    args.Player.SendSuccessMessage("{1} (IP:{3})", r.name, r.IP);
+                    args.Player.SendSuccessMessage("{1} (IP:{3})", r.name, r.ip);
                 });
 			}
 		}
 		#endregion
+
+	    private EsPlayer FindPlayer(int index)
+	    {
+	        return players.Find(p => p.Index == index);
+	    }
 	}
 
-    public class user_Obj
+    public static class Extensions
     {
-        public int UserID;
-        public string name;
-        public string IP;
-
-        public user_Obj(int u, string n, string i)
+        public static T AddObj<T>(this List<T> list, T generic)
         {
-            UserID = u;
+            list.Add(generic);
+            return generic;
+        }
+    }
+
+    public class UserObj
+    {
+        public readonly int userId;
+        public readonly string name;
+        public readonly string ip;
+
+        public UserObj(int u, string n, string i)
+        {
+            userId = u;
             name = n;
-            IP = i;
+            ip = i;
         }
     }
 }
