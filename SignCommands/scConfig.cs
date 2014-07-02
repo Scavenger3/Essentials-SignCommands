@@ -7,8 +7,8 @@ namespace SignCommands
 	public class ScConfig
 	{
 		public string DefineSignCommands = "[Sign Command]";
-		public string CommandsStartWith = ">";
-		public Dictionary<string, int> CooldownGroups = new Dictionary<string, int>();
+        public string CommandsStartWith = ">";
+        public Dictionary<string, int> CooldownGroups = new Dictionary<string, int>();
 		public bool ShowDestroyMessage = true;
 
         public void Write(string path)

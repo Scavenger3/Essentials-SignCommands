@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Timers;
 using Terraria;
 using TerrariaApi.Server;
 using TShockAPI;
@@ -32,34 +33,32 @@ namespace SignCommands
         }
 
         public static ScConfig config = new ScConfig();
-        private static readonly scPlayer[] ScPlayers = new scPlayer[256];
+        private static readonly ScPlayer[] ScPlayers = new ScPlayer[256];
         public static readonly Dictionary<string, DateTime> GlobalCooldowns = new Dictionary<string, DateTime>();
 
         private static readonly Dictionary<string, Dictionary<string, DateTime>> OfflineCooldowns =
             new Dictionary<string, Dictionary<string, DateTime>>();
 
+        internal static readonly Dictionary<Point, ScSign> ScSigns = new Dictionary<Point, ScSign>(); 
+
         private static bool UsingInfiniteSigns { get; set; }
-        public static bool UsingSEConomy { get; private set; }
-        private DateTime _lastCooldown = DateTime.UtcNow;
         private DateTime _lastPurge = DateTime.UtcNow;
+
+        private readonly Timer _updateTimer = new Timer {Enabled = true, Interval = 1000d};
 
         public SignCommands(Main game)
             : base(game)
         {
             UsingInfiniteSigns = File.Exists(Path.Combine("ServerPlugins", "InfiniteSigns.dll"));
-            UsingSEConomy = File.Exists(Path.Combine("ServerPlugins", "Wolfje.Plugins.SEconomy.dll"));
         }
 
         public override void Initialize()
         {
             ServerApi.Hooks.GameInitialize.Register(this, OnInitialize);
             if (!UsingInfiniteSigns)
-            {
                 ServerApi.Hooks.NetGetData.Register(this, OnGetData);
-            }
             ServerApi.Hooks.ServerJoin.Register(this, OnJoin);
             ServerApi.Hooks.ServerLeave.Register(this, OnLeave);
-            ServerApi.Hooks.GameUpdate.Register(this, OnUpdate);
         }
 
         protected override void Dispose(bool disposing)
@@ -69,10 +68,8 @@ namespace SignCommands
                 ServerApi.Hooks.GameInitialize.Deregister(this, OnInitialize);
                 if (!UsingInfiniteSigns)
                     ServerApi.Hooks.NetGetData.Deregister(this, OnGetData);
-
                 ServerApi.Hooks.ServerJoin.Deregister(this, OnJoin);
                 ServerApi.Hooks.ServerLeave.Deregister(this, OnLeave);
-                ServerApi.Hooks.GameUpdate.Deregister(this, OnUpdate);
             }
             base.Dispose(disposing);
         }
@@ -87,7 +84,10 @@ namespace SignCommands
                 Directory.CreateDirectory(savePath);
             var configPath = Path.Combine(savePath, "esConfig.json");
             (config = ScConfig.Read(configPath)).Write(configPath);
+
+            _updateTimer.Elapsed += UpdateTimerOnElapsed;
         }
+
 
         #region Commands
 
@@ -101,7 +101,13 @@ namespace SignCommands
 
         private void CmdReloadSigns(CommandArgs args)
         {
-            //Reload config
+            var savePath = Path.Combine(TShock.SavePath, "Essentials");
+            if (!Directory.Exists(savePath))
+                Directory.CreateDirectory(savePath);
+            var configPath = Path.Combine(savePath, "esConfig.json");
+            (config = ScConfig.Read(configPath)).Write(configPath);
+
+            args.Player.SendSuccessMessage("Config reloaded");
         }
 
         #endregion
@@ -110,7 +116,7 @@ namespace SignCommands
 
         private static void OnJoin(JoinEventArgs args)
         {
-            ScPlayers[args.Who] = new scPlayer(args.Who);
+            ScPlayers[args.Who] = new ScPlayer(args.Who);
 
             if (OfflineCooldowns.ContainsKey(TShock.Players[args.Who].Name))
             {
@@ -130,72 +136,75 @@ namespace SignCommands
 
         #region Timer
 
-        private void OnUpdate(EventArgs args)
+        private void UpdateTimerOnElapsed(object sender, ElapsedEventArgs elapsedEventArgs)
         {
-            if ((DateTime.UtcNow - _lastCooldown).TotalMilliseconds >= 1000)
+            foreach (var sPly in ScPlayers.Where(sPly => sPly != null))
             {
-                _lastCooldown = DateTime.UtcNow;
-                foreach (var sPly in ScPlayers.Where(sPly => sPly != null))
-                {
-                    if (sPly.AlertCooldownCooldown > 0)
-                        sPly.AlertCooldownCooldown--;
-                    if (sPly.AlertPermissionCooldown > 0)
-                        sPly.AlertPermissionCooldown--;
-                    if (sPly.AlertDestroyCooldown > 0)
-                        sPly.AlertDestroyCooldown--;
-                }
-
-                if ((DateTime.UtcNow - _lastPurge).TotalMinutes >= 5)
-                {
-                    _lastPurge = DateTime.UtcNow;
-
-                    var cooldownGroups = new List<string>(GlobalCooldowns.Keys);
-                    foreach (var g in cooldownGroups.Where(g => DateTime.UtcNow > GlobalCooldowns[g]))
-                    {
-                        GlobalCooldowns.Remove(g);
-                    }
-
-                    var offlinePlayers = new List<string>(OfflineCooldowns.Keys);
-                    foreach (var p in offlinePlayers)
-                    {
-                        var offlinePlayerCooldowns = new List<string>(OfflineCooldowns[p].Keys);
-                        foreach (var g in offlinePlayerCooldowns)
-                        {
-                            if (DateTime.UtcNow > OfflineCooldowns[p][g])
-                                OfflineCooldowns[p].Remove(g);
-                        }
-                        if (OfflineCooldowns[p].Count == 0)
-                            OfflineCooldowns.Remove(p);
-                    }
-
-                    foreach (var sPly in ScPlayers)
-                    {
-                        if (sPly == null) continue;
-                        var cooldownIds = new List<string>(sPly.Cooldowns.Keys);
-                        foreach (var id in cooldownIds)
-                        {
-                            if (DateTime.UtcNow > sPly.Cooldowns[id])
-                                sPly.Cooldowns.Remove(id);
-                        }
-                    }
-                }
+                if (sPly.AlertCooldownCooldown > 0)
+                    sPly.AlertCooldownCooldown--;
+                if (sPly.AlertPermissionCooldown > 0)
+                    sPly.AlertPermissionCooldown--;
+                if (sPly.AlertDestroyCooldown > 0)
+                    sPly.AlertDestroyCooldown--;
             }
+            
+            foreach (var signPair in ScSigns)
+            {
+                var sign = signPair.Value;
+                if (sign.cooldown > 0)
+                    sign.cooldown--;
+            }
+            //if ((DateTime.UtcNow - _lastPurge).TotalMinutes >= 5)
+            //{
+            //    _lastPurge = DateTime.UtcNow;
+
+            //    var cooldownGroups = new List<string>(GlobalCooldowns.Keys);
+            //    foreach (var g in cooldownGroups.Where(g => DateTime.UtcNow > GlobalCooldowns[g]))
+            //        GlobalCooldowns.Remove(g);
+
+            //    var offlinePlayers = new List<string>(OfflineCooldowns.Keys);
+            //    foreach (var p in offlinePlayers)
+            //    {
+            //        var offlinePlayerCooldowns = new List<string>(OfflineCooldowns[p].Keys);
+            //        var localp = p;
+            //        foreach (var g in offlinePlayerCooldowns.Where(g => DateTime.UtcNow > OfflineCooldowns[localp][g]))
+            //            OfflineCooldowns[p].Remove(g);
+
+            //        if (OfflineCooldowns[p].Count == 0)
+            //            OfflineCooldowns.Remove(p);
+            //    }
+
+            //    foreach (var sPly in ScPlayers)
+            //    {
+            //        if (sPly == null) continue;
+            //        var cooldownIds = new List<string>(sPly.Cooldowns.Keys);
+
+            //        var ply = sPly;
+            //        foreach (var id in cooldownIds.Where(id => DateTime.UtcNow > ply.Cooldowns[id]))
+            //            sPly.Cooldowns.Remove(id);
+            //    }
+            //}
         }
 
         #endregion
 
-        #region OnSignEdit
+        #region OnSignNew
 
-        private static bool OnSignEdit(int x, int y, string text, int who)
+        private static bool OnSignNew(int x, int y, string text, int who)
         {
             if (!text.ToLower().StartsWith(config.DefineSignCommands.ToLower())) return false;
 
             var tPly = TShock.Players[who];
-            var sign = new ScSign(text, new Point(x, y));
+            var point = new Point(x, y);
+            var sign = new ScSign(text);
             if (tPly == null)
                 return false;
 
-            if (scUtils.CanCreate(tPly, sign)) return false;
+            if (ScUtils.CanCreate(tPly, sign))
+            {
+                ScSigns.AddItem(point, sign);
+                return false;
+            }
 
             tPly.SendErrorMessage("You do not have permission to create that sign command.");
             return true;
@@ -205,17 +214,17 @@ namespace SignCommands
 
         #region OnSignHit
 
-        private static bool OnSignHit(int X, int Y, string text, int who)
+        private static bool OnSignHit(int x, int y, string text, int who)
         {
             if (!text.ToLower().StartsWith(config.DefineSignCommands.ToLower())) return false;
             var tPly = TShock.Players[who];
             var sPly = ScPlayers[who];
-            var sign = new ScSign(text, new Point(X, Y));
+            var sign = ScSigns.Check(x, y, text); //new ScSign(text, new Point(x, y)))];
 
             if (tPly == null || sPly == null)
                 return false;
 
-            var canBreak = scUtils.CanBreak(tPly, sign);
+            var canBreak = ScUtils.CanBreak(tPly);
             if (sPly.DestroyMode && canBreak) return false;
 
             if (config.ShowDestroyMessage && canBreak && sPly.AlertDestroyCooldown == 0)
@@ -223,7 +232,7 @@ namespace SignCommands
                 tPly.SendInfoMessage("To destroy this sign, Type \"/destsign\".");
                 sPly.AlertDestroyCooldown = 10;
             }
-
+            
             sign.ExecuteCommands(sPly);
 
             return true;
@@ -238,25 +247,33 @@ namespace SignCommands
             if (!text.ToLower().StartsWith(config.DefineSignCommands.ToLower())) return false;
 
             var sPly = ScPlayers[who];
-            var sign = new ScSign(text, new Point(x, y));
+            var sign = ScSigns.Check(x, y, text);
 
             if (sPly == null)
                 return false;
 
-            if (sPly.DestroyMode && scUtils.CanBreak(sPly.TSPlayer, sign))
+            if (sPly.DestroyMode && ScUtils.CanBreak(sPly.TsPlayer))
             {
                 sPly.DestroyMode = false;
-                var id = new Point(x, y).ToString();
-                var offlinePlayers = new List<string>(OfflineCooldowns.Keys);
-                foreach (var p in offlinePlayers.Where(p => OfflineCooldowns[p].ContainsKey(id)))
-                    OfflineCooldowns[p].Remove(id);
-
-                foreach (var ply in ScPlayers.Where(ply => ply != null && ply.Cooldowns.ContainsKey(id)))
-                    ply.Cooldowns.Remove(id);
+                //Cooldown removal
                 return false;
             }
             sign.ExecuteCommands(sPly);
             return true;
+        }
+
+        #endregion
+
+        #region OnSignOpen
+
+        private static bool OnSignOpen(int x, int y, string text, int who)
+        {
+            if (!text.ToLower().StartsWith(config.DefineSignCommands.ToLower())) return false;
+
+            var tPly = TShock.Players[who];
+            var sign = ScSigns.Check(x, y, text);
+
+            return !sign.freeAccess && !tPly.Group.HasPermission("essentials.signs.openall");
         }
 
         #endregion
@@ -271,19 +288,19 @@ namespace SignCommands
             using (var reader = new BinaryReader(new MemoryStream(e.Msg.readBuffer, e.Index, e.Length)))
                 switch (e.MsgID)
                 {
-                    #region Sign Edit
+                        #region Sign Edit
 
                     case PacketTypes.SignNew:
                     {
                         reader.ReadInt16();
-                        int x = reader.ReadInt16();
-                        int y = reader.ReadInt16();
+                        var x = reader.ReadInt16();
+                        var y = reader.ReadInt16();
                         var text = reader.ReadString();
                         var id = Sign.ReadSign(x, y);
                         if (id < 0 || Main.sign[id] == null) return;
-                        x = Main.sign[id].x;
-                        y = Main.sign[id].y;
-                        if (OnSignEdit(x, y, text, e.Msg.whoAmI))
+                        x = (short) Main.sign[id].x;
+                        y = (short) Main.sign[id].y;
+                        if (OnSignNew(x, y, text, e.Msg.whoAmI))
                         {
                             e.Handled = true;
                             TShock.Players[e.Msg.whoAmI].SendData(PacketTypes.SignNew, "", id);
@@ -293,21 +310,42 @@ namespace SignCommands
 
                         #endregion
 
-                    #region Tile Modify
+                        #region Sign Read
+
+                    case PacketTypes.SignRead:
+                    {
+                        var x = reader.ReadInt16();
+                        var y = reader.ReadInt16();
+                        var id = Sign.ReadSign(x, y);
+                        if (id < 0 || Main.sign[id] == null) return;
+                        x = (short) Main.sign[id].x;
+                        y = (short) Main.sign[id].y;
+                        var text = Main.sign[id].text;
+                        if (OnSignOpen(x, y, text, e.Msg.whoAmI))
+                        {
+                            e.Handled = true;
+                            TShock.Players[e.Msg.whoAmI].SendErrorMessage("This sign is protected from viewing");
+                        }
+                    }
+                        break;
+
+                        #endregion
+
+                        #region Tile Modify
 
                     case PacketTypes.Tile:
                     {
                         var action = reader.ReadByte();
-                        int x = reader.ReadInt16();
-                        int y = reader.ReadInt16();
+                        var x = reader.ReadInt16();
+                        var y = reader.ReadInt16();
                         var type = reader.ReadUInt16();
 
                         if (Main.tile[x, y].type != 55) return;
 
-                        var id = Sign.ReadSign((Int32) x, (Int32) y);
+                        var id = Sign.ReadSign(x, y);
                         if (id < 0 || Main.sign[id] == null) return;
-                        x = Main.sign[id].x;
-                        y = Main.sign[id].y;
+                        x = (short) Main.sign[id].x;
+                        y = (short) Main.sign[id].y;
                         var text = Main.sign[id].text;
 
                         bool handle;

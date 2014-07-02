@@ -2,226 +2,192 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using TShockAPI;
 
 namespace SignCommands
 {
-	public class ScSign
-	{
-	    private Point Position { get; set; }
-	    private int Cooldown { get; set; }
-	    private string CooldownGroup { get; set; }
-	    private long Cost { get; set; }
-		public List<ScCommand> Commands { get; private set; }
-		public ScSign(string text, Point position)
-		{
-			Position = position;
-			Cooldown = 0;
-			CooldownGroup = string.Empty;
-			Cost = 0L;
-			Commands = new List<ScCommand>();
-			ParseCommands(text);
-		}
+    public class ScSign
+    {
+        public int cooldown;
+        private int _cooldown;
+        private string _cooldownGroup;
+        private readonly Dictionary<List<string>, SignCommand> _commands = new Dictionary<List<string>, SignCommand>(); 
+        public bool freeAccess;
 
-		#region ParseCommands
+        public ScSign(string text)
+        {
+            cooldown = 0;
+            _cooldownGroup = string.Empty;
+            RegisterCommands(text);
+        }
 
-	    private void ParseCommands(string text)
-		{
-			var lf = Encoding.UTF8.GetString(new byte[] { 10 })[0];
-			text = string.Join(" ", text.Split(lf));
+        #region ParseCommands
 
-			var split = '>';
-			if (SignCommands.config.CommandsStartWith.Length == 1)
-				split = SignCommands.config.CommandsStartWith[0];
+        private IEnumerable<List<string>> ParseCommands(string text)
+        {
+            //Remove the Sign Command definer. It's not required
+            text = text.Remove(0, SignCommands.config.DefineSignCommands.Length);
 
-			var commands = new List<string> { text };
-			if (text.Contains(split))
-				commands = text.Split(split).ToList();
+            if (text.Contains("-no perm"))
+            {
+                freeAccess = true;
+                text = text.Replace("-no perm", string.Empty);
+            }
 
-			/* Define Sign Command string should be at [0], we dont need it. */
-			if (commands.Count > 0)
-				commands.RemoveAt(0);
-
-			foreach (var cmd in commands)
-			{
-				/* Parse Parameters */
-				var args = scUtils.ParseParameters(cmd);
-
-				var name = args[0];
-				args.RemoveAt(0);
-
-				Commands.Add(new ScCommand(this, name, args));
-			}
-
-			var cmds = Commands.ToList();
-			foreach (var cmd in cmds)
-			{
-				/* Parse Cooldown */
-				if (cmd.Command == "cooldown" && cmd.Args.Count > 0)
-				{
-					int seconds;
-					if (!int.TryParse(cmd.Args[0], out seconds))
-					{
-						CooldownGroup = cmd.Args[0].ToLower();
-						if (SignCommands.config.CooldownGroups.ContainsKey(CooldownGroup))
-							Cooldown = SignCommands.config.CooldownGroups[CooldownGroup];
-						else
-							CooldownGroup = string.Empty;
-					}
-					else
-						Cooldown = seconds;
-					Commands.Remove(cmd);
-				}
-				/* Parse Cost */
-				else if (SignCommands.UsingSEConomy && cmd.Command == "cost" && cmd.Args.Count > 0)
-				{
-					Cost = ParseCost(cmd.Args[0]);
-					Commands.Remove(cmd);
-				}
-				/* Check if Valid */
-				else if (!cmd.AmIValid())
-					Commands.Remove(cmd);
-			}
-		}
-		#endregion
-
-		#region ExecuteCommands
-		public void ExecuteCommands(scPlayer sPly)
-		{
-			#region Check Cooldown
-			if (!sPly.TSPlayer.Group.HasPermission("essentials.signs.nocooldown") && Cooldown > 0)
-			{
-				if (CooldownGroup.StartsWith("global-"))
-				{
-					lock (SignCommands.GlobalCooldowns)
-					{
-						if (!SignCommands.GlobalCooldowns.ContainsKey(CooldownGroup))
-							SignCommands.GlobalCooldowns.Add(CooldownGroup, DateTime.UtcNow.AddSeconds(Cooldown));
-						else
-						{
-						    if (SignCommands.GlobalCooldowns[CooldownGroup] > DateTime.UtcNow)
-							{
-								if (sPly.AlertCooldownCooldown == 0)
-								{
-									sPly.TSPlayer.SendErrorMessage("Everyone must wait another {0} seconds before using this sign.", (int)(SignCommands.GlobalCooldowns[this.CooldownGroup] - DateTime.UtcNow).TotalSeconds);
-									sPly.AlertCooldownCooldown = 3;
-								}
-								return;
-							}
-						    SignCommands.GlobalCooldowns[CooldownGroup] = DateTime.UtcNow.AddSeconds(Cooldown);
-						}
-					}
-				}
-				else
-				{
-					lock (sPly.Cooldowns)
-					{
-						string CooldownID = string.Concat(this.Position.ToString());
-						if (this.CooldownGroup != string.Empty)
-							CooldownID = this.CooldownGroup;
-
-						if (!sPly.Cooldowns.ContainsKey(CooldownID))
-							sPly.Cooldowns.Add(CooldownID, DateTime.UtcNow.AddSeconds(this.Cooldown));
-						else
-						{
-							if (sPly.Cooldowns[CooldownID] > DateTime.UtcNow)
-							{
-								if (sPly.AlertCooldownCooldown == 0)
-								{
-									sPly.TSPlayer.SendErrorMessage("You must wait another {0} seconds before using this sign.", (int)(sPly.Cooldowns[CooldownID] - DateTime.UtcNow).TotalSeconds);
-									sPly.AlertCooldownCooldown = 3;
-								}
-								return;
-							}
-							else
-								sPly.Cooldowns[CooldownID] = DateTime.UtcNow.AddSeconds(this.Cooldown);
-						}
-					}
-				}
-			}
-			#endregion
-
-			#region Check Cost
-			if (SignCommands.UsingSEConomy && Cost > 0 && !ChargeSign(sPly))
-				return;
-			#endregion
-
-			var doesntHavePermission = 0;
-			foreach (var cmd in Commands)
-			{
-				if (!sPly.TSPlayer.Group.HasPermission(string.Format("essentials.signs.use.{0}", cmd.Command)))
-				{
-					doesntHavePermission++;
-					continue;
-				}
-
-				cmd.ExecuteCommand(sPly);
-			}
-
-			if (doesntHavePermission > 0 && sPly.AlertPermissionCooldown == 0)
-			{
-				sPly.TSPlayer.SendErrorMessage("You do not have permission to use {0} command(s) on that sign.", doesntHavePermission);
-				sPly.AlertPermissionCooldown = 5;
-			}
-		}
-		#endregion
-
-		#region Economy
-
-	    static long ParseCost(string arg)
-		{
-			try
-			{
-				Wolfje.Plugins.SEconomy.Money cost;
-				if (!Wolfje.Plugins.SEconomy.Money.TryParse(arg, out cost))
-					return 0L;
-				return cost;
-			}
-			catch { return 0L; }
-		}
-		bool ChargeSign(scPlayer sPly)
-		{
-			try
-			{
-				var economyPlayer = Wolfje.Plugins.SEconomy.SEconomyPlugin.GetEconomyPlayerSafe(sPly.Index);
-				var commandCost = new Wolfje.Plugins.SEconomy.Money(Cost);
-
-				if (economyPlayer.BankAccount != null)
-				{
-					if (!economyPlayer.BankAccount.IsAccountEnabled)
-						sPly.TSPlayer.SendErrorMessage("You cannot use this command because your account is disabled.");
-
-                    else if (economyPlayer.BankAccount.Balance >= Cost)
+            if (text.Contains("-cd "))
+            {
+                var pos = text.IndexOf("-cd ", StringComparison.Ordinal) + 4;
+                var cdStr = text.Substring(pos, text.Length - pos).Trim();
+                text = text.Remove(pos, text.Length - pos);
+                int cd;
+                if (!int.TryParse(cdStr, out cd))
+                {
+                    if (SignCommands.config.CooldownGroups.ContainsKey(cdStr))
                     {
-                        var trans = economyPlayer.BankAccount.TransferTo(
-                            Wolfje.Plugins.SEconomy.SEconomyPlugin.WorldAccount,
-                            commandCost,
-                            Wolfje.Plugins.SEconomy.Journal.BankAccountTransferOptions.AnnounceToSender |
-                            Wolfje.Plugins.SEconomy.Journal.BankAccountTransferOptions.IsPayment,
-                            "",
-                            string.Format("Sign Command charge to {0}", sPly.TSPlayer.Name)
-                            );
-                        if (trans.TransferSucceeded)
-                            return true;
+                        cd = SignCommands.config.CooldownGroups[cdStr];
+                        _cooldownGroup = cdStr;
+                    }
+                }
+                _cooldown = cd;
+            }
 
-                        sPly.TSPlayer.SendErrorMessage("Your payment failed.");
+            text = text.Replace(SignCommands.config.CommandsStartWith, TShock.Config.CommandSpecifier);
+
+            //Remove whitespace
+            text = text.Trim();
+
+            var ret = new List<List<string>>();
+
+            //Remove the CommandStartsWith operator
+            var cmdStrings = text.Split(Convert.ToChar(TShock.Config.CommandSpecifier));
+
+            foreach (var str in cmdStrings)
+            {
+                var sbList = new List<string>();
+                var sb = new StringBuilder();
+                var instr = false;
+                for (var i = 0; i < str.Length; i++)
+                {
+                    var c = str[i];
+
+                    if (c == '\\' && ++i < str.Length)
+                    {
+                        if (str[i] != '"' && str[i] != ' ' && str[i] != '\\')
+                            sb.Append('\\');
+                        sb.Append(str[i]);
+                    }
+                    else if (c == '"')
+                    {
+                        instr = !instr;
+                        if (!instr)
+                        {
+                            sbList.Add(sb.ToString());
+                            sb.Clear();
+                        }
+                        else if (sb.Length > 0)
+                        {
+                            sbList.Add(sb.ToString());
+                            sb.Clear();
+                        }
+                    }
+                    else if (IsWhiteSpace(c) && !instr)
+                    {
+                        if (sb.Length > 0)
+                        {
+                            sbList.Add(sb.ToString());
+                            sb.Clear();
+                        }
                     }
                     else
-                    {
-                        sPly.TSPlayer.SendErrorMessage(
-                            "This Sign Command costs {0}. You need {1} more to be able to use it.",
-                            commandCost.ToLongString(),
-                            ((Wolfje.Plugins.SEconomy.Money) (economyPlayer.BankAccount.Balance - commandCost))
-                                .ToLongString()
-                            );
-                    }
-				}
-				else
-					sPly.TSPlayer.SendErrorMessage("This command costs money and you don't have a bank account. Please log in first.");
-			}
-			catch
-			{ }
-			return false;
-		}
-		#endregion
-	}
+                        sb.Append(c);
+                }
+                if (sb.Length > 0)
+                    sbList.Add(sb.ToString());
+
+                ret.Add(sbList);
+            }
+            return ret;
+        }
+
+        private static bool IsWhiteSpace(char c)
+        {
+            return c == ' ' || c == '\t' || c == '\n';
+        }
+
+        #endregion
+
+        #region RegisterCommands
+
+        private void RegisterCommands(string text)
+        {
+            var cmdList = ParseCommands(text);
+
+            foreach (var cmdArgs in cmdList)
+            {
+                var args = new List<string>(cmdArgs);
+                if (args.Count < 1)
+                    continue;
+
+                var cmdName = args[0];
+                
+                IEnumerable<Command> cmds = Commands.ChatCommands.Where(c => c.HasAlias(cmdName)).ToList();
+
+                foreach (var cmd in cmds)
+                {
+                    var sCmd = new SignCommand(cooldown, cmd.Permissions, cmd.CommandDelegate, cmdName);
+                    _commands.Add(args, sCmd);
+                }
+            }
+        }
+
+        #endregion
+
+        #region ExecuteCommands
+
+        public void ExecuteCommands(ScPlayer sPly)
+        {
+            if (!freeAccess && !CheckPermissions(sPly.TsPlayer) && sPly.AlertPermissionCooldown == 0)
+            {
+                sPly.TsPlayer.SendErrorMessage("You do not have access to the commands on this sign");
+                return;
+            }
+
+            if (cooldown > 0 && sPly.AlertCooldownCooldown == 0)
+            {
+                sPly.TsPlayer.SendErrorMessage("This sign is still cooling down. Please wait {0} more second{1}",
+                    cooldown, cooldown.Suffix());
+                return;
+            }
+
+            foreach (var cmdPair in _commands)
+            {
+                var args = new List<string>(cmdPair.Key);
+                var cmd = cmdPair.Value;
+                var cmdText = string.Join(" ", args);
+                cmdText = cmdText.Replace("{player}", sPly.TsPlayer.Name);
+
+                if (args.Any(s => s.Contains("{player}")))
+                    args[args.IndexOf("{player}")] = sPly.TsPlayer.Name;
+
+                if (cmd.DoLog)
+                    TShock.Utils.SendLogs(
+                        string.Format("{0} executed: {1}{2} [Via sign command].", sPly.TsPlayer.Name,
+                            TShock.Config.CommandSpecifier,
+                            cmdText), Color.PaleVioletRed, sPly.TsPlayer);
+
+                args.RemoveAt(0);
+
+                cmd.CommandDelegate.Invoke(new CommandArgs(cmdText, sPly.TsPlayer, args));
+
+                cooldown = _cooldown;
+            }
+        }
+
+        #endregion
+        
+        private bool CheckPermissions(TSPlayer player)
+        {
+            return _commands.Values.All(command => command.CanRun(player));
+        }
+    }
 }

@@ -1,103 +1,55 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
+using System.Linq;
 using TShockAPI;
 
 namespace SignCommands
 {
-	public static class scUtils
-	{
-		public static bool CanCreate(TSPlayer player, ScSign sign)
-		{
-			foreach (ScCommand cmd in sign.Commands)
-				if (!player.Group.HasPermission(string.Concat("essentials.signs.create.", cmd.Command)))
-					return false;
-			return true;
-		}
+    public static class ScUtils
+    {
+        public static bool CanCreate(TSPlayer player, ScSign sign)
+        {
+            //var fails = sign.commands.Count(cmd => !cmd.CanRun(player));
 
-		public static bool CanBreak(TSPlayer player, ScSign sign)
-		{
-			foreach (ScCommand cmd in sign.Commands)
-				if (!player.Group.HasPermission(string.Concat("essentials.signs.break.", cmd.Command)))
-					return false;
-			return true;
-		}
+            //return fails != sign.commands.Count;
+            return true;
+        }
 
-		#region ParseParameters
-		public static List<String> ParseParameters(string str)
-		{
-			var ret = new List<string>();
-			var sb = new StringBuilder();
-			bool instr = false;
-			for (int i = 0; i < str.Length; i++)
-			{
-				char c = str[i];
+        public static bool CanBreak(TSPlayer player)
+        {
+            if (!player.Group.HasPermission("essentials.signs.break"))
+                return false;
+            return true;
+        }
+    }
 
-				if (instr)
-				{
-					if (c == '\\')
-					{
-						if (i + 1 >= str.Length)
-							break;
-						c = GetEscape(str[++i]);
-					}
-					else if (c == '"')
-					{
-						ret.Add(sb.ToString());
-						sb.Clear();
-						instr = false;
-						continue;
-					}
-					sb.Append(c);
-				}
-				else
-				{
-					if (IsWhiteSpace(c))
-					{
-						if (sb.Length > 0)
-						{
-							ret.Add(sb.ToString());
-							sb.Clear();
-						}
-					}
-					else if (c == '"')
-					{
-						if (sb.Length > 0)
-						{
-							ret.Add(sb.ToString());
-							sb.Clear();
-						}
-						instr = true;
-					}
-					else
-					{
-						sb.Append(c);
-					}
-				}
-			}
-			if (sb.Length > 0)
-				ret.Add(sb.ToString());
+    public static class Extensions
+    {
+        public static void AddItem(this Dictionary<Point, ScSign> dictionary, Point point, ScSign sign)
+        {
+            if (!dictionary.ContainsKey(point))
+            {
+                dictionary.Add(point, sign);
+                return;
+            }
 
-			return ret;
-		}
-		private static char GetEscape(char c)
-		{
-			switch (c)
-			{
-				case '\\':
-					return '\\';
-				case '"':
-					return '"';
-				case 't':
-					return '\t';
-				default:
-					return c;
-			}
-		}
-		private static bool IsWhiteSpace(char c)
-		{
-			return c == ' ' || c == '\t' || c == '\n';
-		}
-		#endregion
-	}
+            dictionary[point] = sign;
+        }
+
+        public static ScSign Check(this Dictionary<Point, ScSign> dictionary, int x, int y, string text)
+        {
+            var point = new Point(x, y);
+            if (!dictionary.ContainsKey(point))
+            {
+                var sign = new ScSign(text);
+                dictionary.Add(point, sign);
+                return sign;
+            }
+            return dictionary[point];
+        }
+
+        public static string Suffix(this int number)
+        {
+            return number == 0 || number > 1 ? "s" : "";
+        }
+    }
 }
