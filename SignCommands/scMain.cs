@@ -196,7 +196,7 @@ namespace SignCommands
 
             var tPly = TShock.Players[who];
             var point = new Point(x, y);
-            var sign = new ScSign(text);
+            var sign = new ScSign(text, tPly);
             if (tPly == null)
                 return false;
 
@@ -219,7 +219,7 @@ namespace SignCommands
             if (!text.ToLower().StartsWith(config.DefineSignCommands.ToLower())) return false;
             var tPly = TShock.Players[who];
             var sPly = ScPlayers[who];
-            var sign = ScSigns.Check(x, y, text); //new ScSign(text, new Point(x, y)))];
+            var sign = ScSigns.Check(x, y, text, tPly); //new ScSign(text, new Point(x, y)))];
 
             if (tPly == null || sPly == null)
                 return false;
@@ -247,7 +247,7 @@ namespace SignCommands
             if (!text.ToLower().StartsWith(config.DefineSignCommands.ToLower())) return false;
 
             var sPly = ScPlayers[who];
-            var sign = ScSigns.Check(x, y, text);
+            var sign = ScSigns.Check(x, y, text, sPly.TsPlayer);
 
             if (sPly == null)
                 return false;
@@ -271,7 +271,7 @@ namespace SignCommands
             if (!text.ToLower().StartsWith(config.DefineSignCommands.ToLower())) return false;
 
             var tPly = TShock.Players[who];
-            var sign = ScSigns.Check(x, y, text);
+            var sign = ScSigns.Check(x, y, text, tPly);
 
             return !sign.freeAccess && !tPly.Group.HasPermission("essentials.signs.openall");
         }

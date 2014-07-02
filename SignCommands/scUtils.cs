@@ -8,10 +8,9 @@ namespace SignCommands
     {
         public static bool CanCreate(TSPlayer player, ScSign sign)
         {
-            //var fails = sign.commands.Count(cmd => !cmd.CanRun(player));
+            var fails = sign.commands.Count(cmd => !cmd.Value.CanRun(player));
 
-            //return fails != sign.commands.Count;
-            return true;
+            return fails != sign.commands.Values.Count;
         }
 
         public static bool CanBreak(TSPlayer player)
@@ -35,12 +34,12 @@ namespace SignCommands
             dictionary[point] = sign;
         }
 
-        public static ScSign Check(this Dictionary<Point, ScSign> dictionary, int x, int y, string text)
+        public static ScSign Check(this Dictionary<Point, ScSign> dictionary, int x, int y, string text, TSPlayer tPly)
         {
             var point = new Point(x, y);
             if (!dictionary.ContainsKey(point))
             {
-                var sign = new ScSign(text);
+                var sign = new ScSign(text, tPly);
                 dictionary.Add(point, sign);
                 return sign;
             }

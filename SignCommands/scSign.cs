@@ -11,14 +11,15 @@ namespace SignCommands
         public int cooldown;
         private int _cooldown;
         private string _cooldownGroup;
-        private readonly Dictionary<List<string>, SignCommand> _commands = new Dictionary<List<string>, SignCommand>(); 
+        public readonly Dictionary<List<string>, SignCommand> commands = new Dictionary<List<string>, SignCommand>(); 
         public bool freeAccess;
+        private bool confirm;
 
-        public ScSign(string text)
+        public ScSign(string text, TSPlayer registrar)
         {
             cooldown = 0;
             _cooldownGroup = string.Empty;
-            RegisterCommands(text);
+            RegisterCommands(text, registrar);
         }
 
         #region ParseCommands
@@ -31,6 +32,11 @@ namespace SignCommands
             if (text.Contains("-no perm"))
             {
                 freeAccess = true;
+                text = text.Replace("-no perm", string.Empty);
+            }
+            if (text.Contains("-confirm"))
+            {
+                confirm = true;
                 text = text.Replace("-no perm", string.Empty);
             }
 
@@ -118,7 +124,7 @@ namespace SignCommands
 
         #region RegisterCommands
 
-        private void RegisterCommands(string text)
+        private void RegisterCommands(string text, TSPlayer ply)
         {
             var cmdList = ParseCommands(text);
 
@@ -129,13 +135,16 @@ namespace SignCommands
                     continue;
 
                 var cmdName = args[0];
-                
+
                 IEnumerable<Command> cmds = Commands.ChatCommands.Where(c => c.HasAlias(cmdName)).ToList();
 
                 foreach (var cmd in cmds)
                 {
+                    if (!CheckPermissions(ply))
+                        return;
+
                     var sCmd = new SignCommand(cooldown, cmd.Permissions, cmd.CommandDelegate, cmdName);
-                    _commands.Add(args, sCmd);
+                    commands.Add(args, sCmd);
                 }
             }
         }
@@ -149,6 +158,7 @@ namespace SignCommands
             if (!freeAccess && !CheckPermissions(sPly.TsPlayer) && sPly.AlertPermissionCooldown == 0)
             {
                 sPly.TsPlayer.SendErrorMessage("You do not have access to the commands on this sign");
+                sPly.AlertPermissionCooldown = 3;
                 return;
             }
 
@@ -159,7 +169,16 @@ namespace SignCommands
                 return;
             }
 
-            foreach (var cmdPair in _commands)
+            if (confirm && sPly.confirmSign != this)
+            {
+                sPly.confirmSign = this;
+                sPly.TsPlayer.SendWarningMessage("Are you sure you want to execute this sign command?");
+                sPly.TsPlayer.SendWarningMessage("Hit the sign again to confirm.");
+                _cooldown = 2;
+                return;
+            }
+
+            foreach (var cmdPair in commands)
             {
                 var args = new List<string>(cmdPair.Key);
                 var cmd = cmdPair.Value;
@@ -180,6 +199,7 @@ namespace SignCommands
                 cmd.CommandDelegate.Invoke(new CommandArgs(cmdText, sPly.TsPlayer, args));
 
                 cooldown = _cooldown;
+                sPly.AlertCooldownCooldown = 3;
             }
         }
 
@@ -187,7 +207,7 @@ namespace SignCommands
         
         private bool CheckPermissions(TSPlayer player)
         {
-            return _commands.Values.All(command => command.CanRun(player));
+            return commands.Values.All(command => command.CanRun(player));
         }
     }
 }
