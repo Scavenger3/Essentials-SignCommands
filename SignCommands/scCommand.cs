@@ -6,21 +6,32 @@ using TShockAPI;
 
 namespace SignCommands
 {
-	public class scCommand
-	{
-		public string command { get; set; }
-		public List<string> args { get; set; }
+    public class SignCommand : Command
+    {
+        public int coolDown;
+        public SignCommand(int coolDown, List<string> permissions, CommandDelegate cmd, params string[] names)
+            : base(permissions, cmd, names)
+        {
+            this.coolDown = coolDown;
+        }
+    }
 
-		public scCommand(scSign parent, string command, List<string> args)
+
+    public class ScCommand
+	{
+		public string Command { get; private set; }
+		public List<string> Args { get; private set; }
+
+		public ScCommand(string command, List<string> args)
 		{
-			this.command = command.ToLower();
-			this.args = args;
+			Command = command.ToLower();
+			Args = args;
 		}
 
 		#region AmIValid
 		public bool AmIValid()
 		{
-			switch (command)
+			switch (Command)
 			{
 				case "time":
 				case "heal":
@@ -40,49 +51,50 @@ namespace SignCommands
 		#endregion
 
 		#region ExecuteCommand
-		public void ExecuteCommand(scPlayer sPly)
+		public void ExecuteCommand(ScPlayer sPly)
 		{
-			switch (command)
+			switch (Command)
 			{
 				case "time":
-					CMDtime(sPly, args);
+					CmdTime(sPly, Args);
 					break;
 				case "heal":
-					CMDheal(sPly, args);
+					CmdHeal(sPly, Args);
 					break;
 				case "show":
-					CMDshow(sPly, args);
+					CmdShow(sPly, Args);
 					break;
 				case "damage":
-					CMDdamage(sPly, args);
+					CmdDamage(sPly, Args);
 					break;
 				case "boss":
-					CMDboss(sPly, args);
+					CmdBoss(sPly, Args);
 					break;
 				case "spawnmob":
-					CMDspawnmob(sPly, args);
+					CmdSpawnMob(sPly, Args);
 					break;
 				case "warp":
-					CMDwarp(sPly, args);
+					CmdWarp(sPly, Args);
 					break;
 				case "item":
-					CMDitem(sPly, args);
+					CmdItem(sPly, Args);
 					break;
 				case "buff":
-					CMDbuff(sPly, args);
+					CmdBuff(sPly, Args);
 					break;
 				case "command":
-					CMDcommand(sPly, args);
+					CmdCommand(sPly, Args);
 					break;
 			}
 		}
 		#endregion
 
 		#region CMDtime
-		public static void CMDtime(scPlayer sPly, List<string> args)
+
+	    private static void CmdTime(ScPlayer sPly, List<string> args)
 		{
 			if (args.Count < 1) return;
-			string time = args[0].ToLower();
+			var time = args[0].ToLower();
 			switch (time)
 			{
 				case "day":
@@ -111,39 +123,36 @@ namespace SignCommands
 		#endregion
 
 		#region CMDheal
-		public static void CMDheal(scPlayer sPly, List<string> args)
-		{
-			Item heart = TShock.Utils.GetItemById(58);
-			Item star = TShock.Utils.GetItemById(184);
-			for (int ic = 0; ic < 20; ic++)
-				sPly.TSPlayer.GiveItem(heart.type, heart.name, heart.width, heart.height, heart.maxStack);
-			for (int ic = 0; ic < 10; ic++)
-				sPly.TSPlayer.GiveItem(star.type, star.name, star.width, star.height, star.maxStack);
-		}
+
+	    private static void CmdHeal(ScPlayer sPly, List<string> args)
+	    {
+	        sPly.TsPlayer.Heal(sPly.TsPlayer.TPlayer.statLifeMax);
+	    }
 		#endregion
 
 		#region CMDshow
-		public static void CMDshow(scPlayer sPly, List<string> args)
+
+	    private static void CmdShow(ScPlayer sPly, List<string> args)
 		{
 			if (args.Count < 1) return;
 			string file = args[0].ToLower();
 			switch (file)
 			{
 				case "motd":
-					TShock.Utils.ShowFileToUser(sPly.TSPlayer, "motd.txt");
+					TShock.Utils.ShowFileToUser(sPly.TsPlayer, "motd.txt");
 					break;
 				case "rules":
-					TShock.Utils.ShowFileToUser(sPly.TSPlayer, "rules.txt");
+					TShock.Utils.ShowFileToUser(sPly.TsPlayer, "rules.txt");
 					break;
 				case "playing":
-					Commands.HandleCommand(sPly.TSPlayer, "/playing");
+					Commands.HandleCommand(sPly.TsPlayer, "/playing");
 					break;
 				default:
 					{
 						if (File.Exists(args[0]))
-							TShock.Utils.ShowFileToUser(sPly.TSPlayer, args[0]);
+							TShock.Utils.ShowFileToUser(sPly.TsPlayer, args[0]);
 						else
-							sPly.TSPlayer.SendErrorMessage("Could not find file.");
+							sPly.TsPlayer.SendErrorMessage("Could not find file.");
 					}
 					break;
 			}
@@ -151,24 +160,26 @@ namespace SignCommands
 		#endregion
 
 		#region CMDdamage
-		public static void CMDdamage(scPlayer sPly, List<string> args)
+
+	    private static void CmdDamage(ScPlayer sPly, List<string> args)
 		{
-			int amount = 10;
+			var amount = 10;
 			if (args.Count > 0)
 				int.TryParse(args[0], out amount);
 			if (amount < 1)
 				amount = 10;
-			sPly.TSPlayer.DamagePlayer(amount);
+			sPly.TsPlayer.DamagePlayer(amount);
 		}
 		#endregion
 
 		#region CMDboss
-		public static void CMDboss(scPlayer sPly, List<string> args)
+
+	    private static void CmdBoss(ScPlayer sPly, List<string> args)
 		{
 			if (args.Count < 1) return;
-			string boss = args[0].ToLower();
+			var boss = args[0].ToLower();
 
-			int amount = 1;
+			var amount = 1;
 			if (args.Count > 1)
 				int.TryParse(args[1], out amount);
 
@@ -199,25 +210,23 @@ namespace SignCommands
 					break;
 				case "wof":
 					{
-						for (int i = 0; i < amount; i++)
+						for (var i = 0; i < amount; i++)
 						{
-							if (Main.wof >= 0 || (sPly.TSPlayer.Y / 16f < (float)(Main.maxTilesY - 205)))
-							{
-								sPly.TSPlayer.SendErrorMessage("Can't spawn Wall of Flesh.");
-							}
-							NPC.SpawnWOF(new Vector2(sPly.TSPlayer.X, sPly.TSPlayer.Y));
+							if (Main.wof >= 0 || (sPly.TsPlayer.Y / 16f < (Main.maxTilesY - 205)))
+								sPly.TsPlayer.SendErrorMessage("Can't spawn Wall of Flesh.");
+							NPC.SpawnWOF(new Vector2(sPly.TsPlayer.X, sPly.TsPlayer.Y));
 						}
 					}
 					break;
 				case "twins":
 					{
-						NPC retinazer = TShock.Utils.GetNPCById(125);
-						NPC spaz = TShock.Utils.GetNPCById(126);
+						var retinazer = TShock.Utils.GetNPCById(125);
+						var spaz = TShock.Utils.GetNPCById(126);
 						TSPlayer.Server.SetTime(false, 0.0);
-						for (int i = 0; i < amount; i++)
+						for (var i = 0; i < amount; i++)
 						{
-							TSPlayer.Server.SpawnNPC(retinazer.type, retinazer.name, 1, sPly.TSPlayer.TileX, sPly.TSPlayer.TileY);
-							TSPlayer.Server.SpawnNPC(spaz.type, spaz.name, 1, sPly.TSPlayer.TileX, sPly.TSPlayer.TileY);
+							TSPlayer.Server.SpawnNPC(retinazer.type, retinazer.name, 1, sPly.TsPlayer.TileX, sPly.TsPlayer.TileY);
+							TSPlayer.Server.SpawnNPC(spaz.type, spaz.name, 1, sPly.TsPlayer.TileX, sPly.TsPlayer.TileY);
 						}
 					}
 					break;
@@ -236,18 +245,19 @@ namespace SignCommands
 			}
 
 			if (npc != null)
-				for (int i = 0; i < amount; i++)
-					TSPlayer.Server.SpawnNPC(npc.type, npc.name, 1, sPly.TSPlayer.TileX, sPly.TSPlayer.TileY);
+				for (var i = 0; i < amount; i++)
+					TSPlayer.Server.SpawnNPC(npc.type, npc.name, 1, sPly.TsPlayer.TileX, sPly.TsPlayer.TileY);
 		}
 		#endregion
 
 		#region CMDspawnmob
-		public static void CMDspawnmob(scPlayer sPly, List<string> args)
+
+	    private static void CmdSpawnMob(ScPlayer sPly, List<string> args)
 		{
 			if (args.Count < 1) return;
-			string mob = args[0];
+			var mob = args[0];
 
-			int amount = 1;
+			var amount = 1;
 			if (args.Count > 1)
 				int.TryParse(args[1], out amount);
 			if (amount < 1)
@@ -257,70 +267,73 @@ namespace SignCommands
 
 			var npc = TShock.Utils.GetNPCByIdOrName(mob);
 			if (npc.Count == 1 && npc[0].type >= 1 && npc[0].type < Main.maxNPCTypes && npc[0].type != 113)
-				TSPlayer.Server.SpawnNPC(npc[0].type, npc[0].name, amount, sPly.TSPlayer.TileX, sPly.TSPlayer.TileY, 50, 20);
+				TSPlayer.Server.SpawnNPC(npc[0].type, npc[0].name, amount, sPly.TsPlayer.TileX, sPly.TsPlayer.TileY, 50, 20);
 		}
 		#endregion
 
 		#region CMDwarp
-		public static void CMDwarp(scPlayer sPly, List<string> args)
+
+	    private static void CmdWarp(ScPlayer sPly, List<string> args)
 		{
 			if (args.Count < 1) return;
 
-			string WarpName = args[0];
+			var warpName = args[0];
 
-            var Warp = TShock.Warps.Find(WarpName);
+            var warp = TShock.Warps.Find(warpName);
 
-			if (Warp != null && Warp.Name != "" && Warp.Position.X > 0 && Warp.Position.Y > 0)
-				sPly.TSPlayer.Teleport(Warp.Position.X * 16F, Warp.Position.Y * 16F);
+			if (warp != null && warp.Name != "" && warp.Position.X > 0 && warp.Position.Y > 0)
+				sPly.TsPlayer.Teleport(warp.Position.X * 16F, warp.Position.Y * 16F);
 		}
 		#endregion
 
 		#region CMDitem
-		public static void CMDitem(scPlayer sPly, List<string> args)
+
+	    private static void CmdItem(ScPlayer sPly, List<string> args)
 		{
 			if (args.Count < 1) return;
-			string itemname = args[0];
+			var itemname = args[0];
 
-			int amount = 1;
+			var amount = 1;
 			if (args.Count > 1)
 				int.TryParse(args[1], out amount);
 			if (amount < 1)
 				amount = 1;
 
-			int prefix = 0;
+			var prefix = 0;
 			if (args.Count > 2)
 				int.TryParse(args[2], out prefix);
 			if (prefix < 0)
 				prefix = 0;
 
-			List<Item> items = TShock.Utils.GetItemByIdOrName(itemname);
+			var items = TShock.Utils.GetItemByIdOrName(itemname);
 			if (items.Count == 1 && items[0].type >= 1 && items[0].type < Main.maxItemTypes)
 			{
-				Item item = items[0];
-				if (sPly.TSPlayer.InventorySlotAvailable || item.name.Contains("Coin"))
+				var item = items[0];
+				if (sPly.TsPlayer.InventorySlotAvailable || item.name.Contains("Coin"))
 				{
 					if (amount == 0 || amount > item.maxStack)
 						amount = item.maxStack;
-					sPly.TSPlayer.GiveItemCheck(item.type, item.name, item.width, item.height, amount, prefix);
+					sPly.TsPlayer.GiveItemCheck(item.type, item.name, item.width, item.height, amount, prefix);
 				}
 			}
 		}
 		#endregion
 
 		#region CMDbuff
-		public static void CMDbuff(scPlayer sPly, List<string> args)
+
+	    private static void CmdBuff(ScPlayer sPly, List<string> args)
 		{
 			if (args.Count < 1) return;
-			string buffname = args[0];
+		    var buffname = args[0];
 
-			int duration = 60;
+			var duration = 60;
 			if (args.Count > 1)
 				int.TryParse(args[1], out duration);
 
-			int buffid = -1;
+		    int buffid;
 			if (!int.TryParse(buffname, out buffid))
 			{
-				List<int> buffs = TShock.Utils.GetBuffByName(buffname);
+				var buffs = TShock.Utils.GetBuffByName(buffname);
 				if (buffs.Count == 1)
 					buffid = buffs[0];
 				else
@@ -330,17 +343,18 @@ namespace SignCommands
 			{
 				if (duration < 1 || duration > short.MaxValue)
 					duration = 60;
-				sPly.TSPlayer.SetBuff(buffid, duration * 60);
+				sPly.TsPlayer.SetBuff(buffid, duration * 60);
 			}
 		}
 		#endregion
 
 		#region CMDcommand
-		public static void CMDcommand(scPlayer sPly, List<string> args)
+
+	    private static void CmdCommand(ScPlayer sPly, List<string> args)
 		{
 			if (args.Count < 1) return;
-			string command = args[0];
-			Commands.HandleCommand(sPly.TSPlayer, command);
+			var command = args[0];
+			Commands.HandleCommand(sPly.TsPlayer, command);
 		}
 		#endregion
 	}
