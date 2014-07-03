@@ -82,7 +82,7 @@ namespace SignCommands
             var savePath = Path.Combine(TShock.SavePath, "Essentials");
             if (!Directory.Exists(savePath))
                 Directory.CreateDirectory(savePath);
-            var configPath = Path.Combine(savePath, "esConfig.json");
+            var configPath = Path.Combine(savePath, "scConfig.json");
             (config = ScConfig.Read(configPath)).Write(configPath);
 
             _updateTimer.Elapsed += UpdateTimerOnElapsed;
