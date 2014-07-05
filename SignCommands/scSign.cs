@@ -13,7 +13,7 @@ namespace SignCommands
         private string _cooldownGroup;
         public readonly Dictionary<List<string>, SignCommand> commands = new Dictionary<List<string>, SignCommand>(); 
         public bool freeAccess;
-        private bool confirm;
+        private bool _confirm;
 
         public ScSign(string text, TSPlayer registrar)
         {
@@ -36,15 +36,15 @@ namespace SignCommands
             }
             if (text.Contains("-confirm"))
             {
-                confirm = true;
-                text = text.Replace("-no perm", string.Empty);
+                _confirm = true;
+                text = text.Replace("-confirm", string.Empty);
             }
 
             if (text.Contains("-cd "))
             {
                 var pos = text.IndexOf("-cd ", StringComparison.Ordinal) + 4;
                 var cdStr = text.Substring(pos, text.Length - pos).Trim();
-                text = text.Remove(pos, text.Length - pos);
+                text = text.Remove(pos - 4, text.Length - (pos - 4));
                 int cd;
                 if (!int.TryParse(cdStr, out cd))
                 {
@@ -162,19 +162,21 @@ namespace SignCommands
                 return;
             }
 
-            if (cooldown > 0 && sPly.AlertCooldownCooldown == 0)
+            if (cooldown > 0)
             {
-                sPly.TsPlayer.SendErrorMessage("This sign is still cooling down. Please wait {0} more second{1}",
-                    cooldown, cooldown.Suffix());
+                if (sPly.AlertCooldownCooldown == 0)
+                    sPly.TsPlayer.SendErrorMessage("This sign is still cooling down. Please wait {0} more second{1}",
+                        cooldown, cooldown.Suffix());
+
                 return;
             }
 
-            if (confirm && sPly.confirmSign != this)
+            if (_confirm && sPly.confirmSign != this)
             {
                 sPly.confirmSign = this;
                 sPly.TsPlayer.SendWarningMessage("Are you sure you want to execute this sign command?");
                 sPly.TsPlayer.SendWarningMessage("Hit the sign again to confirm.");
-                _cooldown = 2;
+                cooldown = 2;
                 return;
             }
 
@@ -197,10 +199,11 @@ namespace SignCommands
                 args.RemoveAt(0);
 
                 cmd.CommandDelegate.Invoke(new CommandArgs(cmdText, sPly.TsPlayer, args));
-
-                cooldown = _cooldown;
-                sPly.AlertCooldownCooldown = 3;
             }
+
+            cooldown = _cooldown;
+            sPly.AlertCooldownCooldown = 3;
+            sPly.confirmSign = null;
         }
 
         #endregion

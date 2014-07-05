@@ -9,7 +9,7 @@ namespace SignCommands
 		public int Index { get; set; }
 		public TSPlayer TsPlayer { get { return TShock.Players[Index]; } }
 		public Dictionary<string, DateTime> Cooldowns { get; set; }
-	    public ScSign confirmSign = null;
+	    public ScSign confirmSign;
 		public bool DestroyMode { get; set; }
 		public int AlertCooldownCooldown { get; set; }
 		public int AlertPermissionCooldown { get; set; }
