@@ -39,7 +39,7 @@ namespace SignCommands
             var point = new Point(x, y);
             if (!dictionary.ContainsKey(point))
             {
-                var sign = new ScSign(text, tPly);
+                var sign = new ScSign(text, tPly, point);
                 dictionary.Add(point, sign);
                 return sign;
             }

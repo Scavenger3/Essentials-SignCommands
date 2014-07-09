@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using TShockAPI;
+﻿using TShockAPI;
 
 namespace SignCommands
 {
@@ -8,7 +6,6 @@ namespace SignCommands
 	{
 		public int Index { get; set; }
 		public TSPlayer TsPlayer { get { return TShock.Players[Index]; } }
-		public Dictionary<string, DateTime> Cooldowns { get; set; }
 	    public ScSign confirmSign;
 		public bool DestroyMode { get; set; }
 		public int AlertCooldownCooldown { get; set; }
@@ -18,7 +15,6 @@ namespace SignCommands
 		public ScPlayer(int index)
 		{
 			Index = index;
-			Cooldowns = new Dictionary<string, DateTime>();
 			DestroyMode = false;
 			AlertDestroyCooldown = 0;
 			AlertPermissionCooldown = 0;

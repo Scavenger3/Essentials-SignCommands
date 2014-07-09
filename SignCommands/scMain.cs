@@ -9,6 +9,7 @@ using TShockAPI;
 
 namespace SignCommands
 {
+    //TODO: Add infinite signs support & Global cooldowns
     [ApiVersion(1, 16)]
     public class SignCommands : TerrariaPlugin
     {
@@ -34,15 +35,13 @@ namespace SignCommands
 
         public static ScConfig config = new ScConfig();
         private static readonly ScPlayer[] ScPlayers = new ScPlayer[256];
-        public static readonly Dictionary<string, DateTime> GlobalCooldowns = new Dictionary<string, DateTime>();
+        
+        public static readonly List<Cooldown> Cooldowns = new List<Cooldown>(); 
 
-        private static readonly Dictionary<string, Dictionary<string, DateTime>> OfflineCooldowns =
-            new Dictionary<string, Dictionary<string, DateTime>>();
-
-        internal static readonly Dictionary<Point, ScSign> ScSigns = new Dictionary<Point, ScSign>(); 
+        private static readonly Dictionary<Point, ScSign> ScSigns = new Dictionary<Point, ScSign>(); 
 
         private static bool UsingInfiniteSigns { get; set; }
-        private DateTime _lastPurge = DateTime.UtcNow;
+        //private DateTime _lastPurge = DateTime.UtcNow;
 
         private readonly Timer _updateTimer = new Timer {Enabled = true, Interval = 1000d};
 
@@ -118,17 +117,17 @@ namespace SignCommands
         {
             ScPlayers[args.Who] = new ScPlayer(args.Who);
 
-            if (OfflineCooldowns.ContainsKey(TShock.Players[args.Who].Name))
-            {
-                ScPlayers[args.Who].Cooldowns = OfflineCooldowns[TShock.Players[args.Who].Name];
-                OfflineCooldowns.Remove(TShock.Players[args.Who].Name);
-            }
+            //if (OfflineCooldowns.ContainsKey(TShock.Players[args.Who].Name))
+            //{
+            //ScPlayers[args.Who].Cooldowns = OfflineCooldowns[TShock.Players[args.Who].Name];
+            //OfflineCooldowns.Remove(TShock.Players[args.Who].Name);
+            //}
         }
 
         private static void OnLeave(LeaveEventArgs args)
         {
-            if (ScPlayers[args.Who] != null && ScPlayers[args.Who].Cooldowns.Count > 0)
-                OfflineCooldowns.Add(TShock.Players[args.Who].Name, ScPlayers[args.Who].Cooldowns);
+            //if (ScPlayers[args.Who] != null && ScPlayers[args.Who].Cooldowns.Count > 0)
+            //    OfflineCooldowns.Add(TShock.Players[args.Who].Name, ScPlayers[args.Who].Cooldowns);
             ScPlayers[args.Who] = null;
         }
 
@@ -196,7 +195,7 @@ namespace SignCommands
 
             var tPly = TShock.Players[who];
             var point = new Point(x, y);
-            var sign = new ScSign(text, tPly);
+            var sign = new ScSign(text, tPly, point);
             if (tPly == null)
                 return false;
 
@@ -367,5 +366,21 @@ namespace SignCommands
         }
 
         #endregion
+    }
+
+    public class Cooldown
+    {
+        public int time;
+        public ScSign sign;
+        public string name;
+        public string group;
+
+        public Cooldown(int time, ScSign sign, string name, string group = null)
+        {
+            this.time = time;
+            this.sign = sign;
+            this.name = name;
+            this.group = group;
+        }
     }
 }
