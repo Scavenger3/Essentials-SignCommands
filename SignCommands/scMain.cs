@@ -199,6 +199,9 @@ namespace SignCommands
             if (tPly == null)
                 return false;
 
+            if (sign.noEdit && !tPly.Group.HasPermission("essentials.signs.openall"))
+                return true;
+
             if (ScUtils.CanCreate(tPly, sign))
             {
                 ScSigns.AddItem(point, sign);
@@ -218,12 +221,12 @@ namespace SignCommands
             if (!text.ToLower().StartsWith(config.DefineSignCommands.ToLower())) return false;
             var tPly = TShock.Players[who];
             var sPly = ScPlayers[who];
-            var sign = ScSigns.Check(x, y, text, tPly); //new ScSign(text, new Point(x, y)))];
+            var sign = ScSigns.Check(x, y, text, tPly);
 
             if (tPly == null || sPly == null)
                 return false;
 
-            var canBreak = ScUtils.CanBreak(tPly);
+            var canBreak = ScUtils.CanBreak(tPly, sign);
             if (sPly.DestroyMode && canBreak) return false;
 
             if (config.ShowDestroyMessage && canBreak && sPly.AlertDestroyCooldown == 0)
@@ -251,7 +254,7 @@ namespace SignCommands
             if (sPly == null)
                 return false;
 
-            if (sPly.DestroyMode && ScUtils.CanBreak(sPly.TsPlayer))
+            if (sPly.DestroyMode && ScUtils.CanBreak(sPly.TsPlayer, sign))
             {
                 sPly.DestroyMode = false;
                 //Cooldown removal
@@ -272,7 +275,16 @@ namespace SignCommands
             var tPly = TShock.Players[who];
             var sign = ScSigns.Check(x, y, text, tPly);
 
-            return !sign.freeAccess && !tPly.Group.HasPermission("essentials.signs.openall");
+            if (tPly.Group.HasPermission("essentials.signs.openall"))
+                return false;
+
+            if (sign.noRead)
+                return true;
+
+            if (!sign.freeAccess)
+                return true;
+
+            return false;
         }
 
         #endregion
@@ -303,6 +315,7 @@ namespace SignCommands
                         {
                             e.Handled = true;
                             TShock.Players[e.Msg.whoAmI].SendData(PacketTypes.SignNew, "", id);
+                            TShock.Players[e.Msg.whoAmI].SendErrorMessage("This sign is protected from modifications");
                         }
                     }
                         break;

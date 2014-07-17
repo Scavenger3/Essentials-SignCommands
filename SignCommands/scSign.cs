@@ -18,8 +18,12 @@ namespace SignCommands
         private readonly Dictionary<string, int> _mobs = new Dictionary<string, int>();
         public readonly Dictionary<List<string>, SignCommand> commands = new Dictionary<List<string>, SignCommand>(); 
         public bool freeAccess;
+        public bool noEdit;
+        public bool noRead;
         private bool _confirm;
         private Point _point;
+
+        public string requiredPermission = string.Empty;
 
         public ScSign(string text, TSPlayer registrar, Point point)
         {
@@ -130,6 +134,23 @@ namespace SignCommands
                     continue;
                 }
 
+                if (cmdName == "no-read")
+                {
+                    noRead = true;
+                    continue;
+                }
+
+                if (cmdName == "no-edit")
+                {
+                    noEdit = true;
+                }
+
+                if (cmdName == "require-perm" || cmdName == "rperm")
+                {
+                    requiredPermission = args[1];
+                    continue;
+                }
+
                 if (cmdName == "cd" || cmdName == "cooldown")
                 {
                     ParseSignCd(args);
@@ -152,13 +173,13 @@ namespace SignCommands
 
                 if (cmdName == "spawnmob" || cmdName == "sm")
                 {
-                    ParseSpawnMob(args);
+                    ParseSpawnMob(args, ply);
                     continue;
                 }
 
                 if (cmdName == "spawnboss" || cmdName == "sb")
                 {
-                    ParseSpawnBoss(args);
+                    ParseSpawnBoss(args, ply);
                     continue;
                 }
 
@@ -181,7 +202,10 @@ namespace SignCommands
 
         public void ExecuteCommands(ScPlayer sPly)
         {
-            if (!freeAccess && !CheckPermissions(sPly.TsPlayer))
+            var hasPerm = CheckPermissions(sPly.TsPlayer);
+            var overridePerm = CheckPermissionOverride(sPly.TsPlayer);
+
+            if (!freeAccess && !hasPerm && !overridePerm)
             {
                 if (sPly.AlertPermissionCooldown == 0)
                 {
@@ -209,7 +233,7 @@ namespace SignCommands
                 return;
             }
 
-            if (_groups.Count > 0 && !_groups.Contains(sPly.TsPlayer.Group.Name))
+            if (_groups.Count > 0 && !_groups.Contains(sPly.TsPlayer.Group.Name) && !overridePerm)
             {
                 if (sPly.AlertPermissionCooldown == 0)
                 {
@@ -219,7 +243,7 @@ namespace SignCommands
                 return;
             }
 
-            if (_users.Count > 0 && !_users.Contains(sPly.TsPlayer.UserAccountName))
+            if (_users.Count > 0 && !_users.Contains(sPly.TsPlayer.UserAccountName) && !overridePerm)
             {
                 if (sPly.AlertPermissionCooldown == 0)
                 {
@@ -231,7 +255,7 @@ namespace SignCommands
 
             if (_mobs.Count > 0)
             {
-                if (!sPly.TsPlayer.Group.HasPermission(Permissions.spawnmob))
+                if (!sPly.TsPlayer.Group.HasPermission(Permissions.spawnmob) && !overridePerm)
                 {
                     if (sPly.AlertPermissionCooldown == 0)
                     {
@@ -246,7 +270,7 @@ namespace SignCommands
 
             if (_bosses.Count > 0)
             {
-                if (!sPly.TsPlayer.Group.HasPermission(Permissions.spawnboss))
+                if (!sPly.TsPlayer.Group.HasPermission(Permissions.spawnboss) && !overridePerm)
                 {
                     if (sPly.AlertPermissionCooldown == 0)
                     {
@@ -291,34 +315,59 @@ namespace SignCommands
             return commands.Values.All(command => command.CanRun(player));
         }
 
-        private void ParseSpawnMob(IEnumerable<string> args)
+        private bool CheckPermissionOverride(TSPlayer player)
+        {
+            if (player.Group.HasPermission(requiredPermission))
+                return true;
+            return false;
+        }
+
+        private void ParseSpawnMob(IEnumerable<string> args, TSPlayer player)
         {
             //>sm "blue slime":10 zombie:100
-            foreach (var obj in args)
+            var list = new List<string>(args);
+            list.RemoveAt(0);
+            foreach (var obj in list)
             {
-                var mob = obj.Split(':')[0];
-                var num = obj.Split(':')[1];
+                try
+                {
+                    var mob = obj.Split(':')[0];
+                    var num = obj.Split(':')[1];
 
-                int spawnCount;
-                if (!int.TryParse(num, out spawnCount))
-                    continue;
+                    int spawnCount;
+                    if (!int.TryParse(num, out spawnCount))
+                        continue;
 
-                _mobs.Add(mob, spawnCount);
+                    _mobs.Add(mob, spawnCount);
+                }
+                catch
+                {
+                    player.SendErrorMessage("Invalid naming format. Format: \"mobname:spawncount\"");
+                }
             }
         }
 
-        private void ParseSpawnBoss(IEnumerable<string> args)
+        private void ParseSpawnBoss(IEnumerable<string> args, TSPlayer player)
         {
-            foreach (var obj in args)
+            var list = new List<string>(args);
+            list.RemoveAt(0);
+            foreach (var obj in list)
             {
-                var boss = obj.Split(':')[0];
-                var num = obj.Split(':')[1];
+                try
+                {
+                    var boss = obj.Split(':')[0];
+                    var num = obj.Split(':')[1];
 
-                int spawnCount;
-                if (!int.TryParse(num, out spawnCount))
-                    continue;
+                    int spawnCount;
+                    if (!int.TryParse(num, out spawnCount))
+                        continue;
 
-                _bosses.Add(boss, spawnCount);
+                    _bosses.Add(boss, spawnCount);
+                }
+                catch
+                {
+                    player.SendErrorMessage("Invalid naming format. Format: \"bossname:spawncount\"");
+                }
             }
         }
 
@@ -433,13 +482,13 @@ namespace SignCommands
                         }
 
                         bossList.Add("all bosses (" + pair.Value + ")");
-                        return;
+                        break;
                     case "brain":
                     case "brain of cthulhu":
                         npc.SetDefaults(266);
                         TSPlayer.Server.SpawnNPC(npc.type, npc.name, pair.Value, _point.X, _point.Y);
                         bossList.Add(npc.name + " (" + pair.Value + ")");
-                        return;
+                        break;
                     case "destroyer":
                         npc.SetDefaults(134);
                         TSPlayer.Server.SetTime(false, 0.0);
@@ -452,44 +501,44 @@ namespace SignCommands
                         npc.SetDefaults(370);
                         TSPlayer.Server.SpawnNPC(npc.type, npc.name, pair.Value, _point.X, _point.Y);
                         bossList.Add(npc.name + " (" + pair.Value + ")");
-                        return;
+                        break;
                     case "eater":
                     case "eater of worlds":
                         npc.SetDefaults(13);
                         TSPlayer.Server.SpawnNPC(npc.type, npc.name, pair.Value, _point.X, _point.Y);
                         bossList.Add(npc.name + " (" + pair.Value + ")");
-                        return;
+                        break;
                     case "eye":
                     case "eye of cthulhu":
                         npc.SetDefaults(4);
                         TSPlayer.Server.SetTime(false, 0.0);
                         TSPlayer.Server.SpawnNPC(npc.type, npc.name, pair.Value, _point.X, _point.Y);
                         bossList.Add(npc.name + " (" + pair.Value + ")");
-                        return;
+                        break;
                     case "golem":
                         npc.SetDefaults(245);
                         TSPlayer.Server.SetTime(false, 0.0);
                         TSPlayer.Server.SpawnNPC(npc.type, npc.name, pair.Value, _point.X, _point.Y);
                         bossList.Add(npc.name + " (" + pair.Value + ")");
-                        return;
+                        break;
                     case "king":
                     case "king slime":
                         npc.SetDefaults(50);
                         TSPlayer.Server.SpawnNPC(npc.type, npc.name, pair.Value, _point.X, _point.Y);
                         bossList.Add(npc.name + " (" + pair.Value + ")");
-                        return;
+                        break;
                     case "plantera":
                         npc.SetDefaults(262);
                         TSPlayer.Server.SpawnNPC(npc.type, npc.name, pair.Value, _point.X, _point.Y);
                         bossList.Add(npc.name + " (" + pair.Value + ")");
-                        return;
+                        break;
                     case "prime":
                     case "skeletron prime":
                         npc.SetDefaults(127);
                         TSPlayer.Server.SetTime(false, 0.0);
                         TSPlayer.Server.SpawnNPC(npc.type, npc.name, pair.Value, _point.X, _point.Y);
                         bossList.Add(npc.name + " (" + pair.Value + ")");
-                        return;
+                        break;
                     case "queen":
                     case "queen bee":
                         npc.SetDefaults(222);
@@ -502,7 +551,7 @@ namespace SignCommands
                         TSPlayer.Server.SetTime(false, 0.0);
                         TSPlayer.Server.SpawnNPC(npc.type, npc.name, pair.Value, _point.X, _point.Y);
                         bossList.Add(npc.name + " (" + pair.Value + ")");
-                        return;
+                        break;
                     case "twins":
                         TSPlayer.Server.SetTime(false, 0.0);
                         npc.SetDefaults(125);
@@ -510,18 +559,16 @@ namespace SignCommands
                         npc.SetDefaults(126);
                         TSPlayer.Server.SpawnNPC(npc.type, npc.name, pair.Value, _point.X, _point.Y);
                         bossList.Add("the Twins " + " (" + pair.Value + ")");
-                        return;
+                        break;
                     case "wof":
                     case "wall of flesh":
                         if (Main.wof >= 0)
                             return;
                         if (_point.Y/16f < Main.maxTilesY - 205)
-                            return;
+                            break;
                         NPC.SpawnWOF(new Vector2(_point.X, _point.Y));
                         bossList.Add("the Wall of Flesh " + " (" + pair.Value + ")");
-                        return;
-                    default:
-                        return;
+                        break;
                 }
             }
 

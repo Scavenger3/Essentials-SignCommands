@@ -8,13 +8,17 @@ namespace SignCommands
     {
         public static bool CanCreate(TSPlayer player, ScSign sign)
         {
+            if (player.Group.HasPermission(sign.requiredPermission))
+                return true;
             var fails = sign.commands.Count(cmd => !cmd.Value.CanRun(player));
 
             return fails != sign.commands.Values.Count;
         }
 
-        public static bool CanBreak(TSPlayer player)
+        public static bool CanBreak(TSPlayer player, ScSign sign)
         {
+            if (player.Group.HasPermission(sign.requiredPermission))
+                return true;
             if (!player.Group.HasPermission("essentials.signs.break"))
                 return false;
             return true;
