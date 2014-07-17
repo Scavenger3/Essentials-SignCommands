@@ -109,7 +109,6 @@ namespace Essentials
                 new List<string> { "essentials.nick.set", "essentials.nick.setother" }, CmdNick, "nick"));
 
 			Commands.ChatCommands.Add(new Command("essentials.realname", CmdRealName, "realname"));
-			Commands.ChatCommands.Add(new Command("essentials.exacttime", CmdExactTime, "etime", "exacttime"));
 			Commands.ChatCommands.Add(new Command("essentials.forcelogin", CmdForceLogin, "forcelogin"));
 			Commands.ChatCommands.Add(new Command("essentials.inventory.see", CmdInvSee, "invsee"));
 			Commands.ChatCommands.Add(new Command("essentials.whois", CmdWhoIs, "whois"));
@@ -673,7 +672,7 @@ namespace Essentials
 		}
 		#endregion
 
-		#region Seach IDs
+		#region Search IDs
 		private void CmdPageSearch(CommandArgs args)
 		{
 			if (args.Parameters.Count != 1)
@@ -1804,82 +1803,6 @@ namespace Essentials
 		}
 		#endregion
 
-		#region Exact Time
-		private void CmdExactTime(CommandArgs args)
-		{
-			if (args.Parameters.Count != 1 || !args.Parameters[0].Contains(':'))
-			{
-				args.Player.SendErrorMessage("Usage: /etime <hours>:<minutes>");
-				return;
-			}
-
-			var split = args.Parameters[0].Split(':');
-			var sHours = split[0];
-			var sMinutes = split[1];
-
-			var pm = false;
-		    int hours;
-		    int minutes;
-			if (!int.TryParse(sHours, out hours) || !int.TryParse(sMinutes, out minutes))
-			{
-				args.Player.SendErrorMessage("Usage: /etime <hours>:<minutes>");
-				return;
-			}
-			if (hours < 0 || hours > 24)
-			{
-				args.Player.SendErrorMessage("Hours is out of range.");
-				return;
-			}
-			if (minutes < 0 || minutes > 59)
-			{
-				args.Player.SendErrorMessage("Minutes is out of range.");
-				return;
-			}
-
-			var tfHour = hours;
-
-			if (tfHour == 24 || tfHour == 0)
-			{
-				hours = 12;
-			}
-			if (tfHour >= 12 && tfHour < 24)
-			{
-				pm = true;
-				if (hours > 12)
-					hours -= 12;
-			}
-
-			var hour = hours;
-
-			hours = tfHour;
-			if (hours == 24)
-				hours = 0;
-
-			var timeMinutes = minutes / 60.0;
-			var mainTime = timeMinutes + hours;
-
-			if (mainTime >= 4.5 && mainTime < 24)
-				mainTime -= 24.0;
-
-			mainTime = mainTime + 19.5;
-			mainTime = mainTime / 24.0 * 86400.0;
-
-		    var day = 
-                (!pm && ((hour > 4 || (hour == 4 && minutes >= 30))) && hour < 12) ||
-                (pm && ((hour < 7 || (hour == 7 && minutes < 30)) || hour == 12));
-
-		    if (!day)
-				mainTime -= 54000.0;
-
-			TSPlayer.Server.SetTime(day, mainTime);
-
-			var min = minutes.ToString(CultureInfo.InvariantCulture);
-			if (minutes < 10)
-				min = "0" + minutes;
-			TSPlayer.All.SendSuccessMessage("{0} set time to {1}:{2} {3}.", args.Player.Name, hour, min, pm ? "PM" : "AM");
-		}
-		#endregion
-
 		#region Force Login
 		private void CmdForceLogin(CommandArgs args)
 		{
@@ -1929,7 +1852,7 @@ namespace Essentials
 		#region Invsee
 		private void CmdInvSee(CommandArgs args)
 		{
-			if (!TShock.Config.ServerSideCharacter)
+			if (!Main.ServerSideCharacter)
 			{
 				args.Player.SendErrorMessage("Server Side Character must be enabled.");
 				return;
