@@ -125,7 +125,12 @@ namespace SignCommands
 				switch (cmdName)
 				{
 					case "no-perm":
-						freeAccess = true;
+				        if (!ply.Group.HasPermission("essentials.signs.negateperms"))
+				        {
+				            ply.SendErrorMessage("You do not have permission to create that sign command.");
+				            continue;
+				        }
+				        freeAccess = true;
 						continue;
 					case "confirm":
 						_confirm = true;
@@ -145,17 +150,37 @@ namespace SignCommands
 						ParseSignCd(args);
 						continue;
 					case "allowg":
+				        if (!ply.Group.HasPermission("essentials.signs.allowgroups"))
+                        {
+                            ply.SendErrorMessage("You do not have permission to create that sign command.");
+                            continue;
+                        }
 						ParseGroups(args);
 						continue;
-					case "allowu":
+                    case "allowu": 
+                        if (!ply.Group.HasPermission("essentials.signs.allowusers"))
+                        {
+                            ply.SendErrorMessage("You do not have permission to create that sign command.");
+                            continue;
+                        }
 						ParseUsers(args);
 						continue;
 					case "spawnmob":
 					case "sm":
-						ParseSpawnMob(args, ply);
+				        if (!ply.Group.HasPermission(Permissions.spawnmob))
+                        {
+                            ply.SendErrorMessage("You do not have permission to create that sign command.");
+				            continue;
+				        }
+				        ParseSpawnMob(args, ply);
 						continue;
 					case "spawnboss":
-					case "sb":
+                    case "sb":
+                        if (!ply.Group.HasPermission(Permissions.spawnboss))
+                        {
+                            ply.SendErrorMessage("You do not have permission to create that sign command.");
+                            continue;
+                        }
 						ParseSpawnBoss(args, ply);
 						continue;
 				}
@@ -264,49 +289,66 @@ namespace SignCommands
 
 		#region CheckPermissions
 
-		public bool CheckPermissions(TSPlayer player)
+        public bool CheckPermissions(TSPlayer player)
         {
-			if (player == null) return false;
+            if (player == null) return false;
 
-			var sPly = SignCommands.ScPlayers[player.Index];
-			if (sPly == null)
-			{ 
-				Log.ConsoleError("An error occured while executing a sign command."
-					+ "TSPlayer {0} at index {1} does not exist as an ScPlayer",
-					player.Name, player.Index);
-				player.SendErrorMessage("An error occured. Please try again");
-				return false;
-			}
+            var sPly = SignCommands.ScPlayers[player.Index];
+            if (sPly == null)
+            {
+                Log.ConsoleError("An error occured while executing a sign command."
+                                 + "TSPlayer {0} at index {1} does not exist as an ScPlayer",
+                    player.Name, player.Index);
+                player.SendErrorMessage("An error occured. Please try again");
+                return false;
+            }
 
-			if (freeAccess) return true;
+            if (freeAccess) return true;
 
-			if (!string.IsNullOrEmpty(requiredPermission))
-				if (player.Group.HasPermission(requiredPermission))
-					return true;
-				else
-				{
-					if (sPly.AlertPermissionCooldown == 0)
-					{
-						player.SendErrorMessage("You do not have the required permission to use this sign.");
-						sPly.AlertPermissionCooldown = 3;
-					}
-					return false;
-				}
+            if (!string.IsNullOrEmpty(requiredPermission))
+                if (player.Group.HasPermission(requiredPermission))
+                    return true;
+                else
+                {
+                    if (sPly.AlertPermissionCooldown == 0)
+                    {
+                        player.SendErrorMessage("You do not have the required permission to use this sign.");
+                        sPly.AlertPermissionCooldown = 3;
+                    }
+                    return false;
+                }
 
-			if (commands.Values.All(command => command.CanRun(player)))
-				return true;
-			else
-			{
-				if (sPly.AlertPermissionCooldown == 0)
-				{
-					player.SendErrorMessage("You do not have access to the commands on this sign.");
-					sPly.AlertPermissionCooldown = 3;
-				}
-				return false;
-			}
+            if (_mobs.Count > 0 && !player.Group.HasPermission(Permissions.spawnmob))
+            {
+                if (sPly.AlertPermissionCooldown == 0)
+                {
+                    player.SendErrorMessage("You do not have the required permission to use this sign.");
+                    sPly.AlertPermissionCooldown = 3;
+                }
+                return false;
+            }
+            if (_bosses.Count > 0 && !player.Group.HasPermission(Permissions.spawnboss))
+            {
+                if (sPly.AlertPermissionCooldown == 0)
+                {
+                    player.SendErrorMessage("You do not have the required permission to use this sign.");
+                    sPly.AlertPermissionCooldown = 3;
+                }
+                return false;
+            }
+
+            if (commands.Values.All(command => command.CanRun(player)))
+                return true;
+
+            if (sPly.AlertPermissionCooldown == 0)
+            {
+                player.SendErrorMessage("You do not have access to the commands on this sign.");
+                sPly.AlertPermissionCooldown = 3;
+            }
+            return false;
         }
 
-		#endregion
+        #endregion
 
 		private void ParseSpawnMob(IEnumerable<string> args, TSPlayer player)
         {
