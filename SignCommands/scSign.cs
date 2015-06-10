@@ -240,7 +240,7 @@ namespace SignCommands
                 return;
             }
 
-            if (_users.Count > 0 && !_users.Contains(sPly.TsPlayer.UserAccountName))
+            if (_users.Count > 0 && !_users.Contains(sPly.TsPlayer.User.Name))
             {
                 if (sPly.AlertPermissionCooldown == 0)
                 {
@@ -296,7 +296,7 @@ namespace SignCommands
             var sPly = SignCommands.ScPlayers[player.Index];
             if (sPly == null)
             {
-                Log.ConsoleError("An error occured while executing a sign command."
+                TShock.Log.ConsoleError("An error occured while executing a sign command."
                                  + "TSPlayer {0} at index {1} does not exist as an ScPlayer",
                     player.Name, player.Index);
                 player.SendErrorMessage("An error occured. Please try again");

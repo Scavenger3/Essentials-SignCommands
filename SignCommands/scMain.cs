@@ -10,7 +10,7 @@ using TShockAPI;
 namespace SignCommands
 {
 	//TODO: Add infinite signs support & Global cooldowns
-	[ApiVersion(1, 16)]
+	[ApiVersion(1, 17)]
 	public class SignCommands : TerrariaPlugin
 	{
 		public override string Name
