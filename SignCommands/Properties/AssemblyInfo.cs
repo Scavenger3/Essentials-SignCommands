@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Scavenger")]
 [assembly: AssemblyProduct("SignCommands")]
-[assembly: AssemblyCopyright("Copyright \u00A9 Scavenger 2013")]
+[assembly: AssemblyCopyright("Copyright \u00A9 Scavenger 2014")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

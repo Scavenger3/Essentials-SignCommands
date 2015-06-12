@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using Mono.Data.Sqlite;
@@ -9,12 +8,12 @@ using TShockAPI.DB;
 
 namespace Essentials
 {
-	public class esSQL
+	public class EsSql
 	{
-		private static IDbConnection db;
+		private static IDbConnection _db;
 
 		#region Setup Database
-		public static void SetupDB()
+		public static void SetupDb()
 		{
 			if (File.Exists(Path.Combine(TShock.SavePath, "Essentials", "Essentials.db")) && !File.Exists(Path.Combine(TShock.SavePath, "Essentials", "Essentials.sqlite")))
 			{
@@ -23,8 +22,8 @@ namespace Essentials
 			switch (TShock.Config.StorageType.ToLower())
 			{
 				case "mysql":
-					string[] host = TShock.Config.MySqlHost.Split(':');
-					db = new MySqlConnection()
+					var host = TShock.Config.MySqlHost.Split(':');
+					_db = new MySqlConnection
 					{
 						ConnectionString = string.Format("Server={0}; Port={1}; Database={2}; Uid={3}; Pwd={4};",
 						host[0],
@@ -35,12 +34,12 @@ namespace Essentials
 					};
 					break;
 				case "sqlite":
-					string sql = Path.Combine(TShock.SavePath, "Essentials", "Essentials.sqlite");
-					db = new SqliteConnection(string.Format("uri=file://{0},Version=3", sql));
+					var sql = Path.Combine(TShock.SavePath, "Essentials", "Essentials.sqlite");
+					_db = new SqliteConnection(string.Format("uri=file://{0},Version=3", sql));
 					break;
 			}
-			SqlTableCreator sqlcreator = new SqlTableCreator(db,
-				db.GetSqlType() == SqlType.Sqlite
+			var sqlcreator = new SqlTableCreator(_db,
+				_db.GetSqlType() == SqlType.Sqlite
 				? (IQueryBuilder)new SqliteQueryCreator()
 				: new MysqlQueryCreator());
 			sqlcreator.EnsureExists(new SqlTable("Homes",
@@ -56,138 +55,115 @@ namespace Essentials
 		#endregion
 
 		#region List home names
-		public static List<string> GetNames(int UserID, int WorldID)
+		public static List<string> GetNames(int userId, int worldId)
 		{
-			String query = "SELECT Name FROM Homes WHERE UserID=@0 AND WorldID=@1;";
-			List<string> names = new List<string>();
+			const string query = "SELECT Name FROM Homes WHERE UserID=@0 AND WorldID=@1;";
+			var names = new List<string>();
 
-			using (var reader = db.QueryReader(query, UserID, WorldID))
+			using (var reader = _db.QueryReader(query, userId, worldId))
 			{
 				while (reader.Read())
-				{
 					names.Add(reader.Get<string>("Name"));
-				}
 			}
 			return names;
 		}
 		#endregion
 
 		#region Add Home
-		public static bool AddHome(int UserID, int HomeX, int HomeY, string Name, int WorldID)
+		public static bool AddHome(int userId, int homeX, int homeY, string name, int worldId)
 		{
-			String query = "INSERT INTO Homes (UserID, HomeX, HomeY, Name, WorldID) VALUES (@0, @1, @2, @3, @4);";
+			const string query = "INSERT INTO Homes (UserID, HomeX, HomeY, Name, WorldID) VALUES (@0, @1, @2, @3, @4);";
 
-			if (db.Query(query, UserID, HomeX, HomeY, Name, WorldID) != 1)
-			{
-				Log.ConsoleError("[EssentialsDB] Creating a user's MyHome has faild");
-				return false;
-			}
-			return true;
+		    if (_db.Query(query, userId, homeX, homeY, name, worldId) == 1) return true;
+		    Log.ConsoleError("[EssentialsDB] Creating a user's MyHome has failed");
+		    return false;
 		}
 		#endregion
 
 		#region Update Home
-		public static bool UpdateHome(int HomeX, int HomeY, int UserID, string Name, int WorldID)
+		public static bool UpdateHome(int homeX, int homeY, int userId, string name, int worldId)
 		{
-			String query = "UPDATE Homes SET HomeX=@0, HomeY=@1 WHERE UserID=@2 AND Name=@3 AND WorldID=@4;";
+			const string query = "UPDATE Homes SET HomeX=@0, HomeY=@1 WHERE UserID=@2 AND Name=@3 AND WorldID=@4;";
 
-			if (db.Query(query, HomeX, HomeY, UserID, Name, WorldID) != 1)
-			{
-				Log.ConsoleError("[EssentialsDB] Updating a user's MyHome has failed!");
-				return false;
-			}
-			return true;
+		    if (_db.Query(query, homeX, homeY, userId, name, worldId) == 1) return true;
+		    Log.ConsoleError("[EssentialsDB] Updating a user's MyHome has failed!");
+		    return false;
 		}
 		#endregion
 
 		#region Remove Home
-		public static bool RemoveHome(int UserID, string Name, int WorldID)
+		public static bool RemoveHome(int userId, string name, int worldId)
 		{
-			String query = "DELETE FROM Homes WHERE UserID=@0 AND Name=@1 AND WorldID=@2;";
+			const string query = "DELETE FROM Homes WHERE UserID=@0 AND Name=@1 AND WorldID=@2;";
 
-			if (db.Query(query, UserID, Name, WorldID) != 1)
-			{
-				Log.ConsoleError("[EssentialsDB] Removing a user's MyHome has faild");
-				return false;
-			}
-			return true;
+		    if (_db.Query(query, userId, name, worldId) == 1) return true;
+		    Log.ConsoleError("[EssentialsDB] Removing a user's MyHome has faild");
+		    return false;
 		}
 		#endregion
 
 		#region Get Home Position
-		public static Point GetHome(int UserID, string Name, int WorldID)
+		public static Point GetHome(int userId, string name, int worldId)
 		{
-			String query = "SELECT HomeX, HomeY FROM Homes WHERE UserID=@0 AND Name=@1 AND WorldID=@2;";
+			const string query = "SELECT HomeX, HomeY FROM Homes WHERE UserID=@0 AND Name=@1 AND WorldID=@2;";
 
-			using (var reader = db.QueryReader(query, UserID, Name, WorldID))
+			using (var reader = _db.QueryReader(query, userId, name, worldId))
 			{
 				if (reader.Read())
-				{
 					return new Point(reader.Get<int>("HomeX"), reader.Get<int>("HomeY"));
-				}
 			}
 			return Point.Zero;
 		}
 		#endregion
 
 		#region Get Nickname
-		public static bool GetNickname(string Name, out string Nickname)
+		public static bool GetNickname(string name, out string nickname)
 		{
-			String query = "SELECT Nickname FROM Nicknames WHERE Name=@0;";
-			Dictionary<string, string> names = new Dictionary<string, string>();
+			const string query = "SELECT Nickname FROM Nicknames WHERE Name=@0;";
 
-			using (var reader = db.QueryReader(query, Name))
+			using (var reader = _db.QueryReader(query, name))
 			{
 				if (reader.Read())
 				{
-					Nickname = reader.Get<string>("Nickname");
+					nickname = reader.Get<string>("Nickname");
 					return true;
 				}
 			}
-			Nickname = string.Empty;
+			nickname = string.Empty;
 			return false;
 		}
 		#endregion
 
 		#region Add Nickname
-		public static bool AddNickname(string Name, string Nickname)
+		public static bool AddNickname(string name, string nickname)
 		{
-			String query = "INSERT INTO Nicknames (Name, Nickname) VALUES (@0, @1);";
+	        const string query = "INSERT INTO Nicknames (Name, Nickname) VALUES (@0, @1);";
 
-			if (db.Query(query, Name, Nickname) != 1)
-			{
-				Log.ConsoleError("[EssentialsDB] Creating a user's Nickname has faild");
-				return false;
-			}
-			return true;
+		    if (_db.Query(query, name, nickname) == 1) return true;
+		    Log.ConsoleError("[EssentialsDB] Creating a user's Nickname has faild");
+		    return false;
 		}
 		#endregion
 
 		#region Update Nickname
-		public static bool UpdateNickname(string Name, string Nickname)
+		public static bool UpdateNickname(string name, string nickname)
 		{
-			String query = "UPDATE Nicknames SET Nickname=@0 WHERE Name=@1;";
+			const string query = "UPDATE Nicknames SET Nickname=@0 WHERE Name=@1;";
 
-			if (db.Query(query, Nickname, Name) != 1)
-			{
-				Log.ConsoleError("[EssentialsDB] Updating a user's Nickname has failed!");
-				return false;
-			}
-			return true;
+		    if (_db.Query(query, nickname, name) == 1) return true;
+		    Log.ConsoleError("[EssentialsDB] Updating a user's Nickname has failed!");
+		    return false;
 		}
 		#endregion
 
 		#region Remove Nickname
-		public static bool RemoveNickname(string Name)
+		public static bool RemoveNickname(string name)
 		{
-			String query = "DELETE FROM Nicknames WHERE Name=@0;";
+			const string query = "DELETE FROM Nicknames WHERE Name=@0;";
 
-			if (db.Query(query, Name) != 1)
-			{
-				Log.ConsoleError("[EssentialsDB] Removing a user's Nickname has faild");
-				return false;
-			}
-			return true;
+		    if (_db.Query(query, name) == 1) return true;
+		    Log.ConsoleError("[EssentialsDB] Removing a user's Nickname has faild");
+		    return false;
 		}
 		#endregion
 	}

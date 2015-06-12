@@ -1,12 +1,10 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using Newtonsoft.Json;
 using System.Collections.Generic;
-using TShockAPI;
 
 namespace Essentials
 {
-	public class esConfig
+	public class EsConfig
 	{
 		public bool ShowBackMessageOnDeath = true;
 		public string PrefixNicknamesWith = "~";
@@ -25,73 +23,16 @@ namespace Essentials
 		public List<string> DisableSetHomeInRegions = new List<string>();
 		public int BackCooldown = 0;
 
-		public static string ConfigPath = string.Empty;
-		public esConfig Write(string path)
-		{
-			File.WriteAllText(path, JsonConvert.SerializeObject(this, Formatting.Indented));
-			return this;
-		}
-		public static esConfig Read(string path)
-		{
-			if (!File.Exists(path))
-			{
-				WriteExample(path);
-			}
-			return JsonConvert.DeserializeObject<esConfig>(File.ReadAllText(path));
-		}
-		public static void WriteExample(string path)
-		{
-			File.WriteAllText(path, @"{
-  ""ShowBackMessageOnDeath"": true,
-  ""PrefixNicknamesWith"": ""~"",
-  ""LockRedTeam"": false,
-  ""RedTeamPassword"": """",
-  ""RedTeamPermission"": ""essentials.team.red"",
-  ""LockGreenTeam"": false,
-  ""GreenTeamPassword"": """",
-  ""GreenTeamPermission"": ""essentials.team.green"",
-  ""LockBlueTeam"": false,
-  ""BlueTeamPassword"": """",
-  ""BlueTeamPermission"": ""essentials.team.blue"",
-  ""LockYellowTeam"": false,
-  ""YellowTeamPassword"": """",
-  ""YellowTeamPermission"": ""essentials.team.yellow"",
-  ""DisableSetHomeInRegions"": [
-    ""example""
-  ],
-  ""BackCooldown"": 0
-}");
-		}
+        public void Write(string path)
+        {
+            File.WriteAllText(path, JsonConvert.SerializeObject(this, Formatting.Indented));
+        }
 
-		public static void LoadConfig()
-		{
-			try
-			{
-				ConfigPath = Path.Combine(Essentials.SavePath, "EssentialsConfig.json");
-				Essentials.Config = esConfig.Read(ConfigPath).Write(ConfigPath);
-			}
-			catch (Exception ex)
-			{
-				Log.ConsoleError("[Essentials] Config Exception. Check logs for more details.");
-				Log.Error(ex.ToString());
-			}
-		}
-		public static void ReloadConfig(CommandArgs args)
-		{
-			try
-			{
-				if (!Directory.Exists(Essentials.SavePath))
-				{
-					Directory.CreateDirectory(Essentials.SavePath);
-				}
-				Essentials.Config = esConfig.Read(ConfigPath).Write(ConfigPath);
-				args.Player.SendSuccessMessage("[Essentials] Config reloaded successfully.");
-			}
-			catch (Exception ex)
-			{
-				args.Player.SendSuccessMessage("[Essnetials] Reload failed. Check logs for more details.");
-				Log.Error(string.Concat("[Essentials] Config Exception:\n", ex.ToString()));
-			}
-		}
+        public static EsConfig Read(string path)
+        {
+            return !File.Exists(path)
+                ? new EsConfig() 
+                : JsonConvert.DeserializeObject<EsConfig>(File.ReadAllText(path));
+        }
 	}
 }

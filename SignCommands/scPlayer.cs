@@ -1,27 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using TShockAPI;
+﻿using TShockAPI;
 
 namespace SignCommands
 {
-	public class scPlayer
+	public class ScPlayer
 	{
 		public int Index { get; set; }
-		public TSPlayer TSPlayer { get { return TShock.Players[Index]; } }
-		public Dictionary<string, DateTime> Cooldowns { get; set; }
+		public TSPlayer TsPlayer { get { return TShock.Players[Index]; } }
+	    public ScSign confirmSign;
 		public bool DestroyMode { get; set; }
 		public int AlertCooldownCooldown { get; set; }
 		public int AlertPermissionCooldown { get; set; }
 		public int AlertDestroyCooldown { get; set; }
 
-		public scPlayer(int index)
+		public ScPlayer(int index)
 		{
-			this.Index = index;
-			this.Cooldowns = new Dictionary<string, DateTime>();
-			this.DestroyMode = false;
-			this.AlertDestroyCooldown = 0;
-			this.AlertPermissionCooldown = 0;
-			this.AlertCooldownCooldown = 0;
+			Index = index;
+			DestroyMode = false;
+			AlertDestroyCooldown = 0;
+			AlertPermissionCooldown = 0;
+			AlertCooldownCooldown = 0;
 		}
 	}
 }
